@@ -299,7 +299,12 @@ def create_learning_path_generator(chat_model, retriever):
         {
             "profile": RunnablePassthrough(),
             "test_results": RunnablePassthrough(),
-            "context": retriever | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            # 先抽出 mapping 裡的 context 字串，再交給 retriever 做檢索，最後把多個 chunk 合併
+            "context": (
+                (lambda inputs: inputs["context"])
+                | retriever
+                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            )
         }
         | prompt
         | chat_model

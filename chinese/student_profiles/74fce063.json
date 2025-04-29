@@ -48,6 +48,13 @@
             "score": "4/5",
             "percentage": 80.0,
             "knowledge_level": "\u9ad8\u7d1a"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:05:39.885328",
+            "score": "5/5",
+            "percentage": 100.0,
+            "knowledge_level": "\u9ad8\u7d1a"
         }
     ]
 }
