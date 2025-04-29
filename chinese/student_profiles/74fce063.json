@@ -2,7 +2,7 @@
     "id": "74fce063",
     "name": "\u54e5\u5e03\u6797",
     "learning_style": "\u52d5\u89ba\u578b",
-    "current_knowledge_level": "\u4e2d\u7d1a",
+    "current_knowledge_level": "\u521d\u5b78\u8005",
     "strengths": [],
     "areas_for_improvement": [],
     "interests": [],
@@ -131,6 +131,13 @@
             "percentage": 60.0,
             "previous_level": "\u4e2d\u7d1a",
             "current_level": "\u4e2d\u7d1a"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T22:15:16.305457",
+            "score": "2/5",
+            "percentage": 40.0,
+            "knowledge_level": "\u521d\u5b78\u8005"
         }
     ]
 }

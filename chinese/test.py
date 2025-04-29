@@ -238,10 +238,16 @@ def create_pretest_generator(chat_model, retriever):
     json_parser = JsonOutputParser()
     
     pretest_chain = (
-        {"context": retriever | (lambda docs: "\n\n".join([d.page_content for d in docs]))}
+        {
+            "context": (
+                (lambda inputs: inputs["context"])
+                | retriever
+                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            )
+        }
         | prompt
         | chat_model
-        | StrOutputParser()
+        | JsonOutputParser()
     )
     
     return pretest_chain
@@ -249,14 +255,12 @@ def create_pretest_generator(chat_model, retriever):
 def create_learning_path_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是一位專精於個人化學習路徑設計的教育課程設計專家。
-        根據提供的學生檔案、測驗結果和內容，創建一條個人化的學習路徑。
+        根據提供的學生檔案、測驗結果和內容，創建一條適合他自學的學習路徑。
         
         您的學習路徑應該：
         1. 針對學生的學習風格、知識水平和興趣進行量身定制
         2. 包含清晰的學習目標
-        3. 將內容分解為邏輯模組，並估算所需時間
-        4. 包括適合學生學習風格的練習活動和資源
-        5. 遵循鷹架原則，逐步增加難度並減少支持
+        3. 遵循鷹架原則，逐步增加難度並減少支持
         
         您的回應必須遵循以下精確的 JSON 格式：
         {
@@ -411,9 +415,9 @@ def create_posttest_generator(chat_model, retriever):
         }
         | prompt
         | chat_model
-        | StrOutputParser()
+        | JsonOutputParser()
     )
-    1
+    
     
     return posttest_chain
 
@@ -478,7 +482,7 @@ def create_learning_log_analyzer(chat_model):
         """)
     ])
     
-    learning_log_analysis_chain = prompt | chat_model | StrOutputParser()
+    learning_log_analysis_chain = prompt | chat_model | JsonOutputParser()
     
     return learning_log_analysis_chain
 
@@ -604,34 +608,11 @@ def administer_pretest(chat_model, retriever, student_profile):
     console.print("[yellow]根據內容生成前測...[/yellow]")
     
     pretest_chain = create_pretest_generator(chat_model, retriever)
-    pretest_json = pretest_chain.invoke("")
-    
-    try:
-        pretest = json.loads(pretest_json)
-    except json.JSONDecodeError:
-        console.print("[bold red]解析前測 JSON 時出錯。使用備用方法。[bold red]")
-        # 如果 JSON 被其他文字包圍，提取 JSON
-        import re
-        json_match = re.search(r'({[\s\S]*})', pretest_json)
-        if json_match:
-            try:
-                pretest = json.loads(json_match.group(1))
-            except:
-                console.print("[bold red]無法解析前測 JSON。使用預設測驗。[bold red]")
-                pretest = {
-                    "title": "預設前測",
-                    "description": "由於解析問題，這是一個備用測驗。",
-                    "questions": [
-                        {
-                            "question": "RAG 在教育系統中的主要目的是什麼？",
-                            "choices": ["A. 生成隨機問題", "B. 檢索生成所需的相關資訊", 
-                                       "C. 取代教師", "D. 在學習過程中播放音樂"],
-                            "correct_answer": "B. 檢索生成所需的相關資訊",
-                            "explanation": "RAG（檢索增強生成）有助於準確的資訊檢索。",
-                            "difficulty": "中等"
-                        }
-                    ]
-                }
+    # 直接傳 mapping，並拿到 dict
+    pretest = pretest_chain.invoke({
+        "context": ""    # 或是替換成主題字串
+    })
+    # 如果 Parser 正常，pretest 就已經是個 dict 了
     
     console.print(f"\n[bold green]{pretest['title']}[/bold green]")
     console.print(f"[italic]{pretest['description']}[/italic]\n")
@@ -852,36 +833,12 @@ def administer_posttest(chat_model, retriever, module, student_profile):
     
     # 根據模組內容和學生水平生成後測問題
     posttest_chain = create_posttest_generator(chat_model, retriever)
-    posttest_json = posttest_chain.invoke({
+    # 直接傳 mapping，拿到 dict
+    posttest = posttest_chain.invoke({
         "knowledge_level": student_profile.current_knowledge_level,
         "context": module_topic
     })
-    
-    try:
-        posttest = json.loads(posttest_json)
-    except json.JSONDecodeError:
-        console.print("[bold red]解析後測 JSON 時出錯。使用備用方法。[bold red]")
-        # 如果 JSON 被其他文字包圍，提取 JSON
-        import re
-        json_match = re.search(r'({[\s\S]*})', posttest_json)
-        if json_match:
-            try:
-                posttest = json.loads(json_match.group(1))
-            except:
-                console.print("[bold red]無法解析後測 JSON。使用預設測驗。[bold red]")
-                posttest = {
-                    "title": f"後測: {module_topic}",
-                    "description": f"此測驗將評估您對 {module_topic} 的學習成果",
-                    "questions": [
-                        {
-                            "question": f"{module_topic} 的一個關鍵概念是什麼？",
-                            "choices": ["A. 選項 A", "B. 選項 B", "C. 選項 C", "D. 選項 D"],
-                            "correct_answer": "A. 選項 A",
-                            "explanation": "根據模組內容，這是正確答案。",
-                            "difficulty": "中等"
-                        }
-                    ]
-                }
+    # posttest["questions"] 直接使用，不再 json.loads
     
     console.print(f"\n[bold green]{posttest['title']}[/bold green]")
     console.print(f"[italic]{posttest['description']}[/italic]\n")
@@ -1003,15 +960,13 @@ def create_learning_log(chat_model, module, test_results, student_profile):
     
     # 分析學習日誌
     analyzer_chain = create_learning_log_analyzer(chat_model)
-    analysis_json = analyzer_chain.invoke({
+    analysis = analyzer_chain.invoke({
         "student_name": student_profile.name,
         "topic": module_topic,
         "log_content": log_content
     })
     
     try:
-        analysis = json.loads(analysis_json)
-        
         # 根據分析更新學生檔案
         if "strengths" in analysis:
             for strength in analysis["strengths"]:
@@ -1042,7 +997,7 @@ def create_learning_log(chat_model, module, test_results, student_profile):
         for step in analysis.get("recommended_next_steps", []):
             console.print(f"? {step}")
     
-    except (json.JSONDecodeError, KeyError):
+    except KeyError:
         console.print("[bold red]分析學習日誌時出錯。僅保存原始日誌。[bold red]")
     
     # 保存學習日誌
