@@ -312,7 +312,7 @@ def create_learning_path_generator(chat_model, retriever):
         }
         | prompt
         | chat_model
-        | StrOutputParser()
+        | JsonOutputParser()
     )
     
     return learning_path_chain
@@ -697,46 +697,13 @@ def generate_learning_path(chat_model, retriever, student_profile, pretest_resul
     })
     
     learning_path_chain = create_learning_path_generator(chat_model, retriever)
-    learning_path_json = learning_path_chain.invoke({
-    "profile": profile_formatted,
-    "test_results": test_results_formatted,
-    "context": ""
+    
+    learning_path = learning_path_chain.invoke({
+        "profile": profile_formatted,
+        "test_results": test_results_formatted,
+        "context": ""   
     })
     
-    try:
-        learning_path = json.loads(learning_path_json)
-    except json.JSONDecodeError:
-        console.print("[bold red]解析學習路徑 JSON 時出錯。使用備用方法。[bold red]")
-        # 如果 JSON 被其他文字包圍，提取 JSON
-        import re
-        json_match = re.search(r'({[\s\S]*})', learning_path_json)
-        if json_match:
-            try:
-                learning_path = json.loads(json_match.group(1))
-            except:
-                console.print("[bold red]無法解析學習路徑 JSON。使用預設路徑。[bold red]")
-                learning_path = {
-                    "title": f"針對 {student_profile.name} 的預設學習路徑",
-                    "description": f"此學習路徑針對 {student_profile.name} 的 {student_profile.learning_style} 學習風格和 {student_profile.current_knowledge_level} 知識水平進行量身定制",
-                    "objectives": ["學習核心概念", "建立實用技能", "準備評估"],
-                    "modules": [
-                        {
-                            "title": "模組 1: 核心概念介紹",
-                            "description": "該主題領域基本概念的概述",
-                            "activities": [
-                                {
-                                    "type": "閱讀",
-                                    "title": "核心概念介紹",
-                                    "description": "涵蓋基礎知識的閱讀材料",
-                                    "estimated_time": "20 分鐘",
-                                    "difficulty": student_profile.current_knowledge_level
-                                }
-                            ],
-                            "resources": ["主要課程材料"],
-                            "assessment": "基礎概念的簡短測驗"
-                        }
-                    ]
-                }
     
     # Display the learning path
     console.print(f"\n[bold green]{learning_path['title']}[/bold green]")
