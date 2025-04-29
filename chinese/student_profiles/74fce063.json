@@ -2,7 +2,7 @@
     "id": "74fce063",
     "name": "\u54e5\u5e03\u6797",
     "learning_style": "\u52d5\u89ba\u578b",
-    "current_knowledge_level": "\u9ad8\u7d1a",
+    "current_knowledge_level": "\u4e2d\u7d1a",
     "strengths": [],
     "areas_for_improvement": [],
     "interests": [],
@@ -55,6 +55,82 @@
             "score": "5/5",
             "percentage": 100.0,
             "knowledge_level": "\u9ad8\u7d1a"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:11:46.787923",
+            "score": "4/5",
+            "percentage": 80.0,
+            "knowledge_level": "\u9ad8\u7d1a"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:36:27.281016",
+            "score": "2/5",
+            "percentage": 40.0,
+            "knowledge_level": "\u521d\u5b78\u8005"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:40:55.563329",
+            "score": "2/5",
+            "percentage": 40.0,
+            "knowledge_level": "\u521d\u5b78\u8005"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:45:19.894318",
+            "score": "4/5",
+            "percentage": 80.0,
+            "knowledge_level": "\u9ad8\u7d1a"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:54:25.306496",
+            "score": "3/5",
+            "percentage": 60.0,
+            "knowledge_level": "\u4e2d\u7d1a"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T18:59:42.370253",
+            "score": "1/5",
+            "percentage": 20.0,
+            "knowledge_level": "\u521d\u5b78\u8005"
+        },
+        {
+            "activity_type": "\u524d\u6e2c",
+            "timestamp": "2025-04-29T19:05:31.083138",
+            "score": "3/5",
+            "percentage": 60.0,
+            "knowledge_level": "\u4e2d\u7d1a"
+        },
+        {
+            "activity_type": "\u5f8c\u6e2c",
+            "module": "\u6a21\u7d44 1\uff1a\u91d1\u878d\u9ad4\u7cfb\u5c0e\u8ad6",
+            "timestamp": "2025-04-29T19:07:02.889872",
+            "score": "3/5",
+            "percentage": 60.0,
+            "previous_level": "\u4e2d\u7d1a",
+            "current_level": "\u4e2d\u7d1a"
+        },
+        {
+            "activity_type": "\u5f8c\u6e2c",
+            "module": "\u6a21\u7d44 2\uff1a\u91d1\u878d\u5e02\u5834\u7684\u985e\u578b\u548c\u7279\u6027",
+            "timestamp": "2025-04-29T19:12:30.078384",
+            "score": "3/5",
+            "percentage": 60.0,
+            "previous_level": "\u4e2d\u7d1a",
+            "current_level": "\u4e2d\u7d1a"
+        },
+        {
+            "activity_type": "\u5f8c\u6e2c",
+            "module": "\u6a21\u7d44 3\uff1a\u91d1\u878d\u6574\u5408\u8207\u9280\u884c\u696d\u52d9\u7d9c\u5408\u5316",
+            "timestamp": "2025-04-29T20:27:41.475845",
+            "score": "3/5",
+            "percentage": 60.0,
+            "previous_level": "\u4e2d\u7d1a",
+            "current_level": "\u4e2d\u7d1a"
         }
     ]
 }

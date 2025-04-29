@@ -343,7 +343,12 @@ def create_peer_discussion_ai(chat_model, retriever):
         {
             "topic": RunnablePassthrough(),
             "message": RunnablePassthrough(),
-            "context": retriever | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            # 先取 inputs["context"]，再給 retriever，最後合併 chunks
+            "context": (
+                (lambda inputs: inputs["context"])
+                | retriever
+                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            )
         }
         | prompt
         | chat_model
@@ -398,12 +403,17 @@ def create_posttest_generator(chat_model, retriever):
     posttest_chain = (
         {
             "knowledge_level": RunnablePassthrough(),
-            "context": retriever | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            "context": (
+                (lambda inputs: inputs["context"])
+                | retriever
+                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            )
         }
         | prompt
         | chat_model
         | StrOutputParser()
     )
+    1
     
     return posttest_chain
 
@@ -543,7 +553,12 @@ def create_module_content_generator(chat_model, retriever):
             "module_topic": RunnablePassthrough(),
             "learning_style": RunnablePassthrough(),
             "knowledge_level": RunnablePassthrough(),
-            "context": retriever | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            # 先從 inputs 拿出 context 字串，再給 retriever 檢索，最後把 chunks 拼接
+            "context": (
+                (lambda inputs: inputs["context"])
+                | retriever
+                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+            )
         }
         | prompt
         | chat_model
@@ -777,11 +792,13 @@ def deliver_module_content(chat_model, retriever, student_profile, module):
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     
     content_chain = create_module_content_generator(chat_model, retriever)
-    content = content_chain.invoke(
-        module_topic,
-        student_profile.learning_style,
-        student_profile.current_knowledge_level
-    )
+    content = content_chain.invoke({
+        "module_topic": module_topic,
+        "learning_style": student_profile.learning_style,
+        "knowledge_level": student_profile.current_knowledge_level,
+        # 這裡給一個字串，讓 retriever 用來做相似度檢索
+        "context": ""  
+    })
     
     console.print(Markdown(content))
     
@@ -808,7 +825,12 @@ def engage_peer_discussion(chat_model, retriever, topic):
             console.print("\n[bold green]學習夥伴:[/bold green] 很棒的討論！如果您想稍後再聊，請告訴我。")
             break
         
-        response = discussion_chain.invoke(topic, user_message)
+        response = discussion_chain.invoke({
+            "topic": topic,
+            "message": user_message,
+            # 這裡給個字串（可以用 topic、也可以空字串）
+            "context": ""  
+        })
         console.print(f"\n[bold green]學習夥伴:[/bold green] {response}")
         
         conversation_history.append({"role": "user", "content": user_message})
@@ -830,7 +852,10 @@ def administer_posttest(chat_model, retriever, module, student_profile):
     
     # 根據模組內容和學生水平生成後測問題
     posttest_chain = create_posttest_generator(chat_model, retriever)
-    posttest_json = posttest_chain.invoke(student_profile.current_knowledge_level, module_topic)
+    posttest_json = posttest_chain.invoke({
+        "knowledge_level": student_profile.current_knowledge_level,
+        "context": module_topic
+    })
     
     try:
         posttest = json.loads(posttest_json)
