@@ -134,7 +134,7 @@ def initialize_rag_system(embedding):
         embedding=embedding,
         persist_directory="vectorstore"
     )
-    vectorstore.persist()
+    
     
     return vectorstore.as_retriever(search_kwargs={"k": 5})
 
