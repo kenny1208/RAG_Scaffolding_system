@@ -4,12 +4,13 @@
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import NLTKTextSplitter
-from langchain_community.vectorstores import Chroma
+#from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 import nltk
 import os
@@ -32,7 +33,6 @@ os.makedirs("student_profiles", exist_ok=True)
 os.makedirs("vectorstore", exist_ok=True)
 
 console = Console()
-# Download the required NLTK data
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
@@ -89,7 +89,7 @@ class LearningLog(BaseModel):
 def initialize_models():
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-pro-latest",
+        model="gemini-1.5-flash-latest",
         temperature=0.2
     )
     
@@ -110,7 +110,7 @@ def initialize_rag_system(embedding):
     
     # If not, create a new one from documents
     console.print("[yellow]Creating new vector store from documents...[/yellow]")
-    pdf_paths = glob("data/*.pdf")
+    pdf_paths = glob("chinese/data/*.pdf")
     
     if not pdf_paths:
         console.print("[bold red]No PDF documents found in data/ directory![/bold red]")
@@ -150,13 +150,29 @@ def manage_student_profile():
             profile_name = pathlib.Path(profile_path).stem
             console.print(f"{i}. {profile_name}")
         
-        choice = int(Prompt.ask("Enter your choice", choices=[str(i) for i in range(len(profiles) + 1)]))
+        choice = int(Prompt.ask(
+            "Enter your choice", 
+            choices=[str(i) for i in range(len(profiles) + 1)]
+        ))
         
         if choice == 0:
             return create_new_profile()
         else:
-            with open(profiles[choice-1], "r") as f:
-                return StudentProfile.parse_obj(json.load(f))
+            path = profiles[choice - 1]
+            # 如果檔案是空檔，或解析非 JSON，就重新建立
+            if os.path.getsize(path) == 0:
+                console.print("[red]Selected profile is empty, creating a new one...[/red]")
+                return create_new_profile()
+            
+            with open(path, "r", encoding="CP950") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    console.print("[red]Failed to parse profile JSON, creating a new one...[/red]")
+                    return create_new_profile()
+            
+            # 解析成功，回傳 Pydantic model
+            return StudentProfile.model_validate(data)
     else:
         return create_new_profile()
 
@@ -177,7 +193,7 @@ def create_new_profile():
     
     # Save the basic profile
     with open(f"student_profiles/{student_id}.json", "w") as f:
-        f.write(profile.json(indent=4))
+        f.write(profile.model_dump_json(indent=4))
     
     return profile
 
@@ -269,19 +285,17 @@ def create_learning_path_generator(chat_model, retriever):
           "objectives": ["目標 1", "目標 2", "目標 3"],
           "modules": [
             {
-              "title": "模組 1: [標題]",
-              "description": "模組描述",
+              "title": "章節 1: [標題]",
+              "description": "章節描述",
               "activities": [
                 {
                   "type": "閱讀",
                   "title": "活動標題",
                   "description": "活動描述",
-                  "estimated_time": "20 分鐘",
                   "difficulty": "初學者"
                 }
               ],
-              "resources": ["資源 1", "資源 2"],
-              "assessment": "模組評估描述"
+              "resources": ["講義章節1-1", "講義章節1-2"],
             }
           ]
         }
@@ -364,7 +378,7 @@ def create_peer_discussion_ai(chat_model, retriever):
 def create_posttest_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是一位專業的教育評估設計師。
-        根據提供的學習模組內容和學生的當前知識水平，設計一份後測，包含多選題以評估學生的學習成果。
+        根據提供的學習章節內容和學生的當前知識水平，設計一份後測，包含多選題以評估學生的學習成果。
         
         難度應與學生的當前水平相符：
         - 初學者：更多簡單問題（70%），一些中等問題（30%）
@@ -599,7 +613,8 @@ def conduct_learning_style_survey(chat_model, student_profile):
     administer_pretest
     # 儲存更新後的檔案
     with open(f"student_profiles/{student_profile.id}.json", "w") as f:
-        f.write(student_profile.json(indent=4))
+        f.write(student_profile.model_dump_json(indent=4))
+
     
     return student_profile
 
@@ -672,7 +687,7 @@ def administer_pretest(chat_model, retriever, student_profile):
     
     # 儲存更新後的檔案
     with open(f"student_profiles/{student_profile.id}.json", "w") as f:
-        f.write(student_profile.json(indent=4))
+        f.write(student_profile.model_dump_json(indent=4))
     
     return pretest, results, knowledge_level
 
@@ -720,16 +735,13 @@ def generate_learning_path(chat_model, retriever, student_profile, pretest_resul
         
         console.print("\n[bold]Activities:[/bold]")
         for activity in module['activities']:
-            console.print(f"? {activity['title']} ({activity['type']}, {activity['estimated_time']})")
+            console.print(f"? {activity['title']} ({activity['type']})")
             console.print(f"  {activity['description']}")
         
         if 'resources' in module:
             console.print("\n[bold]Resources:[/bold]")
             for resource in module['resources']:
                 console.print(f"? {resource}")
-        
-        if 'assessment' in module:
-            console.print(f"\n[bold]Assessment:[/bold] {module['assessment']}")
     
     return learning_path
 
@@ -876,7 +888,7 @@ def administer_posttest(chat_model, retriever, module, student_profile):
     
     # 儲存更新後的檔案
     with open(f"student_profiles/{student_profile.id}.json", "w") as f:
-        f.write(student_profile.json(indent=4))
+        f.write(student_profile.model_dump_json(indent=4))
     
     return posttest, results
 
@@ -969,11 +981,11 @@ def create_learning_log(chat_model, module, test_results, student_profile):
     
     # 保存學習日誌
     with open(f"learning_logs/{log_id}.json", "w") as f:
-        f.write(log.json(indent=4))
+        f.write(log.model_dump_json(indent=4))
     
     # 更新並保存學生檔案
     with open(f"student_profiles/{student_profile.id}.json", "w") as f:
-        f.write(student_profile.json(indent=4))
+        f.write(student_profile.model_dump_json(indent=4))
     
     return log
 

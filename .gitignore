@@ -2,3 +2,6 @@
 chroma_db_/
 uploads/
 vectordbs/
+learning_logs/
+student_profiles/
+vectorstore/
