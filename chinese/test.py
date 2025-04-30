@@ -27,10 +27,10 @@ from dotenv import load_dotenv
 from glob import glob
 
 # Create directories if they don't exist
-os.makedirs("data", exist_ok=True)
-os.makedirs("learning_logs", exist_ok=True)
-os.makedirs("student_profiles", exist_ok=True)
-os.makedirs("vectorstore", exist_ok=True)
+os.makedirs("chinese/data", exist_ok=True)
+os.makedirs("chinese/learning_logs", exist_ok=True)
+os.makedirs("chinese/student_profiles", exist_ok=True)
+os.makedirs("chinese/vectorstore", exist_ok=True)
 
 console = Console()
 try:
@@ -103,9 +103,9 @@ def initialize_models():
 # Initialize RAG system with document loading and chunking
 def initialize_rag_system(embedding):
     # Check if we already have a persisted vector store
-    if os.path.exists("vectorstore") and len(os.listdir("vectorstore")) > 0:
+    if os.path.exists("chinese/vectorstore") and len(os.listdir("chinese/vectorstore")) > 0:
         console.print("[yellow]Loading existing vector store...[/yellow]")
-        vectorstore = Chroma(persist_directory="vectorstore", embedding_function=embedding)
+        vectorstore = Chroma(persist_directory="chinese/vectorstore", embedding_function=embedding)
         return vectorstore.as_retriever(search_kwargs={"k": 5})
     
     # If not, create a new one from documents
@@ -132,7 +132,7 @@ def initialize_rag_system(embedding):
     vectorstore = Chroma.from_documents(
         documents=chunks, 
         embedding=embedding,
-        persist_directory="vectorstore"
+        persist_directory="chinese/vectorstore"
     )
     
     
@@ -140,7 +140,7 @@ def initialize_rag_system(embedding):
 
 # Create or load student profile
 def manage_student_profile():
-    profiles = glob("student_profiles/*.json")
+    profiles = glob("chinese/student_profiles/*.json")
     
     if profiles:
         console.print("[bold]Select an existing profile or create a new one:[/bold]")
@@ -200,7 +200,7 @@ def create_new_profile():
     )
     
     # Save the basic profile
-    with open(f"student_profiles/{student_id}.json", "w") as f:
+    with open(f"chinese/student_profiles/{student_id}.json", "w") as f:
         f.write(profile.model_dump_json(indent=4))
     
     return profile
@@ -620,7 +620,7 @@ def conduct_learning_style_survey(chat_model, student_profile):
     student_profile.learning_style = learning_styles[style_choice]
     administer_pretest
     # 儲存更新後的檔案
-    with open(f"student_profiles/{student_profile.id}.json", "w") as f:
+    with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
 
     
@@ -694,7 +694,7 @@ def administer_pretest(chat_model, retriever, student_profile):
     })
     
     # 儲存更新後的檔案
-    with open(f"student_profiles/{student_profile.id}.json", "w") as f:
+    with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
     
     return pretest, results, knowledge_level
@@ -895,7 +895,7 @@ def administer_posttest(chat_model, retriever, module, student_profile):
     })
     
     # 儲存更新後的檔案
-    with open(f"student_profiles/{student_profile.id}.json", "w") as f:
+    with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
     
     return posttest, results
@@ -988,11 +988,11 @@ def create_learning_log(chat_model, module, test_results, student_profile):
         console.print("[bold red]分析學習日誌時出錯。僅保存原始日誌。[bold red]")
     
     # 保存學習日誌
-    with open(f"learning_logs/{log_id}.json", "w") as f:
+    with open(f"chinese/learning_logs/{log_id}.json", "w") as f:
         f.write(log.model_dump_json(indent=4))
     
     # 更新並保存學生檔案
-    with open(f"student_profiles/{student_profile.id}.json", "w") as f:
+    with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
     
     return log
