@@ -147,7 +147,15 @@ def manage_student_profile():
         console.print("0. Create new student profile")
         
         for i, profile_path in enumerate(profiles, 1):
-            profile_name = pathlib.Path(profile_path).stem
+            # ←── 這裡改動：用 JSON 裡的 name，而不是檔名
+            with open(profile_path, "r", encoding="cp950") as f:
+                try:
+                    data = json.load(f)
+                    profile = StudentProfile.model_validate(data)
+                    profile_name = profile.name
+                except Exception:
+                    profile_name = pathlib.Path(profile_path).stem
+
             console.print(f"{i}. {profile_name}")
         
         choice = int(Prompt.ask(
