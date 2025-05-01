@@ -734,7 +734,7 @@ def generate_learning_path(chat_model, retriever, student_profile, pretest_resul
     
     console.print("[bold]Learning Objectives:[/bold]")
     for objective in learning_path['objectives']:
-        console.print(f"? {objective}")
+        console.print(f" {objective}")
     
     console.print("\n[bold]Learning Modules:[/bold]")
     for i, module in enumerate(learning_path['modules']):
@@ -743,13 +743,13 @@ def generate_learning_path(chat_model, retriever, student_profile, pretest_resul
         
         console.print("\n[bold]Activities:[/bold]")
         for activity in module['activities']:
-            console.print(f"? {activity['title']} ({activity['type']})")
+            console.print(f" {activity['title']} ({activity['type']})")
             console.print(f"  {activity['description']}")
         
         if 'resources' in module:
             console.print("\n[bold]Resources:[/bold]")
             for resource in module['resources']:
-                console.print(f"? {resource}")
+                console.print(f" {resource}")
     
     return learning_path
 
@@ -974,15 +974,15 @@ def create_learning_log(chat_model, module, test_results, student_profile):
         
         console.print("\n[bold]優勢:[/bold]")
         for strength in analysis.get("strengths", []):
-            console.print(f"? {strength}")
+            console.print(f" {strength}")
         
         console.print("\n[bold]需要改進的領域:[/bold]")
         for area in analysis.get("areas_for_improvement", []):
-            console.print(f"? {area}")
+            console.print(f" {area}")
         
         console.print("\n[bold]建議的下一步行動:[/bold]")
         for step in analysis.get("recommended_next_steps", []):
-            console.print(f"? {step}")
+            console.print(f" {step}")
     
     except KeyError:
         console.print("[bold red]分析學習日誌時出錯。僅保存原始日誌。[bold red]")
@@ -1029,7 +1029,7 @@ def main():
         console.print(f"\n[bold cyan]===== 開始模組 {module_index + 1}/{len(learning_path['modules'])} =====[/bold cyan]")
         
         # 詢問使用者是否準備好進行此模組
-        proceed = Confirm.ask(f"準備好開始模組: {module['title']}?")
+        proceed = Confirm.ask(f"準備好開始模組: {module['title']}")
         if not proceed:
             continue
         
@@ -1058,20 +1058,20 @@ def main():
     
     # 總結學習進度
     console.print("\n[bold]您的學習旅程摘要:[/bold]")
-    console.print(f"? 完成了 {len(student_profile.learning_history)} 項學習活動")
-    console.print(f"? 當前優勢: {', '.join(student_profile.strengths) if student_profile.strengths else '尚未確定'}")
-    console.print(f"? 需要改進的領域: {', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else '尚未確定'}")
+    console.print(f" 完成了 {len(student_profile.learning_history)} 項學習活動")
+    console.print(f" 當前優勢: {', '.join(student_profile.strengths) if student_profile.strengths else '尚未確定'}")
+    console.print(f" 需要改進的領域: {', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else '尚未確定'}")
     
     console.print("\n[bold]持續學習的建議:[/bold]")
     if student_profile.current_knowledge_level == "初學者":
-        console.print("? 專注於掌握基礎概念")
-        console.print("? 多練習初學者到中級的範例")
+        console.print(" 專注於掌握基礎概念")
+        console.print(" 多練習初學者到中級的範例")
     elif student_profile.current_knowledge_level == "中級":
-        console.print("? 加深對複雜主題的理解")
-        console.print("? 開始將概念應用於實際問題")
+        console.print(" 加深對複雜主題的理解")
+        console.print(" 開始將概念應用於實際問題")
     else:  # 高級
-        console.print("? 探索該領域的專業主題")
-        console.print("? 考慮教學或指導他人以鞏固您的知識")
+        console.print(" 探索該領域的專業主題")
+        console.print(" 考慮教學或指導他人以鞏固您的知識")
 
 if __name__ == "__main__":
     main()
