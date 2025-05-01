@@ -48,7 +48,7 @@ def load_profile(profile_path: str) -> Optional[StudentProfile]:
         with open(profile_path, "r", encoding="cp950") as f: 
             data = json.load(f)
         profile = StudentProfile.model_validate(data)
-        console.print(f"[green]成功載入學生檔案: {profile.name}[/green]")
+        console.print(f"[green]成功載入學生檔案: {profile.name} [/green]")
         return profile
     except json.JSONDecodeError:
         console.print(f"[red]無法解析 JSON 檔案: {profile_path}[/red]")

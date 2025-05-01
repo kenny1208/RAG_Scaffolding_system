@@ -8,3 +8,4 @@ vectorstore/
 chinese/learning_logs/
 chinese/student_profiles/
 chinese/vectorstore/
+chinese/__pycache__/

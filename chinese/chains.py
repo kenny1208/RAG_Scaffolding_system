@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplat
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.vectorstores import VectorStoreRetriever # Use base class for type hinting
+from langchain_core.vectorstores import VectorStoreRetriever 
 
 # Import models if needed for context (usually not directly needed here)
 # from models import ...
@@ -38,7 +38,7 @@ def create_pretest_generator(chat_model: ChatGoogleGenerativeAI, retriever: Vect
         請設計涵蓋不同難度級別的問題：簡單、中等和困難。
         對於每個問題，請提供：
         1. 問題文本
-        2. 四個多選選項（A, B, C, D）
+        2. 四個單選選項（A, B, C, D）
         3. 正確答案
         4. 為什麼正確的解釋
         5. 難度級別
@@ -73,7 +73,7 @@ def create_pretest_generator(chat_model: ChatGoogleGenerativeAI, retriever: Vect
         }
         | prompt
         | chat_model
-        | JsonOutputParser() # Assumes Test model or dict output
+        | JsonOutputParser() 
     )
     return pretest_chain
 
@@ -182,7 +182,7 @@ def create_posttest_generator(chat_model: ChatGoogleGenerativeAI, retriever: Vec
         難度應與學生的當前水平相符：
         - 初學者：更多簡單問題（70%），一些中等問題（30%）
         - 中級者：一些簡單問題（30%），主要是中等問題（50%），一些困難問題（20%）
-        - 高級者：一些中等問題（40%），主要是困難問題（60%）
+        - 高級者：一些中等問題（30%），主要是困難問題（70%）
 
         設計的問題應測試學生對內容的理解、應用和分析能力。
 
@@ -241,8 +241,6 @@ def create_learning_log_prompter(chat_model: ChatGoogleGenerativeAI):
         2. 他們對學習過程的感受
         3. 他們覺得有挑戰的地方
         4. 他們仍然有什麼問題
-        5. 他們如何應用所學的內容
-        6. 他們接下來想學什麼
 
         您的目標是幫助學生創建一份豐富且有反思性的學習日誌，對他們的成長有價值。
         """),
@@ -267,7 +265,6 @@ def create_learning_log_analyzer(chat_model: ChatGoogleGenerativeAI):
         3. 混淆或誤解的領域
         4. 對材料的情感反應
         5. 學習風格的指標
-        6. 潛在的學習下一步
 
         將您的回應格式化為以下精確的 JSON 結構:
         {
@@ -340,6 +337,7 @@ def create_module_content_generator(chat_model: ChatGoogleGenerativeAI, retrieve
         4. 包含關鍵概念的清晰解釋
         5. 結構清晰，包含明確的部分和標題
         6. 以關鍵點的簡短總結結尾
+        7. 都用文本表示
 
         使用 markdown 格式化您的內容以提高可讀性。
         """),

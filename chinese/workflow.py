@@ -34,7 +34,7 @@ def conduct_learning_style_survey(
     student_profile: StudentProfile
 ) -> StudentProfile:
     """Conducts the learning style survey and updates the profile."""
-    console.print("\n[bold cyan]===== 學習風格評估 (Learning Style Assessment) =====[/bold cyan]")
+    console.print("\n[bold cyan]===== 學習風格評估 =====[/bold cyan]")
 
     # Check if already done
     if student_profile.learning_style:
@@ -299,7 +299,6 @@ def deliver_module_content(
 
     content_chain = create_module_content_generator(chat_model, retriever)
     content: Optional[str] = None
-    console.print("[yellow]正在生成章節內容...[/yellow]")
     try:
         content = content_chain.invoke({
             "module_topic": module_topic,

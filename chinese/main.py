@@ -26,42 +26,30 @@ from workflow import ( # Import all workflow steps
 def main():
     """Main function to run the RAG Scaffolding Education System."""
     console.print("[bold cyan]=====================================[/bold cyan]")
-    console.print("[bold cyan]== RAG 鷹架教育系統 (RAG Scaffolding Education System) ==[/bold cyan]")
+    console.print("[bold cyan]== RAG 鷹架教育系統 ==[/bold cyan]")
     console.print("[bold cyan]=====================================[/bold cyan]\n")
 
-    # Initialization messages are now in config.py and rag_setup.py
 
-    # Ensure RAG system is ready
-    if not RETRIEVER:
-        console.print("[bold red]RAG 系統初始化失敗，無法繼續。[/bold red]")
-        sys.exit(1) # Exit if retriever failed to initialize
-    else:
-         console.print("[green]RAG 系統已就緒。[/green]")
-
-
-    # 1. Manage Student Profile
-    console.print("\n[bold]-- 步驟 1: 學生檔案管理 --[/bold]")
     student_profile: Optional[StudentProfile] = manage_student_profile()
     if not student_profile:
         console.print("[bold red]無法載入或建立學生檔案，程式即將結束。[/bold red]")
         sys.exit(1)
-    console.print(f"\n[bold green]歡迎回來, {student_profile.name}! (Welcome back!)[/bold green]")
+    console.print(f"\n[bold green]歡迎回來, {student_profile.name}! [/bold green]")
 
 
-    # 2. Learning Style Survey (if needed)
-    console.print("\n[bold]-- 步驟 2: 學習風格評估 --[/bold]")
+    console.print("\n[bold]-- 學習風格評估 --[/bold]")
     student_profile = conduct_learning_style_survey(CHAT_MODEL, student_profile)
     # Profile is saved within the function
 
 
     # 3. Administer Pre-test
-    console.print("\n[bold]-- 步驟 3: 前測 --[/bold]")
+    console.print("\n[bold]-- 前測 --[/bold]")
     pretest_data, pretest_results, _ = administer_pretest(CHAT_MODEL, RETRIEVER, student_profile)
     # Profile and knowledge level updated and saved within the function
     if pretest_data is None:
          console.print("[bold red]無法執行前測。[/bold red]")
          # Decide how to proceed: exit, use default level, etc.
-         if not Confirm.ask("前測失敗，是否仍要嘗試生成學習路徑? (Pre-test failed, try generating learning path anyway?)", default=False):
+         if not Confirm.ask("前測失敗，是否仍要嘗試生成學習路徑? ", default=False):
               sys.exit(1)
          # If continuing, ensure profile has a default level
          if not student_profile.current_knowledge_level:
@@ -69,41 +57,37 @@ def main():
 
 
     # 4. Generate Learning Path
-    console.print("\n[bold]-- 步驟 4: 生成學習路徑 --[/bold]")
+    console.print("\n[bold]-- 生成學習路徑 --[/bold]")
     learning_path = generate_learning_path(CHAT_MODEL, RETRIEVER, student_profile, pretest_results)
-    if not learning_path or not learning_path.get('modules'):
-        console.print("[bold red]無法生成有效的學習路徑，程式無法繼續。[/bold red]")
-        sys.exit(1)
-    # Profile history updated within the function
 
 
     # 5. Learning Loop (Modules)
-    console.print("\n[bold]-- 步驟 5: 學習模組循環 --[/bold]")
+    console.print("\n[bold]-- 章節學習 --[/bold]")
     num_modules = len(learning_path['modules'])
     for module_index, module in enumerate(learning_path['modules']):
-        module_title = module.get('title', f'模組 {module_index + 1}')
-        console.print(f"\n[bold #FFD700]===== 開始模組 {module_index + 1}/{num_modules}: {module_title} =====[/bold #FFD700]") # Gold color
+        module_title = module.get('title', f'章節 {module_index + 1}')
+        console.print(f"\n[bold #FFD700]===== 開始章節 {module_index + 1}/{num_modules}: {module_title} =====[/bold #FFD700]") # Gold color
 
         # Check if module structure is valid enough
         if not isinstance(module, dict) or not module_title:
-             console.print(f"[yellow]模組 {module_index + 1} 格式無效，跳過。[/yellow]")
+             console.print(f"[yellow]章節 {module_index + 1} 格式無效，跳過。[/yellow]")
              continue
 
         # Ask user to proceed
-        proceed = Confirm.ask(f"準備好開始此模組嗎? (Ready to start this module?)", default=True)
+        proceed = Confirm.ask(f"準備好開始此章節嗎? ", default=True)
         if not proceed:
-            console.print("[yellow]跳過此模組。[/yellow]")
+            console.print("[yellow]跳過此章節。[/yellow]")
             continue
 
         # 5a. Deliver Module Content
-        console.print(f"\n[bold]-- 步驟 5a: 模組內容 ({module_title}) --[/bold]")
+        console.print(f"\n[bold]-- 章節內容 ({module_title}) --[/bold]")
         _ = deliver_module_content(CHAT_MODEL, RETRIEVER, student_profile, module)
         # Profile history updated within function
 
         # 5b. Engage in Peer Discussion
-        console.print(f"\n[bold]-- 步驟 5b: 同儕討論 ({module_title}) --[/bold]")
+        console.print(f"\n[bold]-- 同儕討論 ({module_title}) --[/bold]")
         module_topic = module_title.split(": ", 1)[-1].strip() if ": " in module_title else module_title
-        if Confirm.ask("是否要進行同儕討論? (Engage in peer discussion?)", default=True):
+        if Confirm.ask("是否要進行同儕討論? ", default=True):
              _ = engage_peer_discussion(CHAT_MODEL, RETRIEVER, module_topic, student_profile)
              # Profile history updated within function
         else:
@@ -111,7 +95,7 @@ def main():
 
 
         # 5c. Administer Post-test
-        console.print(f"\n[bold]-- 步驟 5c: 後測 ({module_title}) --[/bold]")
+        console.print(f"\n[bold]-- 後測 ({module_title}) --[/bold]")
         posttest_data, posttest_results = administer_posttest(CHAT_MODEL, RETRIEVER, module, student_profile)
         # Profile knowledge level and history updated within function
         if posttest_data is None:
@@ -120,8 +104,8 @@ def main():
 
 
         # 5d. Create Learning Log
-        console.print(f"\n[bold]-- 步驟 5d: 學習日誌 ({module_title}) --[/bold]")
-        if Confirm.ask("是否要建立學習日誌? (Create learning log?)", default=True):
+        console.print(f"\n[bold]-- 學習日誌 ({module_title}) --[/bold]")
+        if Confirm.ask("是否要建立學習日誌?", default=True):
             _ = create_learning_log(CHAT_MODEL, module, posttest_results, student_profile)
             # Profile strengths/weaknesses and history updated within function
         else:
@@ -130,12 +114,12 @@ def main():
 
         # Ask to continue to next module
         if module_index < num_modules - 1:
-            continue_learning = Confirm.ask("是否繼續進行下一個模組? (Continue to the next module?)", default=True)
+            continue_learning = Confirm.ask("是否繼續進行下一個章節?", default=True)
             if not continue_learning:
                 console.print("[yellow]學習暫停。[/yellow]")
                 break
         else:
-            console.print("[green]已完成所有模組！[/green]")
+            console.print("[green]已完成所有章節！[/green]")
 
 
     # 6. Final Summary
