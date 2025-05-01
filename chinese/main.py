@@ -1,0 +1,175 @@
+# -*- coding: big5 -*-
+
+# --- Standard Library Imports ---
+import sys
+
+# --- Third-party Library Imports ---
+from rich.prompt import Confirm
+from typing import Optional
+# --- Local Application Imports ---
+# Import necessary components from our modules
+from config import console, CHAT_MODEL, EMBEDDING # Core objects
+from rag_setup import RETRIEVER # Initialized retriever
+from models import StudentProfile # Data model for type hinting/access
+from profile_manager import manage_student_profile # Function to get profile
+from workflow import ( # Import all workflow steps
+    conduct_learning_style_survey,
+    administer_pretest,
+    generate_learning_path,
+    deliver_module_content,
+    engage_peer_discussion,
+    administer_posttest,
+    create_learning_log
+)
+
+# --- Main Application Function ---
+def main():
+    """Main function to run the RAG Scaffolding Education System."""
+    console.print("[bold cyan]=====================================[/bold cyan]")
+    console.print("[bold cyan]== RAG 鷹架教育系統 (RAG Scaffolding Education System) ==[/bold cyan]")
+    console.print("[bold cyan]=====================================[/bold cyan]\n")
+
+    # Initialization messages are now in config.py and rag_setup.py
+
+    # Ensure RAG system is ready
+    if not RETRIEVER:
+        console.print("[bold red]RAG 系統初始化失敗，無法繼續。[/bold red]")
+        sys.exit(1) # Exit if retriever failed to initialize
+    else:
+         console.print("[green]RAG 系統已就緒。[/green]")
+
+
+    # 1. Manage Student Profile
+    console.print("\n[bold]-- 步驟 1: 學生檔案管理 --[/bold]")
+    student_profile: Optional[StudentProfile] = manage_student_profile()
+    if not student_profile:
+        console.print("[bold red]無法載入或建立學生檔案，程式即將結束。[/bold red]")
+        sys.exit(1)
+    console.print(f"\n[bold green]歡迎回來, {student_profile.name}! (Welcome back!)[/bold green]")
+
+
+    # 2. Learning Style Survey (if needed)
+    console.print("\n[bold]-- 步驟 2: 學習風格評估 --[/bold]")
+    student_profile = conduct_learning_style_survey(CHAT_MODEL, student_profile)
+    # Profile is saved within the function
+
+
+    # 3. Administer Pre-test
+    console.print("\n[bold]-- 步驟 3: 前測 --[/bold]")
+    pretest_data, pretest_results, _ = administer_pretest(CHAT_MODEL, RETRIEVER, student_profile)
+    # Profile and knowledge level updated and saved within the function
+    if pretest_data is None:
+         console.print("[bold red]無法執行前測。[/bold red]")
+         # Decide how to proceed: exit, use default level, etc.
+         if not Confirm.ask("前測失敗，是否仍要嘗試生成學習路徑? (Pre-test failed, try generating learning path anyway?)", default=False):
+              sys.exit(1)
+         # If continuing, ensure profile has a default level
+         if not student_profile.current_knowledge_level:
+             student_profile.current_knowledge_level = "初學者"
+
+
+    # 4. Generate Learning Path
+    console.print("\n[bold]-- 步驟 4: 生成學習路徑 --[/bold]")
+    learning_path = generate_learning_path(CHAT_MODEL, RETRIEVER, student_profile, pretest_results)
+    if not learning_path or not learning_path.get('modules'):
+        console.print("[bold red]無法生成有效的學習路徑，程式無法繼續。[/bold red]")
+        sys.exit(1)
+    # Profile history updated within the function
+
+
+    # 5. Learning Loop (Modules)
+    console.print("\n[bold]-- 步驟 5: 學習模組循環 --[/bold]")
+    num_modules = len(learning_path['modules'])
+    for module_index, module in enumerate(learning_path['modules']):
+        module_title = module.get('title', f'模組 {module_index + 1}')
+        console.print(f"\n[bold #FFD700]===== 開始模組 {module_index + 1}/{num_modules}: {module_title} =====[/bold #FFD700]") # Gold color
+
+        # Check if module structure is valid enough
+        if not isinstance(module, dict) or not module_title:
+             console.print(f"[yellow]模組 {module_index + 1} 格式無效，跳過。[/yellow]")
+             continue
+
+        # Ask user to proceed
+        proceed = Confirm.ask(f"準備好開始此模組嗎? (Ready to start this module?)", default=True)
+        if not proceed:
+            console.print("[yellow]跳過此模組。[/yellow]")
+            continue
+
+        # 5a. Deliver Module Content
+        console.print(f"\n[bold]-- 步驟 5a: 模組內容 ({module_title}) --[/bold]")
+        _ = deliver_module_content(CHAT_MODEL, RETRIEVER, student_profile, module)
+        # Profile history updated within function
+
+        # 5b. Engage in Peer Discussion
+        console.print(f"\n[bold]-- 步驟 5b: 同儕討論 ({module_title}) --[/bold]")
+        module_topic = module_title.split(": ", 1)[-1].strip() if ": " in module_title else module_title
+        if Confirm.ask("是否要進行同儕討論? (Engage in peer discussion?)", default=True):
+             _ = engage_peer_discussion(CHAT_MODEL, RETRIEVER, module_topic, student_profile)
+             # Profile history updated within function
+        else:
+             console.print("[yellow]跳過同儕討論。[/yellow]")
+
+
+        # 5c. Administer Post-test
+        console.print(f"\n[bold]-- 步驟 5c: 後測 ({module_title}) --[/bold]")
+        posttest_data, posttest_results = administer_posttest(CHAT_MODEL, RETRIEVER, module, student_profile)
+        # Profile knowledge level and history updated within function
+        if posttest_data is None:
+             console.print("[yellow]無法執行後測。[/yellow]")
+             # Continue to log without test results, or handle differently
+
+
+        # 5d. Create Learning Log
+        console.print(f"\n[bold]-- 步驟 5d: 學習日誌 ({module_title}) --[/bold]")
+        if Confirm.ask("是否要建立學習日誌? (Create learning log?)", default=True):
+            _ = create_learning_log(CHAT_MODEL, module, posttest_results, student_profile)
+            # Profile strengths/weaknesses and history updated within function
+        else:
+             console.print("[yellow]跳過學習日誌。[/yellow]")
+
+
+        # Ask to continue to next module
+        if module_index < num_modules - 1:
+            continue_learning = Confirm.ask("是否繼續進行下一個模組? (Continue to the next module?)", default=True)
+            if not continue_learning:
+                console.print("[yellow]學習暫停。[/yellow]")
+                break
+        else:
+            console.print("[green]已完成所有模組！[/green]")
+
+
+    # 6. Final Summary
+    console.print("\n[bold green]===== 學習路徑完成 (Learning Path Complete) =====[/bold green]")
+    console.print("[yellow]感謝您使用 RAG 鷹架教育系統！ (Thank you for using the system!)[/yellow]")
+    console.print(f"[yellow]您目前的知識水平評估為: [bold]{student_profile.current_knowledge_level}[/bold][/yellow]")
+
+    console.print("\n[bold]您的學習旅程摘要 (Summary of your learning journey):[/bold]")
+    total_activities = len(student_profile.learning_history)
+    console.print(f" - 完成了 {total_activities} 項學習活動 (Completed {total_activities} learning activities)")
+    # Display consolidated strengths/weaknesses from the profile
+    strengths_str = ', '.join(student_profile.strengths) if student_profile.strengths else '尚未確定'
+    weaknesses_str = ', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else '尚未確定'
+    console.print(f" - 目前評估的優勢: {strengths_str}")
+    console.print(f" - 建議加強的領域: {weaknesses_str}")
+
+    console.print("\n[bold]持續學習的建議 (Suggestions for continued learning):[/bold]")
+    level = student_profile.current_knowledge_level
+    if level == "初學者":
+        console.print(" - 專注於掌握基礎概念 (Focus on mastering fundamental concepts)")
+        console.print(" - 多練習初學者到中級的範例 (Practice more beginner-to-intermediate examples)")
+    elif level == "中級":
+        console.print(" - 加深對複雜主題的理解 (Deepen understanding of complex topics)")
+        console.print(" - 開始將概念應用於實際問題 (Start applying concepts to practical problems)")
+    else: # 高級
+        console.print(" - 探索該領域的專業主題 (Explore advanced topics in the field)")
+        console.print(" - 考慮教學或指導他人以鞏固您的知識 (Consider teaching or mentoring others)")
+
+# --- Entry Point Check ---
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        console.print("\n[bold red]程式執行時發生未預期的錯誤:[/bold red]")
+        console.print_exception(show_locals=False) # Print traceback
+    finally:
+        console.print("\n[bold]程式結束。(Program finished.)[/bold]")
