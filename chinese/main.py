@@ -37,13 +37,12 @@ def main():
     console.print(f"\n[bold green]歡迎回來, {student_profile.name}! [/bold green]")
 
 
-    console.print("\n[bold]-- 學習風格評估 --[/bold]")
     student_profile = conduct_learning_style_survey(CHAT_MODEL, student_profile)
     # Profile is saved within the function
 
 
     # 3. Administer Pre-test
-    console.print("\n[bold]-- 前測 --[/bold]")
+
     pretest_data, pretest_results, _ = administer_pretest(CHAT_MODEL, RETRIEVER, student_profile)
     # Profile and knowledge level updated and saved within the function
     if pretest_data is None:
@@ -57,12 +56,10 @@ def main():
 
 
     # 4. Generate Learning Path
-    console.print("\n[bold]-- 生成學習路徑 --[/bold]")
     learning_path = generate_learning_path(CHAT_MODEL, RETRIEVER, student_profile, pretest_results)
 
 
     # 5. Learning Loop (Modules)
-    console.print("\n[bold]-- 章節學習 --[/bold]")
     num_modules = len(learning_path['modules'])
     for module_index, module in enumerate(learning_path['modules']):
         module_title = module.get('title', f'章節 {module_index + 1}')
@@ -123,11 +120,11 @@ def main():
 
 
     # 6. Final Summary
-    console.print("\n[bold green]===== 學習路徑完成 (Learning Path Complete) =====[/bold green]")
-    console.print("[yellow]感謝您使用 RAG 鷹架教育系統！ (Thank you for using the system!)[/yellow]")
+    console.print("\n[bold green]===== 學習路徑完成  =====[/bold green]")
+    console.print("[yellow]感謝您使用 RAG 鷹架教育系統！[/yellow]")
     console.print(f"[yellow]您目前的知識水平評估為: [bold]{student_profile.current_knowledge_level}[/bold][/yellow]")
 
-    console.print("\n[bold]您的學習旅程摘要 (Summary of your learning journey):[/bold]")
+    console.print("\n[bold]您的學習旅程摘要:[/bold]")
     total_activities = len(student_profile.learning_history)
     console.print(f" - 完成了 {total_activities} 項學習活動 (Completed {total_activities} learning activities)")
     # Display consolidated strengths/weaknesses from the profile
@@ -136,17 +133,17 @@ def main():
     console.print(f" - 目前評估的優勢: {strengths_str}")
     console.print(f" - 建議加強的領域: {weaknesses_str}")
 
-    console.print("\n[bold]持續學習的建議 (Suggestions for continued learning):[/bold]")
+    console.print("\n[bold]持續學習的建議 ")
     level = student_profile.current_knowledge_level
     if level == "初學者":
-        console.print(" - 專注於掌握基礎概念 (Focus on mastering fundamental concepts)")
-        console.print(" - 多練習初學者到中級的範例 (Practice more beginner-to-intermediate examples)")
+        console.print(" - 專注於掌握基礎概念 ")
+        console.print(" - 多練習初學者到中級的範例 ")
     elif level == "中級":
-        console.print(" - 加深對複雜主題的理解 (Deepen understanding of complex topics)")
-        console.print(" - 開始將概念應用於實際問題 (Start applying concepts to practical problems)")
+        console.print(" - 加深對複雜主題的理解 ")
+        console.print(" - 開始將概念應用於實際問題")
     else: # 高級
-        console.print(" - 探索該領域的專業主題 (Explore advanced topics in the field)")
-        console.print(" - 考慮教學或指導他人以鞏固您的知識 (Consider teaching or mentoring others)")
+        console.print(" - 探索該領域的專業主題 ")
+        console.print(" - 考慮教學或指導他人以鞏固您的知識 ")
 
 # --- Entry Point Check ---
 if __name__ == "__main__":

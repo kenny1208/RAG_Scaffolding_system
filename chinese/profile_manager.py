@@ -48,7 +48,6 @@ def load_profile(profile_path: str) -> Optional[StudentProfile]:
         with open(profile_path, "r", encoding="cp950") as f: 
             data = json.load(f)
         profile = StudentProfile.model_validate(data)
-        console.print(f"[green]成功載入學生檔案: {profile.name} [/green]")
         return profile
     except json.JSONDecodeError:
         console.print(f"[red]無法解析 JSON 檔案: {profile_path}[/red]")
@@ -77,8 +76,8 @@ def manage_student_profile() -> Optional[StudentProfile]:
     profiles = glob(os.path.join(PROFILES_DIR, "*.json")) # Use os.path.join
 
     if profiles:
-        console.print("[bold]選擇現有檔案或建立新檔案 (Select an existing profile or create a new one):[/bold]")
-        console.print("0. 建立新學生檔案 (Create new student profile)")
+        console.print("[bold]選擇現有檔案或建立新檔案:[/bold]")
+        console.print("0. 建立新學生檔案")
 
         profile_options = {}
         for i, profile_path in enumerate(profiles, 1):
@@ -94,7 +93,7 @@ def manage_student_profile() -> Optional[StudentProfile]:
         valid_choices = [str(i) for i in range(len(profiles) + 1)]
 
         choice_str = Prompt.ask(
-            "請輸入您的選擇 (Enter your choice)",
+            "請輸入您的選擇",
             choices=valid_choices,
             default="0" # Make creating new the default maybe?
         )
@@ -108,7 +107,7 @@ def manage_student_profile() -> Optional[StudentProfile]:
             # If loading failed (e.g., corrupted file), offer to create new
             if not profile:
                  console.print("[yellow]載入所選檔案時發生錯誤。[/yellow]")
-                 if Prompt.ask("是否要建立新檔案 (Create a new profile instead)?", choices=["y", "n"], default="y") == "y":
+                 if Prompt.ask("是否要建立新檔案 ?", choices=["y", "n"], default="y") == "y":
                      return create_new_profile()
                  else:
                      return None # Or exit, or retry selection

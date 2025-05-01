@@ -337,7 +337,7 @@ def create_module_content_generator(chat_model: ChatGoogleGenerativeAI, retrieve
         4. 包含關鍵概念的清晰解釋
         5. 結構清晰，包含明確的部分和標題
         6. 以關鍵點的簡短總結結尾
-        7. 都用文本表示
+        7. 不要使用圖表或圖像，可以使用表格
 
         使用 markdown 格式化您的內容以提高可讀性。
         """),

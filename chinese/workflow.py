@@ -313,8 +313,8 @@ def deliver_module_content(
     if content:
         console.print(Markdown(content))
         # Give time to read
-        console.print("\n[yellow]請花時間閱讀並理解內容。(Take your time to read and understand the content.)[/yellow]")
-        Prompt.ask("\n準備好繼續時請按 Enter (Press Enter when ready to continue)")
+        console.print("\n[yellow]請花時間閱讀並理解內容。[/yellow]")
+        Prompt.ask("\n準備好繼續時請按 Enter ")
     else:
         console.print("[red]無法生成此章節的內容。[/red]")
 
@@ -337,7 +337,7 @@ def engage_peer_discussion(
     student_profile: StudentProfile # Pass profile for context/logging
 ) -> List[Dict]:
     """Engages the student in a peer discussion simulation."""
-    console.print(f"\n[bold cyan]===== 同儕討論 (Peer Discussion): {topic} =====[/bold cyan]")
+    console.print(f"\n[bold cyan]===== 同儕討論 : {topic} =====[/bold cyan]")
     console.print("[yellow]與您的 AI 學習夥伴見面！提出問題或討論主題以加深您的理解。[/yellow]")
     console.print("[yellow]輸入 '結束'、'退出' 或 '再見' 來結束討論。[/yellow]")
 
@@ -345,7 +345,7 @@ def engage_peer_discussion(
     conversation_history = [] # Store user/AI messages
 
     # Initial message from AI partner
-    ai_intro = "嗨！我也在學習這個主題。您想討論哪些方面或有什麼問題想問？(Hi! I'm learning this too. What aspect would you like to discuss, or what questions do you have?)"
+    ai_intro = "嗨！我也在學習這個主題。您想討論哪些方面或有什麼問題想問？"
     console.print(f"\n[bold green]學習夥伴:[/bold green] {ai_intro}")
     conversation_history.append({"role": "assistant", "content": ai_intro})
 
@@ -356,7 +356,7 @@ def engage_peer_discussion(
         user_message = Prompt.ask("\n[bold blue]您 (You)[/bold blue]")
 
         if user_message.lower() in ["退出", "結束", "再見", "結束討論", "exit", "quit", "bye"]:
-            console.print("\n[bold green]學習夥伴:[/bold green] 很棒的討論！如果您想稍後再聊，請告訴我。(Great discussion! Let me know if you want to chat more later.)")
+            console.print("\n[bold green]學習夥伴:[/bold green] 很棒的討論！如果您想稍後再聊，請告訴我。")
             break
 
         conversation_history.append({"role": "user", "content": user_message})
@@ -381,8 +381,8 @@ def engage_peer_discussion(
 
         turn_count += 1
         if turn_count == turn_limit:
-             console.print("\n[yellow]我們已經進行了一次很好的討論。(We've had a good discussion.)[/yellow]")
-             if not Confirm.ask("是否繼續討論? (Continue discussion?)", default=False):
+             console.print("\n[yellow]我們已經進行了一次很好的討論。[/yellow]")
+             if not Confirm.ask("是否繼續討論?", default=False):
                  break
              else:
                  turn_limit += 3 # Extend discussion if requested
