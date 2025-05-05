@@ -147,7 +147,6 @@ def manage_student_profile():
         console.print("0. Create new student profile")
         
         for i, profile_path in enumerate(profiles, 1):
-            # ←── 這裡改動：用 JSON 裡的 name，而不是檔名
             with open(profile_path, "r", encoding="cp950") as f:
                 try:
                     data = json.load(f)
@@ -167,7 +166,6 @@ def manage_student_profile():
             return create_new_profile()
         else:
             path = profiles[choice - 1]
-            # 如果檔案是空檔，或解析非 JSON，就重新建立
             if os.path.getsize(path) == 0:
                 console.print("[red]Selected profile is empty, creating a new one...[/red]")
                 return create_new_profile()
@@ -179,7 +177,6 @@ def manage_student_profile():
                     console.print("[red]Failed to parse profile JSON, creating a new one...[/red]")
                     return create_new_profile()
             
-            # 解析成功，回傳 Pydantic model
             return StudentProfile.model_validate(data)
     else:
         return create_new_profile()
@@ -222,7 +219,6 @@ def create_learning_style_survey(chat_model):
     return prompt | chat_model | StrOutputParser()
 
 def create_pretest_generator(chat_model, retriever):
-    # Define the prompt template for generating pre-test questions
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是一位專精於教育評估設計的專家。
         根據提供的內容，設計一份前測（Pre-Test），以評估學生在該主題上的現有知識水平。
@@ -325,7 +321,6 @@ def create_learning_path_generator(chat_model, retriever):
         {
             "profile": RunnablePassthrough(),
             "test_results": RunnablePassthrough(),
-            # 先抽出 mapping 裡的 context 字串，再交給 retriever 做檢索，最後把多個 chunk 合併
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
@@ -453,8 +448,6 @@ def create_learning_log_prompter(chat_model):
         2. 他們對學習過程的感受
         3. 他們覺得有挑戰的地方
         4. 他們仍然有什麼問題
-        5. 他們如何應用所學的內容
-        6. 他們接下來想學什麼
         
         您的目標是幫助學生創建一份豐富且有反思性的學習日誌，對他們的成長有價值。
         """),
@@ -482,7 +475,6 @@ def create_learning_log_analyzer(chat_model):
         3. 混淆或誤解的領域
         4. 對材料的情感反應
         5. 學習風格的指標
-        6. 潛在的學習下一步
         
         將您的回應格式化為以下精確的 JSON 結構:
         {
