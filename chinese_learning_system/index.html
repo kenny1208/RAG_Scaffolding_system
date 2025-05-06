@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAG 智能教學系統</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <h1>RAG 智能教學系統</h1>
+        </div>
+        <div class="sidebar-menu">
+          <div class="menu-item active" data-view="dashboard">
+            <i class="fas fa-home"></i>
+            <span>首頁</span>
+          </div>
+          <div class="menu-item" data-view="profile">
+            <i class="fas fa-user"></i>
+            <span>學生檔案</span>
+          </div>
+          <div class="menu-item" data-view="upload">
+            <i class="fas fa-upload"></i>
+            <span>上傳教材</span>
+          </div>
+          <div class="menu-item" data-view="learning">
+            <i class="fas fa-book"></i>
+            <span>學習模組</span>
+          </div>
+          <div class="menu-item" data-view="tests">
+            <i class="fas fa-tasks"></i>
+            <span>測驗</span>
+          </div>
+          <div class="menu-item" data-view="discussion">
+            <i class="fas fa-comments"></i>
+            <span>學習夥伴討論</span>
+          </div>
+          <div class="menu-item" data-view="logs">
+            <i class="fas fa-clipboard-list"></i>
+            <span>學習日誌</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Dashboard View -->
+        <div class="view" id="dashboard-view">
+          <div class="page-header">
+            <h2>學習儀表板</h2>
+          </div>
+          <div class="dashboard-grid">
+            <div class="dashboard-card">
+              <h3>學習狀態</h3>
+              <div class="status-info">
+                <p>當前知識水平: <span id="knowledge-level">初學者</span></p>
+                <p>學習風格: <span id="learning-style">未確定</span></p>
+              </div>
+            </div>
+            <div class="dashboard-card">
+              <h3>學習進度</h3>
+              <div class="progress-container">
+                <div class="progress-bar">
+                  <div class="progress" style="width: 0%"></div>
+                </div>
+                <p class="progress-text">0% 完成</p>
+              </div>
+            </div>
+            <div class="dashboard-card">
+              <h3>近期活動</h3>
+              <ul class="activity-list" id="recent-activities">
+                <li>尚無學習活動</li>
+              </ul>
+            </div>
+            <div class="dashboard-card">
+              <h3>學習建議</h3>
+              <div class="recommendations" id="learning-recommendations">
+                <p>完成學習風格問卷以獲取個人化推薦</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile View -->
+        <div class="view hidden" id="profile-view">
+          <div class="page-header">
+            <h2>學生檔案</h2>
+          </div>
+          <div class="profile-container">
+            <div class="profile-card">
+              <h3>基本資料</h3>
+              <div class="profile-form">
+                <div class="form-group">
+                  <label for="student-name">姓名</label>
+                  <input
+                    type="text"
+                    id="student-name"
+                    placeholder="輸入您的姓名"
+                  />
+                </div>
+                <div class="form-group" id="learning-style-container">
+                  <label>學習風格</label>
+                  <div class="style-buttons">
+                    <button class="style-btn" data-style="視覺型">
+                      視覺型
+                    </button>
+                    <button class="style-btn" data-style="聽覺型">
+                      聽覺型
+                    </button>
+                    <button class="style-btn" data-style="動覺型">
+                      動覺型
+                    </button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="student-interests">學習興趣 (以逗號分隔)</label>
+                  <input
+                    type="text"
+                    id="student-interests"
+                    placeholder="例如: 語言, 歷史, 科學"
+                  />
+                </div>
+                <button id="save-profile" class="primary-btn">儲存檔案</button>
+              </div>
+            </div>
+            <div class="profile-card">
+              <h3>學習風格問卷</h3>
+              <p>了解您的學習風格可以幫助系統提供更個人化的學習體驗。</p>
+              <button id="start-survey" class="secondary-btn">開始問卷</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload View -->
+        <div class="view hidden" id="upload-view">
+          <div class="page-header">
+            <h2>上傳教材</h2>
+          </div>
+          <div class="upload-container">
+            <div class="upload-area" id="drop-area">
+              <i class="fas fa-file-pdf fa-3x"></i>
+              <p>拖放 PDF 檔案到此處或點擊選取檔案</p>
+              <input
+                type="file"
+                id="file-input"
+                accept=".pdf"
+                multiple
+                hidden
+              />
+              <button id="select-files" class="secondary-btn">選取檔案</button>
+            </div>
+            <div class="upload-status">
+              <h3>上傳狀態</h3>
+              <ul id="upload-list">
+                <!-- 上傳檔案列表將在這裡動態生成 -->
+              </ul>
+            </div>
+            <button id="process-uploads" class="primary-btn" disabled>
+              處理上傳的檔案
+            </button>
+          </div>
+        </div>
+
+        <!-- Learning Modules View -->
+        <div class="view hidden" id="learning-view">
+          <div class="page-header">
+            <h2>學習模組</h2>
+          </div>
+          <div class="learning-container">
+            <div class="modules-list">
+              <div class="module-filter">
+                <input
+                  type="text"
+                  id="module-search"
+                  placeholder="搜尋模組..."
+                />
+              </div>
+              <div id="modules-container">
+                <!-- 模組列表將在這裡動態生成 -->
+                <p class="empty-state">
+                  尚無可用模組。請先上傳教材或完成前測。
+                </p>
+              </div>
+            </div>
+            <div class="module-content">
+              <div class="content-container" id="content-display">
+                <div class="empty-state">
+                  <i class="fas fa-book-open fa-3x"></i>
+                  <p>請從左側選擇一個學習模組開始學習</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tests View -->
+        <div class="view hidden" id="tests-view">
+          <div class="page-header">
+            <h2>測驗</h2>
+          </div>
+          <div class="tests-container">
+            <div class="test-options">
+              <button id="start-pretest" class="primary-btn">開始前測</button>
+              <button id="start-posttest" class="primary-btn" disabled>
+                開始後測
+              </button>
+            </div>
+            <div id="test-content" class="test-content">
+              <!-- 測驗內容將在這裡動態生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Discussion View -->
+        <div class="view hidden" id="discussion-view">
+          <div class="page-header">
+            <h2>學習夥伴討論</h2>
+          </div>
+          <div class="discussion-container">
+            <div class="discussion-topics">
+              <h3>討論主題</h3>
+              <select id="discussion-topic">
+                <option value="" disabled selected>選擇討論主題</option>
+                <!-- 主題列表將在這裡動態生成 -->
+              </select>
+            </div>
+            <div class="chat-container">
+              <div class="chat-messages" id="chat-messages">
+                <!-- 訊息將在這裡動態生成 -->
+                <div class="chat-message system">
+                  <p>歡迎來到學習討論！選擇一個主題開始與AI學習夥伴討論。</p>
+                </div>
+              </div>
+              <div class="chat-input">
+                <input
+                  type="text"
+                  id="message-input"
+                  placeholder="輸入您的訊息..."
+                  disabled
+                />
+                <button id="send-message" disabled>
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Learning Logs View -->
+        <div class="view hidden" id="logs-view">
+          <div class="page-header">
+            <h2>學習日誌</h2>
+          </div>
+          <div class="logs-container">
+            <div class="logs-list">
+              <h3>日誌列表</h3>
+              <ul id="logs-list">
+                <!-- 日誌列表將在這裡動態生成 -->
+                <li class="empty-state">尚無學習日誌</li>
+              </ul>
+            </div>
+            <div class="log-content">
+              <div id="log-editor">
+                <h3>新增學習日誌</h3>
+                <div class="form-group">
+                  <label for="log-topic">主題</label>
+                  <input type="text" id="log-topic" placeholder="學習主題" />
+                </div>
+                <div class="form-group">
+                  <label for="log-content">內容</label>
+                  <textarea
+                    id="log-content"
+                    placeholder="今天我學到了..."
+                    rows="10"
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="log-reflection">反思</label>
+                  <textarea
+                    id="log-reflection"
+                    placeholder="我的想法與問題..."
+                    rows="5"
+                  ></textarea>
+                </div>
+                <button id="save-log" class="primary-btn">儲存日誌</button>
+              </div>
+              <div id="log-display" class="hidden">
+                <!-- 日誌內容將在這裡動態顯示 -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Learning Style Survey Modal -->
+        <div class="modal" id="survey-modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>學習風格問卷</h3>
+              <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body" id="survey-content">
+              <!-- 問卷內容將在這裡動態生成 -->
+            </div>
+            <div class="modal-footer">
+              <button id="submit-survey" class="primary-btn">提交問卷</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
