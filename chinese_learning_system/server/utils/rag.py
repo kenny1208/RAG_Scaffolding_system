@@ -52,6 +52,9 @@ def initialize_rag_system(embedding, rebuild=False):
     vectorstore_path = "vectorstore"
     data_path = "data"
     
+    os.makedirs(vectorstore_path, exist_ok=True)
+    os.makedirs(data_path, exist_ok=True)
+
     # Check if we already have a persisted vector store and not rebuilding
     if os.path.exists(vectorstore_path) and len(os.listdir(vectorstore_path)) > 0 and not rebuild:
         logger.info("Loading existing vector store...")
@@ -122,10 +125,12 @@ def generate_test(chat_model, retriever, is_pretest=True, knowledge_level="初�
         final_instruction = "請根據提供的內容生成總共 5 個問題，且包含不同難度等級的問題。"
     else:
         difficulty_text = ""
-        level_text = """難度應與學生的當前水平相匹配：
-        - 初學者：較多簡單問題（70%），一些中等問題（30%）
-        - 中級者：一些簡單問題（30%），主要是中等問題（50%），一些困難問題（20%）
-        - 高級者：一些中等問題（40%），主要是困難問題（60%）"""
+        level_text = (
+            "難度應與學生的當前水平相匹配：\n"
+            "- 初學者：較多簡單問題（70%），一些中等問題（30%）\n"
+            "- 中級者：一些簡單問題（30%），主要是中等問題（50%），一些困難問題（20%）\n"
+            "- 高級者：一些中等問題（40%），主要是困難問題（60%）"
+        )
         final_instruction = f"學生的當前知識水平: {knowledge_level}\n根據學生的水平生成總共 5 個問題，並適當分配難度。"
     
     purpose_text = "評估學生在該主題上的現有知識水平" if is_pretest else "評估學生的學習成果"

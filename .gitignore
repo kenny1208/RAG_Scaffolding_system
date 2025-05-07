@@ -9,3 +9,5 @@ chinese/learning_logs/
 chinese/student_profiles/
 chinese/vectorstore/
 chinese/__pycache__/
+chinese_learning_system/__pycache__/
+chinese_learning_system/server/utils/__pycache__/

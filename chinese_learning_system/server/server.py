@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- 
 
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
@@ -204,6 +204,9 @@ def submit_learning_style_survey():
             
             profile_data["learning_style"] = learning_style
             
+            if "learning_history" not in profile_data:
+                profile_data["learning_history"] = []
+
             # Add survey activity to learning history
             profile_data["learning_history"].append({
                 "activity_type": "學習風格問卷",
@@ -310,9 +313,8 @@ def get_dashboard_data():
 
 @app.route('/api/documents/upload', methods=['POST'])
 def upload_documents():
+    global retriever  
     try:
-        global retriever  # Move the global declaration to the top of the function
-
         if 'files' not in request.files:
             return jsonify({"error": "No files provided"}), 400
         
@@ -432,8 +434,12 @@ def generate_pretest():
         messages = [{"role": "user", "content": f"{prompt}\n\n內容：\n{context}"}]
         response = chat_model.invoke(messages)
         
-        # Parse the response as JSON
-        test_data = json.loads(response.content)
+        # Add error handling for JSON parsing
+        try:
+            test_data = json.loads(response.content)
+        except json.JSONDecodeError:
+            logger.error("Failed to parse JSON response from model")
+            return jsonify({"error": "Failed to generate valid test data"}), 500
         
         return jsonify(test_data)
     except Exception as e:
@@ -1017,8 +1023,12 @@ def analyze_learning_log(log_id):
         messages = [{"role": "user", "content": f"{prompt}\n\n學生: {log_data.get('student_id', 'unknown')}\n主題: {log_data['topic']}\n學習日誌內容:\n{log_data['content']}"}]
         response = chat_model.invoke(messages)
         
-        # Parse the response as JSON
-        analysis_data = json.loads(response.content)
+        try:
+            analysis_data = json.loads(response.content)
+        except json.JSONDecodeError:
+            logger.error("Failed to parse JSON analysis from model")
+            return jsonify({"error": "Failed to generate valid analysis"}), 500
+            
         
         # Update the log with analysis results
         log_data["analysis"] = analysis_data
