@@ -71,6 +71,7 @@ class StudentProfile(BaseModel):
     areas_for_improvement: List[str] = Field(description="Areas that need improvement")
     interests: List[str] = Field(description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
+    current_module_index: int = Field(default=0, description="Index of the current module in the learning path")
 
 class LearningLog(BaseModel):
     id: str = Field(description="Unique log ID")
@@ -153,7 +154,11 @@ def manage_student_profile():
             return create_new_profile()
         else:
             with open(profiles[choice-1], "r") as f:
-                return StudentProfile.parse_obj(json.load(f))
+                data = json.load(f)
+                # Backward compatibility: if current_module_index is missing, set to 0
+                if "current_module_index" not in data:
+                    data["current_module_index"] = 0
+                return StudentProfile.parse_obj(data)
     else:
         return create_new_profile()
 
@@ -169,7 +174,8 @@ def create_new_profile():
         strengths=[],
         areas_for_improvement=[],
         interests=[],
-        learning_history=[]
+        learning_history=[],
+        current_module_index=0
     )
     
     # Save the basic profile
@@ -1049,13 +1055,18 @@ def main():
     learning_path = generate_learning_path(chat_model, retriever, student_profile, pretest_results)
     
     # Learning process
-    for module_index, module in enumerate(learning_path['modules']):
-        console.print(f"\n[bold cyan]===== Starting Module {module_index + 1}/{len(learning_path['modules'])} =====[/bold cyan]")
+    modules = learning_path['modules']
+    module_count = len(modules)
+    # Start from saved progress
+    start_index = getattr(student_profile, 'current_module_index', 0)
+    for module_index in range(start_index, module_count):
+        module = modules[module_index]
+        console.print(f"\n[bold cyan]===== Starting Module {module_index + 1}/{module_count} =====[/bold cyan]")
         
         # Ask if user wants to proceed with this module
         proceed = Confirm.ask(f"Ready to start module: {module['title']}?")
         if not proceed:
-            continue
+            break
         
         # Deliver module content
         module_content = deliver_module_content(chat_model, retriever, student_profile, module)
@@ -1070,8 +1081,13 @@ def main():
         # Create learning log
         learning_log = create_learning_log(chat_model, module, posttest_results, student_profile)
         
+        # Update and save progress after each module
+        student_profile.current_module_index = module_index + 1
+        with open(f"student_profiles/{student_profile.id}.json", "w") as f:
+            f.write(student_profile.json(indent=4))
+        
         # Ask if user wants to continue to next module
-        if module_index < len(learning_path['modules']) - 1:
+        if module_index < module_count - 1:
             continue_learning = Confirm.ask("Continue to the next module?")
             if not continue_learning:
                 break

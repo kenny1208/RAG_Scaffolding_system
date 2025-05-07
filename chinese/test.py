@@ -74,6 +74,8 @@ class StudentProfile(BaseModel):
     areas_for_improvement: List[str] = Field(description="Areas that need improvement")
     interests: List[str] = Field(description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
+    current_module_index: int = Field(default=0, description="Index of the current module the student is on")
+    learning_path: Optional[dict] = Field(default=None, description="The personalized learning path for the student")
 
 class LearningLog(BaseModel):
     id: str = Field(description="Unique log ID")
@@ -110,7 +112,7 @@ def initialize_rag_system(embedding):
     
     # If not, create a new one from documents
     console.print("[yellow]Creating new vector store from documents...[/yellow]")
-    pdf_paths = glob("chinese/data/*.pdf")
+    pdf_paths = glob("data/*.pdf")
     
     if not pdf_paths:
         console.print("[bold red]No PDF documents found in data/ directory![/bold red]")
@@ -150,6 +152,9 @@ def manage_student_profile():
             with open(profile_path, "r", encoding="UTF-8") as f:
                 try:
                     data = json.load(f)
+                    # Backward compatibility: add current_module_index if missing
+                    if 'current_module_index' not in data:
+                        data['current_module_index'] = 0
                     profile = StudentProfile.model_validate(data)
                     profile_name = profile.name
                 except Exception:
@@ -173,6 +178,8 @@ def manage_student_profile():
             with open(path, "r", encoding="UTF-8") as f:
                 try:
                     data = json.load(f)
+                    if 'current_module_index' not in data:
+                        data['current_module_index'] = 0
                 except json.JSONDecodeError:
                     console.print("[red]Failed to parse profile JSON, creating a new one...[/red]")
                     return create_new_profile()
@@ -193,7 +200,8 @@ def create_new_profile():
         strengths=[],
         areas_for_improvement=[],
         interests=[],
-        learning_history=[]
+        learning_history=[],
+        current_module_index=0
     )
     
     # Save the basic profile
@@ -417,7 +425,7 @@ def create_posttest_generator(chat_model, retriever):
         HumanMessagePromptTemplate.from_template("""根據以下內容生成一份後測：
         
         學生的當前知識水平: {knowledge_level}
-        模組內容: {context}
+        章節內容: {context}
         """)
     ])
     
@@ -441,7 +449,7 @@ def create_posttest_generator(chat_model, retriever):
 def create_learning_log_prompter(chat_model):
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是一位反思學習教練，專門幫助學生創建有意義的學習日誌。
-        根據學生完成的學習模組和測驗結果，引導他們反思自己的學習。
+        根據學生完成的學習章節和測驗結果，引導他們反思自己的學習。
         
         提出深思熟慮的開放式問題以促進反思，包括：
         1. 他們學到了什麼（關鍵概念和見解）
@@ -453,9 +461,9 @@ def create_learning_log_prompter(chat_model):
         """),
         HumanMessagePromptTemplate.from_template("""幫助學生基於以下內容創建學習日誌反思：
         
-        完成的模組: {module_title}
+        完成的章節: {module_title}
         
-        模組內容摘要: {module_summary}
+        章節內容摘要: {module_summary}
         
         測驗結果: {test_results}
         """)
@@ -542,7 +550,7 @@ def create_knowledge_level_assessor(chat_model):
 def create_module_content_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是一位專業的教育內容創作者。
-        根據提供的模組主題以及學生的學習風格和知識水平，創建引人入勝的教育內容。
+        根據提供的章節主題以及學生的學習風格和知識水平，創建引人入勝的教育內容。
         
         您的內容應：
         1. 針對學生的學習風格（視覺型、聽覺型或動覺型）進行量身定制
@@ -557,7 +565,7 @@ def create_module_content_generator(chat_model, retriever):
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
-        模組主題: {module_topic}
+        章節主題: {module_topic}
         學生學習風格: {learning_style}
         學生知識水平: {knowledge_level}
         
@@ -805,12 +813,10 @@ def engage_peer_discussion(chat_model, retriever, topic):
 
 def administer_posttest(chat_model, retriever, module, student_profile):
     console.print(f"\n[bold cyan]===== 後測: {module['title']} =====[/bold cyan]")
-    console.print("[yellow]測試您對模組內容的理解...[/yellow]")
+    console.print("[yellow]測試您對章節內容的理解...[/yellow]")
     
-    # 獲取模組主題
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     
-    # 根據模組內容和學生水平生成後測問題
     posttest_chain = create_posttest_generator(chat_model, retriever)
     # 直接傳 mapping，拿到 dict
     posttest = posttest_chain.invoke({
@@ -895,7 +901,6 @@ def administer_posttest(chat_model, retriever, module, student_profile):
 def create_learning_log(chat_model, module, test_results, student_profile):
     console.print(f"\n[bold cyan]===== 學習日誌: {module['title']} =====[/bold cyan]")
     
-    # 獲取模組主題和摘要
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     module_summary = module['description']
     
@@ -1003,29 +1008,31 @@ def main():
     # 管理學生檔案
     student_profile = manage_student_profile()
     console.print(f"\n[bold green]歡迎, {student_profile.name}![/bold green]")
-    
-    # 如果尚未完成學習風格評估，進行評估
+
     if not student_profile.learning_style:
         student_profile = conduct_learning_style_survey(chat_model, student_profile)
+
+    if not getattr(student_profile, "learning_path", None):
+        pretest, pretest_results, knowledge_level = administer_pretest(chat_model, retriever, student_profile)
+        learning_path = generate_learning_path(chat_model, retriever, student_profile, pretest_results)
+        student_profile.learning_path = learning_path
+        student_profile.current_module_index = 0
+        with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
+            f.write(student_profile.model_dump_json(indent=4))
     else:
-        console.print(f"\n[yellow]您的學習風格是: [bold]{student_profile.learning_style}[/bold][/yellow]")
-    
-    # 進行前測
-    pretest, pretest_results, knowledge_level = administer_pretest(chat_model, retriever, student_profile)
-    
-    # 生成個人化學習路徑
-    learning_path = generate_learning_path(chat_model, retriever, student_profile, pretest_results)
-    
-    # 學習過程
-    for module_index, module in enumerate(learning_path['modules']):
-        console.print(f"\n[bold cyan]===== 開始模組 {module_index + 1}/{len(learning_path['modules'])} =====[/bold cyan]")
+        learning_path = student_profile.learning_path
+        console.print(f"\n[bold yellow]已載入您的學習路徑，將從上次進度繼續。[/bold yellow]")
+
+    modules = learning_path['modules']
+    start_index = getattr(student_profile, 'current_module_index', 0)
+    for module_index in range(start_index, len(modules)):
+        module = modules[module_index]
+        console.print(f"\n[bold cyan]===== 開始章節 {module_index + 1}/{len(modules)} =====[/bold cyan]")
         
-        # 詢問使用者是否準備好進行此模組
-        proceed = Confirm.ask(f"準備好開始模組: {module['title']}")
+        proceed = Confirm.ask(f"準備好開始章節: {module['title']}")
         if not proceed:
             continue
         
-        # 提供模組內容
         module_content = deliver_module_content(chat_model, retriever, student_profile, module)
         
         # 進行同儕討論
@@ -1038,9 +1045,13 @@ def main():
         # 創建學習日誌
         learning_log = create_learning_log(chat_model, module, posttest_results, student_profile)
         
-        # 詢問使用者是否想繼續進行下一個模組
-        if module_index < len(learning_path['modules']) - 1:
-            continue_learning = Confirm.ask("是否繼續進行下一個模組?")
+        # 更新進度並保存
+        student_profile.current_module_index = module_index + 1
+        with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
+            f.write(student_profile.model_dump_json(indent=4))
+        
+        if module_index < len(modules) - 1:
+            continue_learning = Confirm.ask("是否繼續進行下一個章節?")
             if not continue_learning:
                 break
     
