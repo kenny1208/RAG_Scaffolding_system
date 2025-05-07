@@ -126,6 +126,8 @@ def initialize_rag_system(embedding):
         pages = loader.load_and_split()
         all_pages.extend(pages)
     
+    print(all_pages[0].metadata)
+    
     text_splitter = NLTKTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = text_splitter.split_documents(all_pages)
     
@@ -270,7 +272,10 @@ def create_pretest_generator(chat_model, retriever):
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
-                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+                | (lambda docs: "\n".join([
+                    f"[來源: {doc.metadata.get('source', '')} 頁碼: {doc.metadata.get('page', '')}]\n{doc.page_content}"
+                    for doc in docs
+                ]))
             )
         }
         | prompt
@@ -287,7 +292,7 @@ def create_learning_path_generator(chat_model, retriever):
         
         您的學習路徑應該：
         1. 針對學生的學習風格、知識水平和興趣進行量身定制
-        2. 包含清晰的學習目標
+        3. 完整的學習路徑應該包含學習目標、學習章節
         3. 遵循鷹架原則，逐步增加難度並減少支持
         
         您的回應必須遵循以下精確的 JSON 格式：
@@ -299,15 +304,12 @@ def create_learning_path_generator(chat_model, retriever):
             {
               "title": "章節 1: [標題]",
               "description": "章節描述",
-              "activities": [
+              "structure": [
                 {
-                  "type": "閱讀",
-                  "title": "活動標題",
-                  "description": "活動描述",
-                  "difficulty": "初學者"
+                  "content": "列出該章節要學會的內容",
+                  "source": "資料來源"
                 }
               ],
-              "resources": ["講義章節1-1", "講義章節1-2"],
             }
           ]
         }
@@ -332,7 +334,10 @@ def create_learning_path_generator(chat_model, retriever):
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
-                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+                | (lambda docs: "\n".join([
+                    f"[來源: {doc.metadata.get('source', '')} 頁碼: {doc.metadata.get('page', '')}]\n{doc.page_content}"
+                    for doc in docs
+                ]))
             )
         }
         | prompt
@@ -347,14 +352,13 @@ def create_peer_discussion_ai(chat_model, retriever):
         SystemMessage(content="""您是「學習夥伴」，一個友善且有幫助的 AI 同儕，與學生進行有建設性的討論。
         您的角色是：
         1. 模擬一位也在學習該主題但有一定見解的同儕
-        2. 提出促進批判性思考的深思熟慮的問題
         3. 提供溫和的指導，而不是直接給出答案
         4. 以對話的方式表達想法，像是學生之間的交流
         5. 使用蘇格拉底式提問法幫助學生發現答案
         6. 鼓勵並保持積極的態度
         
         根據提供的相關內容回應，但不要只是簡單地背誦資訊。
-        而是以自然的方式進行來回討論，就像一起學習一樣。
+        而是以自然的方式進行來回討論，就像一起學習一樣，但是還是要適度幫助同學解決問題。
         """),
         HumanMessagePromptTemplate.from_template("""學生希望討論這個主題：
         
@@ -376,7 +380,10 @@ def create_peer_discussion_ai(chat_model, retriever):
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
-                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+                | (lambda docs: "\n".join([
+                    f"[來源: {doc.metadata.get('source', '')} 頁碼: {doc.metadata.get('page', '')}]\n{doc.page_content}"
+                    for doc in docs
+                ]))
             )
         }
         | prompt
@@ -435,7 +442,10 @@ def create_posttest_generator(chat_model, retriever):
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
-                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+                | (lambda docs: "\n".join([
+                    f"[來源: {doc.metadata.get('source', '')} 頁碼: {doc.metadata.get('page', '')}]\n{doc.page_content}"
+                    for doc in docs
+                ]))
             )
         }
         | prompt
@@ -478,18 +488,18 @@ def create_learning_log_analyzer(chat_model):
         SystemMessage(content="""您是一位專業的教育分析師，專門分析學生的學習日誌。
         根據學生的學習日誌，評估：
         
-        1. 對關鍵概念的理解程度
-        2. 優勢和自信的領域
-        3. 混淆或誤解的領域
-        4. 對材料的情感反應
-        5. 學習風格的指標
+        1. 對關鍵概念的理解程度：請描述學生對學習內容的理解深度，並將其歸類為 "高"、"中" 或 "低"。
+        2. 優勢和自信的領域：列出學生在學習過程中表現出色或具備信心的概念或技能。
+        3. 混淆或誤解的領域：指出學生在學習過程中出現困惑或需要改進的具體領域。
+        4. 學習風格的指標：根據學生的學習日誌內容推斷其主要的學習風格，例如 "視覺型"、"聽覺型" 或 "動覺型"。
+        5. 建議的下一步行動：根據學生的學習狀況，提供具體的學習建議和行動步驟。
+        6. 推薦資源：根據學生的學習需求，推薦適合的學習資源。
         
         將您的回應格式化為以下精確的 JSON 結構:
         {
           "understanding_level": "高/中/低",
           "strengths": ["優勢 1", "優勢 2"],
           "areas_for_improvement": ["改進領域 1", "改進領域 2"],
-          "emotional_response": "對情感反應的描述",
           "learning_style_indicators": ["指標 1", "指標 2"],
           "recommended_next_steps": ["建議步驟 1", "建議步驟 2"],
           "suggested_resources": ["資源 1", "資源 2"]
@@ -553,13 +563,13 @@ def create_module_content_generator(chat_model, retriever):
         根據提供的章節主題以及學生的學習風格和知識水平，創建引人入勝的教育內容。
         
         您的內容應：
-        1. 針對學生的學習風格（視覺型、聽覺型或動覺型）進行量身定制
+        1. 針對學生的學習風格進行量身定制
         2. 適合學生的知識水平
         3. 包含關鍵概念的清晰解釋
-        4. 使用示例和類比來說明要點
         5. 包括適合知識水平的鷹架元素
         6. 結構清晰，包含明確的部分和標題
         7. 以關鍵點的簡短總結結尾
+        8. 每個章節都要根據context的內容標註來源(source)，（如：[來源: ... 頁碼: ...]）
         
         使用 markdown 格式化您的內容以提高可讀性。
         """),
@@ -583,7 +593,10 @@ def create_module_content_generator(chat_model, retriever):
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
-                | (lambda docs: "\n\n".join([d.page_content for d in docs]))
+                | (lambda docs: "\n".join([
+                    f"[來源: {doc.metadata.get('source', '')} 頁碼: {doc.metadata.get('page', '')}]\n{doc.page_content}"
+                    for doc in docs
+                ]))
             )
         }
         | prompt
@@ -741,10 +754,9 @@ def generate_learning_path(chat_model, retriever, student_profile, pretest_resul
         console.print(f"\n[bold cyan]Module {i+1}: {module['title']}[/bold cyan]")
         console.print(f"[italic]{module['description']}[/italic]")
         
-        console.print("\n[bold]Activities:[/bold]")
-        for activity in module['activities']:
-            console.print(f" {activity['title']} ({activity['type']})")
-            console.print(f"  {activity['description']}")
+        console.print("\n[bold]structure:[/bold]")
+        for structure in module['structure']:
+            console.print(f" {structure['content']} ({structure['source']})")
         
         if 'resources' in module:
             console.print("\n[bold]Resources:[/bold]")
