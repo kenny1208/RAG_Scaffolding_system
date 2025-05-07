@@ -1,4 +1,4 @@
-# -*- coding: big5 -*-
+# -*- coding: UTF-8 -*-
 
 # --- Standard Library Imports ---
 import sys
@@ -26,15 +26,15 @@ from workflow import ( # Import all workflow steps
 def main():
     """Main function to run the RAG Scaffolding Education System."""
     console.print("[bold cyan]=====================================[/bold cyan]")
-    console.print("[bold cyan]== RAG ÆN¬[±Ğ¨|¨t²Î ==[/bold cyan]")
+    console.print("[bold cyan]== RAG é·¹æ¶æ•™è‚²ç³»çµ± ==[/bold cyan]")
     console.print("[bold cyan]=====================================[/bold cyan]\n")
 
 
     student_profile: Optional[StudentProfile] = manage_student_profile()
     if not student_profile:
-        console.print("[bold red]µLªk¸ü¤J©Î«Ø¥ß¾Ç¥ÍÀÉ®×¡Aµ{¦¡§Y±Nµ²§ô¡C[/bold red]")
+        console.print("[bold red]ç„¡æ³•è¼‰å…¥æˆ–å»ºç«‹å­¸ç”Ÿæª”æ¡ˆï¼Œç¨‹å¼å³å°‡çµæŸã€‚[/bold red]")
         sys.exit(1)
-    console.print(f"\n[bold green]Åwªï¦^¨Ó, {student_profile.name}! [/bold green]")
+    console.print(f"\n[bold green]æ­¡è¿å›ä¾†, {student_profile.name}! [/bold green]")
 
 
     student_profile = conduct_learning_style_survey(CHAT_MODEL, student_profile)
@@ -46,13 +46,13 @@ def main():
     pretest_data, pretest_results, _ = administer_pretest(CHAT_MODEL, RETRIEVER, student_profile)
     # Profile and knowledge level updated and saved within the function
     if pretest_data is None:
-         console.print("[bold red]µLªk°õ¦æ«e´ú¡C[/bold red]")
+         console.print("[bold red]ç„¡æ³•åŸ·è¡Œå‰æ¸¬ã€‚[/bold red]")
          # Decide how to proceed: exit, use default level, etc.
-         if not Confirm.ask("«e´ú¥¢±Ñ¡A¬O§_¤´­n¹Á¸Õ¥Í¦¨¾Ç²ß¸ô®|? ", default=False):
+         if not Confirm.ask("å‰æ¸¬å¤±æ•—ï¼Œæ˜¯å¦ä»è¦å˜—è©¦ç”Ÿæˆå­¸ç¿’è·¯å¾‘? ", default=False):
               sys.exit(1)
          # If continuing, ensure profile has a default level
          if not student_profile.current_knowledge_level:
-             student_profile.current_knowledge_level = "ªì¾ÇªÌ"
+             student_profile.current_knowledge_level = "åˆå­¸è€…"
 
 
     # 4. Generate Learning Path
@@ -62,95 +62,95 @@ def main():
     # 5. Learning Loop (Modules)
     num_modules = len(learning_path['modules'])
     for module_index, module in enumerate(learning_path['modules']):
-        module_title = module.get('title', f'³¹¸` {module_index + 1}')
-        console.print(f"\n[bold #FFD700]===== ¶}©l³¹¸` {module_index + 1}/{num_modules}: {module_title} =====[/bold #FFD700]") # Gold color
+        module_title = module.get('title', f'ç« ç¯€ {module_index + 1}')
+        console.print(f"\n[bold #FFD700]===== é–‹å§‹ç« ç¯€ {module_index + 1}/{num_modules}: {module_title} =====[/bold #FFD700]") # Gold color
 
         # Check if module structure is valid enough
         if not isinstance(module, dict) or not module_title:
-             console.print(f"[yellow]³¹¸` {module_index + 1} ®æ¦¡µL®Ä¡A¸õ¹L¡C[/yellow]")
+             console.print(f"[yellow]ç« ç¯€ {module_index + 1} æ ¼å¼ç„¡æ•ˆï¼Œè·³éã€‚[/yellow]")
              continue
 
         # Ask user to proceed
-        proceed = Confirm.ask(f"·Ç³Æ¦n¶}©l¦¹³¹¸`¶Ü? ", default=True)
+        proceed = Confirm.ask(f"æº–å‚™å¥½é–‹å§‹æ­¤ç« ç¯€å—? ", default=True)
         if not proceed:
-            console.print("[yellow]¸õ¹L¦¹³¹¸`¡C[/yellow]")
+            console.print("[yellow]è·³éæ­¤ç« ç¯€ã€‚[/yellow]")
             continue
 
         # 5a. Deliver Module Content
-        console.print(f"\n[bold]-- ³¹¸`¤º®e ({module_title}) --[/bold]")
+        console.print(f"\n[bold]-- ç« ç¯€å…§å®¹ ({module_title}) --[/bold]")
         _ = deliver_module_content(CHAT_MODEL, RETRIEVER, student_profile, module)
         # Profile history updated within function
 
         # 5b. Engage in Peer Discussion
-        console.print(f"\n[bold]-- ¦P¾«°Q½× ({module_title}) --[/bold]")
+        console.print(f"\n[bold]-- åŒå„•è¨è«– ({module_title}) --[/bold]")
         module_topic = module_title.split(": ", 1)[-1].strip() if ": " in module_title else module_title
-        if Confirm.ask("¬O§_­n¶i¦æ¦P¾«°Q½×? ", default=True):
+        if Confirm.ask("æ˜¯å¦è¦é€²è¡ŒåŒå„•è¨è«–? ", default=True):
              _ = engage_peer_discussion(CHAT_MODEL, RETRIEVER, module_topic, student_profile)
              # Profile history updated within function
         else:
-             console.print("[yellow]¸õ¹L¦P¾«°Q½×¡C[/yellow]")
+             console.print("[yellow]è·³éåŒå„•è¨è«–ã€‚[/yellow]")
 
 
         # 5c. Administer Post-test
-        console.print(f"\n[bold]-- «á´ú ({module_title}) --[/bold]")
+        console.print(f"\n[bold]-- å¾Œæ¸¬ ({module_title}) --[/bold]")
         posttest_data, posttest_results = administer_posttest(CHAT_MODEL, RETRIEVER, module, student_profile)
         # Profile knowledge level and history updated within function
         if posttest_data is None:
-             console.print("[yellow]µLªk°õ¦æ«á´ú¡C[/yellow]")
+             console.print("[yellow]ç„¡æ³•åŸ·è¡Œå¾Œæ¸¬ã€‚[/yellow]")
              # Continue to log without test results, or handle differently
 
 
         # 5d. Create Learning Log
-        console.print(f"\n[bold]-- ¾Ç²ß¤é»x ({module_title}) --[/bold]")
-        if Confirm.ask("¬O§_­n«Ø¥ß¾Ç²ß¤é»x?", default=True):
+        console.print(f"\n[bold]-- å­¸ç¿’æ—¥èªŒ ({module_title}) --[/bold]")
+        if Confirm.ask("æ˜¯å¦è¦å»ºç«‹å­¸ç¿’æ—¥èªŒ?", default=True):
             _ = create_learning_log(CHAT_MODEL, module, posttest_results, student_profile)
             # Profile strengths/weaknesses and history updated within function
         else:
-             console.print("[yellow]¸õ¹L¾Ç²ß¤é»x¡C[/yellow]")
+             console.print("[yellow]è·³éå­¸ç¿’æ—¥èªŒã€‚[/yellow]")
 
 
         # Ask to continue to next module
         if module_index < num_modules - 1:
-            continue_learning = Confirm.ask("¬O§_Ä~Äò¶i¦æ¤U¤@­Ó³¹¸`?", default=True)
+            continue_learning = Confirm.ask("æ˜¯å¦ç¹¼çºŒé€²è¡Œä¸‹ä¸€å€‹ç« ç¯€?", default=True)
             if not continue_learning:
-                console.print("[yellow]¾Ç²ß¼È°±¡C[/yellow]")
+                console.print("[yellow]å­¸ç¿’æš«åœã€‚[/yellow]")
                 break
         else:
-            console.print("[green]¤w§¹¦¨©Ò¦³³¹¸`¡I[/green]")
+            console.print("[green]å·²å®Œæˆæ‰€æœ‰ç« ç¯€ï¼[/green]")
 
 
     # 6. Final Summary
-    console.print("\n[bold green]===== ¾Ç²ß¸ô®|§¹¦¨  =====[/bold green]")
-    console.print("[yellow]·PÁÂ±z¨Ï¥Î RAG ÆN¬[±Ğ¨|¨t²Î¡I[/yellow]")
-    console.print(f"[yellow]±z¥Ø«eªºª¾ÃÑ¤ô¥­µû¦ô¬°: [bold]{student_profile.current_knowledge_level}[/bold][/yellow]")
+    console.print("\n[bold green]===== å­¸ç¿’è·¯å¾‘å®Œæˆ  =====[/bold green]")
+    console.print("[yellow]æ„Ÿè¬æ‚¨ä½¿ç”¨ RAG é·¹æ¶æ•™è‚²ç³»çµ±ï¼[/yellow]")
+    console.print(f"[yellow]æ‚¨ç›®å‰çš„çŸ¥è­˜æ°´å¹³è©•ä¼°ç‚º: [bold]{student_profile.current_knowledge_level}[/bold][/yellow]")
 
-    console.print("\n[bold]±zªº¾Ç²ß®Èµ{ºK­n:[/bold]")
+    console.print("\n[bold]æ‚¨çš„å­¸ç¿’æ—…ç¨‹æ‘˜è¦:[/bold]")
     total_activities = len(student_profile.learning_history)
-    console.print(f" - §¹¦¨¤F {total_activities} ¶µ¾Ç²ß¬¡°Ê (Completed {total_activities} learning activities)")
+    console.print(f" - å®Œæˆäº† {total_activities} é …å­¸ç¿’æ´»å‹• (Completed {total_activities} learning activities)")
     # Display consolidated strengths/weaknesses from the profile
-    strengths_str = ', '.join(student_profile.strengths) if student_profile.strengths else '©|¥¼½T©w'
-    weaknesses_str = ', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else '©|¥¼½T©w'
-    console.print(f" - ¥Ø«eµû¦ôªºÀu¶Õ: {strengths_str}")
-    console.print(f" - «ØÄ³¥[±jªº»â°ì: {weaknesses_str}")
+    strengths_str = ', '.join(student_profile.strengths) if student_profile.strengths else 'å°šæœªç¢ºå®š'
+    weaknesses_str = ', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else 'å°šæœªç¢ºå®š'
+    console.print(f" - ç›®å‰è©•ä¼°çš„å„ªå‹¢: {strengths_str}")
+    console.print(f" - å»ºè­°åŠ å¼·çš„é ˜åŸŸ: {weaknesses_str}")
 
-    console.print("\n[bold]«ùÄò¾Ç²ßªº«ØÄ³ ")
+    console.print("\n[bold]æŒçºŒå­¸ç¿’çš„å»ºè­° ")
     level = student_profile.current_knowledge_level
-    if level == "ªì¾ÇªÌ":
-        console.print(" - ±Mª`©ó´x´¤°òÂ¦·§©À ")
-        console.print(" - ¦h½m²ßªì¾ÇªÌ¨ì¤¤¯Åªº½d¨Ò ")
-    elif level == "¤¤¯Å":
-        console.print(" - ¥[²`¹ï½ÆÂø¥DÃDªº²z¸Ñ ")
-        console.print(" - ¶}©l±N·§©ÀÀ³¥Î©ó¹ê»Ú°İÃD")
-    else: # °ª¯Å
-        console.print(" - ±´¯Á¸Ó»â°ìªº±M·~¥DÃD ")
-        console.print(" - ¦Ò¼{±Ğ¾Ç©Î«ü¾É¥L¤H¥H¾d©T±zªºª¾ÃÑ ")
+    if level == "åˆå­¸è€…":
+        console.print(" - å°ˆæ³¨æ–¼æŒæ¡åŸºç¤æ¦‚å¿µ ")
+        console.print(" - å¤šç·´ç¿’åˆå­¸è€…åˆ°ä¸­ç´šçš„ç¯„ä¾‹ ")
+    elif level == "ä¸­ç´š":
+        console.print(" - åŠ æ·±å°è¤‡é›œä¸»é¡Œçš„ç†è§£ ")
+        console.print(" - é–‹å§‹å°‡æ¦‚å¿µæ‡‰ç”¨æ–¼å¯¦éš›å•é¡Œ")
+    else: # é«˜ç´š
+        console.print(" - æ¢ç´¢è©²é ˜åŸŸçš„å°ˆæ¥­ä¸»é¡Œ ")
+        console.print(" - è€ƒæ…®æ•™å­¸æˆ–æŒ‡å°ä»–äººä»¥éå›ºæ‚¨çš„çŸ¥è­˜ ")
 
 # --- Entry Point Check ---
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        console.print("\n[bold red]µ{¦¡°õ¦æ®Éµo¥Í¥¼¹w´Áªº¿ù»~:[/bold red]")
+        console.print("\n[bold red]ç¨‹å¼åŸ·è¡Œæ™‚ç™¼ç”Ÿæœªé æœŸçš„éŒ¯èª¤:[/bold red]")
         console.print_exception(show_locals=False) # Print traceback
     finally:
-        console.print("\n[bold]µ{¦¡µ²§ô¡C(Program finished.)[/bold]")
+        console.print("\n[bold]ç¨‹å¼çµæŸã€‚(Program finished.)[/bold]")

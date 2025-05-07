@@ -1,4 +1,4 @@
-# -*- coding: big5 -*-
+# -*- coding: UTF-8 -*-
 
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any

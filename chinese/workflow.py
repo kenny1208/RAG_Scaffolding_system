@@ -1,4 +1,4 @@
-# -*- coding: big5 -*-
+# -*- coding: UTF-8 -*-
 
 import datetime
 import json
@@ -34,45 +34,45 @@ def conduct_learning_style_survey(
     student_profile: StudentProfile
 ) -> StudentProfile:
     """Conducts the learning style survey and updates the profile."""
-    console.print("\n[bold cyan]===== ¾Ç²ß­·®æµû¦ô =====[/bold cyan]")
+    console.print("\n[bold cyan]===== å­¸ç¿’é¢¨æ ¼è©•ä¼° =====[/bold cyan]")
 
     # Check if already done
     if student_profile.learning_style:
-        console.print(f"[yellow]¾Ç²ß­·®æ¤w³]©w¬°: [bold]{student_profile.learning_style}[/bold][/yellow]")
+        console.print(f"[yellow]å­¸ç¿’é¢¨æ ¼å·²è¨­å®šç‚º: [bold]{student_profile.learning_style}[/bold][/yellow]")
         return student_profile
 
     survey_chain = create_learning_style_survey(chat_model)
-    console.print("[yellow]¥¿¦b¥Í¦¨¾Ç²ß­·®æ°İ¨÷...[/yellow]")
+    console.print("[yellow]æ­£åœ¨ç”Ÿæˆå­¸ç¿’é¢¨æ ¼å•å·...[/yellow]")
     try:
         survey = survey_chain.invoke({})
         console.print(Markdown(survey))
     except Exception as e:
-        console.print(f"[bold red]µLªk¥Í¦¨°İ¨÷: {e}[/bold red]")
+        console.print(f"[bold red]ç„¡æ³•ç”Ÿæˆå•å·: {e}[/bold red]")
         # Default or ask manually
-        console.print("[yellow]µLªk¦Û°Ê¥Í¦¨°İ¨÷¡A½Ğ¤â°Ê¿ï¾Ü¡C[/yellow]")
+        console.print("[yellow]ç„¡æ³•è‡ªå‹•ç”Ÿæˆå•å·ï¼Œè«‹æ‰‹å‹•é¸æ“‡ã€‚[/yellow]")
         style_choice = Prompt.ask(
-            "½Ğ¿ï¾Ü±zªº¥D­n¾Ç²ß­·®æ (Select your primary learning style)",
+            "è«‹é¸æ“‡æ‚¨çš„ä¸»è¦å­¸ç¿’é¢¨æ ¼ (Select your primary learning style)",
             choices=["1", "2", "3"],
             default="1"
         )
     else:
         # Ask based on the generated survey
-        console.print("\n[bold yellow]½Ğ¦^µª¨C­Ó°İÃD¥HÀ°§U½T©w±zªº¾Ç²ß­·®æ¡C[bold yellow]")
+        console.print("\n[bold yellow]è«‹å›ç­”æ¯å€‹å•é¡Œä»¥å¹«åŠ©ç¢ºå®šæ‚¨çš„å­¸ç¿’é¢¨æ ¼ã€‚[bold yellow]")
         # (Optional: Add logic to actually process answers if the survey was structured for it)
         # For now, just ask the final choice:
-        console.print("\n[bold]§¹¦¨°İ¨÷«á¡A­şºØ¾Ç²ß­·®æ³Ì²Å¦X±z¡H (After completing the survey, which style best describes you?)[/bold]")
-        console.print("1. µøÄ±«¬ (Visual)")
-        console.print("2. Å¥Ä±«¬ (Auditory)")
-        console.print("3. °ÊÄ±«¬ (Kinesthetic/Reading-Writing)") # Combine K and R/W for simplicity maybe
+        console.print("\n[bold]å®Œæˆå•å·å¾Œï¼Œå“ªç¨®å­¸ç¿’é¢¨æ ¼æœ€ç¬¦åˆæ‚¨ï¼Ÿ (After completing the survey, which style best describes you?)[/bold]")
+        console.print("1. è¦–è¦ºå‹ (Visual)")
+        console.print("2. è½è¦ºå‹ (Auditory)")
+        console.print("3. å‹•è¦ºå‹ (Kinesthetic/Reading-Writing)") # Combine K and R/W for simplicity maybe
         style_choice = Prompt.ask(
-            "¿ï¾Ü±zªº¥D­n¾Ç²ß­·®æ (Choose your primary style)",
+            "é¸æ“‡æ‚¨çš„ä¸»è¦å­¸ç¿’é¢¨æ ¼ (Choose your primary style)",
             choices=["1", "2", "3"],
             default="1"
         )
 
-    learning_styles = {"1": "µøÄ±«¬", "2": "Å¥Ä±«¬", "3": "°ÊÄ±«¬"}
+    learning_styles = {"1": "è¦–è¦ºå‹", "2": "è½è¦ºå‹", "3": "å‹•è¦ºå‹"}
     student_profile.learning_style = learning_styles[style_choice]
-    console.print(f"[green]¾Ç²ß­·®æ¤w³]©w¬°: [bold]{student_profile.learning_style}[/bold][/green]")
+    console.print(f"[green]å­¸ç¿’é¢¨æ ¼å·²è¨­å®šç‚º: [bold]{student_profile.learning_style}[/bold][/green]")
 
     save_profile(student_profile) # Save updated profile
     return student_profile
@@ -84,24 +84,24 @@ def administer_pretest(
     student_profile: StudentProfile
 ) -> Tuple[Optional[Dict], List[Dict], Optional[str]]:
     """Administers the pre-test, assesses knowledge level, and updates profile."""
-    console.print("\n[bold cyan]===== «e´ú (Pre-Test) =====[/bold cyan]")
-    console.print("[yellow]¥¿¦b®Ú¾Ú¤º®e¥Í¦¨«e´ú... (Generating pre-test based on content...)[/yellow]")
+    console.print("\n[bold cyan]===== å‰æ¸¬ (Pre-Test) =====[/bold cyan]")
+    console.print("[yellow]æ­£åœ¨æ ¹æ“šå…§å®¹ç”Ÿæˆå‰æ¸¬... (Generating pre-test based on content...)[/yellow]")
 
     pretest_chain = create_pretest_generator(chat_model, retriever)
     pretest_data: Optional[Dict] = None
     try:
         # Provide a general topic for context retrieval if needed
-        pretest_data = pretest_chain.invoke({"topic": "°òÂ¦ª¾ÃÑ"}) # Or derive topic
+        pretest_data = pretest_chain.invoke({"topic": "åŸºç¤çŸ¥è­˜"}) # Or derive topic
         # Validate structure (basic check)
         if not pretest_data or "questions" not in pretest_data or not isinstance(pretest_data["questions"], list):
-            console.print("[bold red]¥Í¦¨ªº´úÅç®æ¦¡µL®Ä¡C[/bold red]")
+            console.print("[bold red]ç”Ÿæˆçš„æ¸¬é©—æ ¼å¼ç„¡æ•ˆã€‚[/bold red]")
             return None, [], student_profile.current_knowledge_level # Return existing level
     except Exception as e:
-        console.print(f"[bold red]¥Í¦¨«e´ú®Éµo¥Í¿ù»~: {e}[/bold red]")
+        console.print(f"[bold red]ç”Ÿæˆå‰æ¸¬æ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
         return None, [], student_profile.current_knowledge_level # Return existing level
 
-    console.print(f"\n[bold green]{pretest_data.get('title', '«e´ú')}[/bold green]")
-    console.print(f"[italic]{pretest_data.get('description', 'µû¦ô±zªº°òÂ¦ª¾ÃÑ')}[/italic]\n")
+    console.print(f"\n[bold green]{pretest_data.get('title', 'å‰æ¸¬')}[/bold green]")
+    console.print(f"[italic]{pretest_data.get('description', 'è©•ä¼°æ‚¨çš„åŸºç¤çŸ¥è­˜')}[/italic]\n")
 
     # Execute the test
     score = 0
@@ -109,19 +109,19 @@ def administer_pretest(
     results = [] # To store detailed results
 
     if total_questions == 0:
-        console.print("[yellow]´úÅç¤¤¨S¦³°İÃD¡C[/yellow]")
+        console.print("[yellow]æ¸¬é©—ä¸­æ²’æœ‰å•é¡Œã€‚[/yellow]")
         return pretest_data, [], student_profile.current_knowledge_level
 
     for i, q_data in enumerate(pretest_data['questions']):
         # Validate question structure
         if not all(k in q_data for k in ["question", "choices", "correct_answer", "explanation", "difficulty"]):
-             console.print(f"[yellow]¸õ¹L®æ¦¡¤£¥¿½Tªº°İÃD {i+1}¡C[/yellow]")
+             console.print(f"[yellow]è·³éæ ¼å¼ä¸æ­£ç¢ºçš„å•é¡Œ {i+1}ã€‚[/yellow]")
              total_questions -= 1 # Adjust total count
              continue
 
         q = Question.model_validate(q_data) # Validate with Pydantic model
 
-        console.print(f"\n[bold]°İÃD {i+1}:[/bold] {q.question}")
+        console.print(f"\n[bold]å•é¡Œ {i+1}:[/bold] {q.question}")
         choice_map = {}
         for choice in q.choices:
             letter = choice.split('.')[0].strip().upper()
@@ -129,13 +129,13 @@ def administer_pretest(
             choice_map[letter] = choice
 
         if not choice_map:
-            console.print(f"[yellow]°İÃD {i+1} ¨S¦³¦³®Äªº¿ï¶µ¡A¸õ¹L¡C[/yellow]")
+            console.print(f"[yellow]å•é¡Œ {i+1} æ²’æœ‰æœ‰æ•ˆçš„é¸é …ï¼Œè·³éã€‚[/yellow]")
             total_questions -= 1
             continue
 
         valid_answer_keys = list(choice_map.keys())
         answer = Prompt.ask(
-            f"\n±zªºµª®× ({'/'.join(valid_answer_keys)})",
+            f"\næ‚¨çš„ç­”æ¡ˆ ({'/'.join(valid_answer_keys)})",
             choices=valid_answer_keys,
             show_choices=False # Don't repeat choices
         ).upper()
@@ -145,12 +145,12 @@ def administer_pretest(
 
         if is_correct:
             score += 1
-            console.print("[bold green]¥¿½T¡I[/bold green]")
+            console.print("[bold green]æ­£ç¢ºï¼[/bold green]")
         else:
-            console.print(f"[bold red]¿ù»~¡C¥¿½Tµª®×¬O {q.correct_answer}[/bold red]")
+            console.print(f"[bold red]éŒ¯èª¤ã€‚æ­£ç¢ºç­”æ¡ˆæ˜¯ {q.correct_answer}[/bold red]")
 
-        console.print(f"[italic]¸ÑÄÀ: {q.explanation}[/italic]")
-        console.print(f"[dim]Ãø«×: {q.difficulty}[/dim]")
+        console.print(f"[italic]è§£é‡‹: {q.explanation}[/italic]")
+        console.print(f"[dim]é›£åº¦: {q.difficulty}[/dim]")
 
         results.append({
             "question": q.question,
@@ -163,26 +163,26 @@ def administer_pretest(
     # Calculate score and assess level
     if total_questions > 0:
         percentage = (score / total_questions) * 100
-        console.print(f"\n[bold]´úÅç§¹¦¨¡I±zªº¤À¼Æ¡G{score}/{total_questions} ({percentage:.1f}%)[/bold]")
+        console.print(f"\n[bold]æ¸¬é©—å®Œæˆï¼æ‚¨çš„åˆ†æ•¸ï¼š{score}/{total_questions} ({percentage:.1f}%)[/bold]")
 
         # Assess knowledge level (simple thresholding)
         if percentage >= 75: # Adjusted thresholds
-            knowledge_level = "°ª¯Å"
+            knowledge_level = "é«˜ç´š"
         elif percentage >= 40:
-            knowledge_level = "¤¤¯Å"
+            knowledge_level = "ä¸­ç´š"
         else:
-            knowledge_level = "ªì¾ÇªÌ"
+            knowledge_level = "åˆå­¸è€…"
     else:
-        console.print("[yellow]µLªk­pºâ¤À¼Æ¡A¦]¬°¨S¦³¦³®Äªº°İÃD¡C[/yellow]")
+        console.print("[yellow]ç„¡æ³•è¨ˆç®—åˆ†æ•¸ï¼Œå› ç‚ºæ²’æœ‰æœ‰æ•ˆçš„å•é¡Œã€‚[/yellow]")
         percentage = 0.0
-        knowledge_level = student_profile.current_knowledge_level or "ªì¾ÇªÌ" # Keep old or default
+        knowledge_level = student_profile.current_knowledge_level or "åˆå­¸è€…" # Keep old or default
 
-    console.print(f"[yellow]®Ú¾Ú±zªº«e´úµ²ªG¡A±zªº·í«eª¾ÃÑ¤ô¥­µû¦ô¬°¡G[bold]{knowledge_level}[/bold][/yellow]")
+    console.print(f"[yellow]æ ¹æ“šæ‚¨çš„å‰æ¸¬çµæœï¼Œæ‚¨çš„ç•¶å‰çŸ¥è­˜æ°´å¹³è©•ä¼°ç‚ºï¼š[bold]{knowledge_level}[/bold][/yellow]")
 
     # Update student profile
     student_profile.current_knowledge_level = knowledge_level
     student_profile.learning_history.append({
-        "activity_type": "«e´ú",
+        "activity_type": "å‰æ¸¬",
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "score": f"{score}/{total_questions}",
         "percentage": percentage,
@@ -200,8 +200,8 @@ def generate_learning_path(
     pretest_results: List[Dict]
 ) -> Optional[Dict]:
     """Generates a personalized learning path based on profile and pre-test."""
-    console.print("\n[bold cyan]===== ¥Í¦¨­Ó¤H¤Æ¾Ç²ß¸ô®| (Generating Personalized Learning Path) =====[/bold cyan]")
-    console.print("[yellow]¥¿¦b®Ú¾Ú±zªºÀÉ®×©M´úÅçµ²ªG³Ğ«Ø¾Ç²ß¸ô®|...[/yellow]")
+    console.print("\n[bold cyan]===== ç”Ÿæˆå€‹äººåŒ–å­¸ç¿’è·¯å¾‘ (Generating Personalized Learning Path) =====[/bold cyan]")
+    console.print("[yellow]æ­£åœ¨æ ¹æ“šæ‚¨çš„æª”æ¡ˆå’Œæ¸¬é©—çµæœå‰µå»ºå­¸ç¿’è·¯å¾‘...[/yellow]")
 
     # Format pre-test results for the prompt
     score = sum(1 for r in pretest_results if r["is_correct"])
@@ -227,7 +227,7 @@ def generate_learning_path(
     try:
         # Provide context for retriever if needed, e.g., based on weaknesses
         weak_topics = ", ".join([r["question"] for r in pretest_results if not r["is_correct"]])
-        retrieval_topic = f"¾Ç²ß¥DÃD°w¹ï: {weak_topics}" if weak_topics else "¤@¯ë¾Ç²ß¥DÃD"
+        retrieval_topic = f"å­¸ç¿’ä¸»é¡Œé‡å°: {weak_topics}" if weak_topics else "ä¸€èˆ¬å­¸ç¿’ä¸»é¡Œ"
 
         learning_path_data = learning_path_chain.invoke({
             "profile": profile_summary,
@@ -236,42 +236,42 @@ def generate_learning_path(
         })
          # Basic validation
         if not learning_path_data or "modules" not in learning_path_data or not isinstance(learning_path_data["modules"], list):
-            console.print("[bold red]¥Í¦¨ªº¾Ç²ß¸ô®|®æ¦¡µL®Ä¡C[/bold red]")
+            console.print("[bold red]ç”Ÿæˆçš„å­¸ç¿’è·¯å¾‘æ ¼å¼ç„¡æ•ˆã€‚[/bold red]")
             return None
 
     except Exception as e:
-        console.print(f"[bold red]¥Í¦¨¾Ç²ß¸ô®|®Éµo¥Í¿ù»~: {e}[/bold red]")
+        console.print(f"[bold red]ç”Ÿæˆå­¸ç¿’è·¯å¾‘æ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
         return None
 
     # Display the learning path
-    console.print(f"\n[bold green]{learning_path_data.get('title', '­Ó¤H¤Æ¾Ç²ß¸ô®|')}[/bold green]")
-    console.print(f"[italic]{learning_path_data.get('description', '¬°±z¶q¨­©w¨îªº¾Ç²ß­pµe')}[/italic]\n")
+    console.print(f"\n[bold green]{learning_path_data.get('title', 'å€‹äººåŒ–å­¸ç¿’è·¯å¾‘')}[/bold green]")
+    console.print(f"[italic]{learning_path_data.get('description', 'ç‚ºæ‚¨é‡èº«å®šåˆ¶çš„å­¸ç¿’è¨ˆç•«')}[/italic]\n")
 
-    console.print("[bold]¾Ç²ß¥Ø¼Ğ (Learning Objectives):[/bold]")
+    console.print("[bold]å­¸ç¿’ç›®æ¨™ (Learning Objectives):[/bold]")
     for i, objective in enumerate(learning_path_data.get('objectives', []), 1):
         console.print(f" {i}. {objective}")
 
-    console.print("\n[bold]¾Ç²ß³¹¸` (Learning Modules):[/bold]")
+    console.print("\n[bold]å­¸ç¿’ç« ç¯€ (Learning Modules):[/bold]")
     for i, module in enumerate(learning_path_data.get('modules', []), 1):
-        console.print(f"\n[bold cyan]³¹¸` {i}: {module.get('title', '¥¼©R¦W³¹¸`')}[/bold cyan]")
-        console.print(f"  [italic]´y­z: {module.get('description', 'µL')}[/italic]")
+        console.print(f"\n[bold cyan]ç« ç¯€ {i}: {module.get('title', 'æœªå‘½åç« ç¯€')}[/bold cyan]")
+        console.print(f"  [italic]æè¿°: {module.get('description', 'ç„¡')}[/italic]")
 
-        console.print("  [bold]¬¡°Ê (Activities):[/bold]")
+        console.print("  [bold]æ´»å‹• (Activities):[/bold]")
         for j, activity in enumerate(module.get('activities', []), 1):
-            act_type = activity.get('type', '¥¼ª¾')
-            act_title = activity.get('title', '¥¼©R¦W¬¡°Ê')
-            act_desc = activity.get('description', 'µL')
-            act_diff = activity.get('difficulty', '¥¼©w')
-            console.print(f"    {j}. {act_title} ({act_type}) - {act_desc} [Ãø«×: {act_diff}]")
+            act_type = activity.get('type', 'æœªçŸ¥')
+            act_title = activity.get('title', 'æœªå‘½åæ´»å‹•')
+            act_desc = activity.get('description', 'ç„¡')
+            act_diff = activity.get('difficulty', 'æœªå®š')
+            console.print(f"    {j}. {act_title} ({act_type}) - {act_desc} [é›£åº¦: {act_diff}]")
 
         if 'resources' in module and module['resources']:
-            console.print("  [bold]¸ê·½ (Resources):[/bold]")
+            console.print("  [bold]è³‡æº (Resources):[/bold]")
             for resource in module['resources']:
                 console.print(f"    - {resource}")
 
     # Add learning path generation to history (optional)
     student_profile.learning_history.append({
-        "activity_type": "¾Ç²ß¸ô®|¥Í¦¨",
+        "activity_type": "å­¸ç¿’è·¯å¾‘ç”Ÿæˆ",
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "path_title": learning_path_data.get('title', 'N/A'),
         "num_modules": len(learning_path_data.get('modules', []))
@@ -288,9 +288,9 @@ def deliver_module_content(
     module: Dict[str, Any]
 ) -> Optional[str]:
     """Delivers the content for a specific learning module."""
-    module_title = module.get('title', '¥¼©R¦W³¹¸`')
-    module_desc = module.get('description', 'µL')
-    console.print(f"\n[bold cyan]===== ³¹¸`¤º®e: {module_title} =====[/bold cyan]")
+    module_title = module.get('title', 'æœªå‘½åç« ç¯€')
+    module_desc = module.get('description', 'ç„¡')
+    console.print(f"\n[bold cyan]===== ç« ç¯€å…§å®¹: {module_title} =====[/bold cyan]")
     console.print(f"[italic]{module_desc}[/italic]\n")
 
     # Extract topic for content generation and retrieval
@@ -302,25 +302,25 @@ def deliver_module_content(
     try:
         content = content_chain.invoke({
             "module_topic": module_topic,
-            "learning_style": student_profile.learning_style or "²V¦X«¬", # Default if not set
-            "knowledge_level": student_profile.current_knowledge_level or "ªì¾ÇªÌ", # Default if not set
+            "learning_style": student_profile.learning_style or "æ··åˆå‹", # Default if not set
+            "knowledge_level": student_profile.current_knowledge_level or "åˆå­¸è€…", # Default if not set
             # context is handled inside the chain via module_topic -> retriever
         })
     except Exception as e:
-        console.print(f"[bold red]¥Í¦¨³¹¸`¤º®e®Éµo¥Í¿ù»~: {e}[/bold red]")
+        console.print(f"[bold red]ç”Ÿæˆç« ç¯€å…§å®¹æ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
         return None # Indicate failure
 
     if content:
         console.print(Markdown(content))
         # Give time to read
-        console.print("\n[yellow]½Ğªá®É¶¡¾\Åª¨Ã²z¸Ñ¤º®e¡C[/yellow]")
-        Prompt.ask("\n·Ç³Æ¦nÄ~Äò®É½Ğ«ö Enter ")
+        console.print("\n[yellow]è«‹èŠ±æ™‚é–“é–±è®€ä¸¦ç†è§£å…§å®¹ã€‚[/yellow]")
+        Prompt.ask("\næº–å‚™å¥½ç¹¼çºŒæ™‚è«‹æŒ‰ Enter ")
     else:
-        console.print("[red]µLªk¥Í¦¨¦¹³¹¸`ªº¤º®e¡C[/red]")
+        console.print("[red]ç„¡æ³•ç”Ÿæˆæ­¤ç« ç¯€çš„å…§å®¹ã€‚[/red]")
 
     # Log content delivery (optional)
     student_profile.learning_history.append({
-        "activity_type": "¤º®e¾Ç²ß",
+        "activity_type": "å…§å®¹å­¸ç¿’",
         "module": module_title,
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "content_generated": bool(content)
@@ -337,31 +337,31 @@ def engage_peer_discussion(
     student_profile: StudentProfile # Pass profile for context/logging
 ) -> List[Dict]:
     """Engages the student in a peer discussion simulation."""
-    console.print(f"\n[bold cyan]===== ¦P¾«°Q½× : {topic} =====[/bold cyan]")
-    console.print("[yellow]»P±zªº AI ¾Ç²ß¹Ù¦ñ¨£­±¡I´£¥X°İÃD©Î°Q½×¥DÃD¥H¥[²`±zªº²z¸Ñ¡C[/yellow]")
-    console.print("[yellow]¿é¤J 'µ²§ô'¡B'°h¥X' ©Î '¦A¨£' ¨Óµ²§ô°Q½×¡C[/yellow]")
+    console.print(f"\n[bold cyan]===== åŒå„•è¨è«– : {topic} =====[/bold cyan]")
+    console.print("[yellow]èˆ‡æ‚¨çš„ AI å­¸ç¿’å¤¥ä¼´è¦‹é¢ï¼æå‡ºå•é¡Œæˆ–è¨è«–ä¸»é¡Œä»¥åŠ æ·±æ‚¨çš„ç†è§£ã€‚[/yellow]")
+    console.print("[yellow]è¼¸å…¥ 'çµæŸ'ã€'é€€å‡º' æˆ– 'å†è¦‹' ä¾†çµæŸè¨è«–ã€‚[/yellow]")
 
     discussion_chain = create_peer_discussion_ai(chat_model, retriever)
     conversation_history = [] # Store user/AI messages
 
     # Initial message from AI partner
-    ai_intro = "¶Ù¡I§Ú¤]¦b¾Ç²ß³o­Ó¥DÃD¡C±z·Q°Q½×­ş¨Ç¤è­±©Î¦³¤°»ò°İÃD·Q°İ¡H"
-    console.print(f"\n[bold green]¾Ç²ß¹Ù¦ñ:[/bold green] {ai_intro}")
+    ai_intro = "å—¨ï¼æˆ‘ä¹Ÿåœ¨å­¸ç¿’é€™å€‹ä¸»é¡Œã€‚æ‚¨æƒ³è¨è«–å“ªäº›æ–¹é¢æˆ–æœ‰ä»€éº¼å•é¡Œæƒ³å•ï¼Ÿ"
+    console.print(f"\n[bold green]å­¸ç¿’å¤¥ä¼´:[/bold green] {ai_intro}")
     conversation_history.append({"role": "assistant", "content": ai_intro})
 
 
     turn_limit = 5 # Limit number of turns
     turn_count = 0
     while turn_count < turn_limit:
-        user_message = Prompt.ask("\n[bold blue]±z (You)[/bold blue]")
+        user_message = Prompt.ask("\n[bold blue]æ‚¨ (You)[/bold blue]")
 
-        if user_message.lower() in ["°h¥X", "µ²§ô", "¦A¨£", "µ²§ô°Q½×", "exit", "quit", "bye"]:
-            console.print("\n[bold green]¾Ç²ß¹Ù¦ñ:[/bold green] «Ü´Îªº°Q½×¡I¦pªG±z·Qµy«á¦A²á¡A½Ğ§i¶D§Ú¡C")
+        if user_message.lower() in ["é€€å‡º", "çµæŸ", "å†è¦‹", "çµæŸè¨è«–", "exit", "quit", "bye"]:
+            console.print("\n[bold green]å­¸ç¿’å¤¥ä¼´:[/bold green] å¾ˆæ£’çš„è¨è«–ï¼å¦‚æœæ‚¨æƒ³ç¨å¾Œå†èŠï¼Œè«‹å‘Šè¨´æˆ‘ã€‚")
             break
 
         conversation_history.append({"role": "user", "content": user_message})
 
-        console.print("[yellow]¾Ç²ß¹Ù¦ñ¥¿¦b«ä¦Ò...[/yellow]")
+        console.print("[yellow]å­¸ç¿’å¤¥ä¼´æ­£åœ¨æ€è€ƒ...[/yellow]")
         try:
             # Invoke requires a dict. Pass necessary info.
             response = discussion_chain.invoke({
@@ -369,20 +369,20 @@ def engage_peer_discussion(
                 "message": user_message
                 # Context is handled inside the chain by retrieving based on topic
             })
-            console.print(f"\n[bold green]¾Ç²ß¹Ù¦ñ:[/bold green] {response}")
+            console.print(f"\n[bold green]å­¸ç¿’å¤¥ä¼´:[/bold green] {response}")
             conversation_history.append({"role": "assistant", "content": response})
         except Exception as e:
-            console.print(f"[bold red]»P¾Ç²ß¹Ù¦ñ·¾³q®Éµo¥Í¿ù»~: {e}[/bold red]")
+            console.print(f"[bold red]èˆ‡å­¸ç¿’å¤¥ä¼´æºé€šæ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
             # Allow user to try again or exit
-            if not Confirm.ask("¬O§_­«¸Õ? (Try again?)", default=True):
+            if not Confirm.ask("æ˜¯å¦é‡è©¦? (Try again?)", default=True):
                  break
             continue # Skip turn increment if retrying
 
 
         turn_count += 1
         if turn_count == turn_limit:
-             console.print("\n[yellow]§Ú­Ì¤w¸g¶i¦æ¤F¤@¦¸«Ü¦nªº°Q½×¡C[/yellow]")
-             if not Confirm.ask("¬O§_Ä~Äò°Q½×?", default=False):
+             console.print("\n[yellow]æˆ‘å€‘å·²ç¶“é€²è¡Œäº†ä¸€æ¬¡å¾ˆå¥½çš„è¨è«–ã€‚[/yellow]")
+             if not Confirm.ask("æ˜¯å¦ç¹¼çºŒè¨è«–?", default=False):
                  break
              else:
                  turn_limit += 3 # Extend discussion if requested
@@ -390,7 +390,7 @@ def engage_peer_discussion(
 
     # Log discussion activity
     student_profile.learning_history.append({
-        "activity_type": "¦P¾«°Q½×",
+        "activity_type": "åŒå„•è¨è«–",
         "module_topic": topic,
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "conversation_turns": len(conversation_history) // 2 # Approx user turns
@@ -407,13 +407,13 @@ def administer_posttest(
     student_profile: StudentProfile
 ) -> Tuple[Optional[Dict], List[Dict]]:
     """Administers the post-test for a module and updates profile knowledge level."""
-    module_title = module.get('title', '¥¼©R¦W³¹¸`')
-    console.print(f"\n[bold cyan]===== «á´ú (Post-Test): {module_title} =====[/bold cyan]")
-    console.print("[yellow]¥¿¦b´ú¸Õ±z¹ï³¹¸`¤º®eªº²z¸Ñ...[/yellow]")
+    module_title = module.get('title', 'æœªå‘½åç« ç¯€')
+    console.print(f"\n[bold cyan]===== å¾Œæ¸¬ (Post-Test): {module_title} =====[/bold cyan]")
+    console.print("[yellow]æ­£åœ¨æ¸¬è©¦æ‚¨å°ç« ç¯€å…§å®¹çš„ç†è§£...[/yellow]")
 
     # Extract topic
     module_topic = module_title.split(":", 1)[-1].strip() if ":" in module_title else module_title
-    current_level = student_profile.current_knowledge_level or "ªì¾ÇªÌ"
+    current_level = student_profile.current_knowledge_level or "åˆå­¸è€…"
 
     posttest_chain = create_posttest_generator(chat_model, retriever)
     posttest_data: Optional[Dict] = None
@@ -425,14 +425,14 @@ def administer_posttest(
         })
         # Validate
         if not posttest_data or "questions" not in posttest_data or not isinstance(posttest_data["questions"], list):
-            console.print("[bold red]¥Í¦¨ªº«á´ú®æ¦¡µL®Ä¡C[/bold red]")
+            console.print("[bold red]ç”Ÿæˆçš„å¾Œæ¸¬æ ¼å¼ç„¡æ•ˆã€‚[/bold red]")
             return None, []
     except Exception as e:
-        console.print(f"[bold red]¥Í¦¨«á´ú®Éµo¥Í¿ù»~: {e}[/bold red]")
+        console.print(f"[bold red]ç”Ÿæˆå¾Œæ¸¬æ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
         return None, []
 
-    console.print(f"\n[bold green]{posttest_data.get('title', '«á´ú')}[/bold green]")
-    console.print(f"[italic]{posttest_data.get('description', 'µû¦ô±zªº¾Ç²ß¦¨ªG')}[/italic]\n")
+    console.print(f"\n[bold green]{posttest_data.get('title', 'å¾Œæ¸¬')}[/bold green]")
+    console.print(f"[italic]{posttest_data.get('description', 'è©•ä¼°æ‚¨çš„å­¸ç¿’æˆæœ')}[/italic]\n")
 
     # Execute the test
     score = 0
@@ -440,19 +440,19 @@ def administer_posttest(
     results = []
 
     if total_questions == 0:
-        console.print("[yellow]´úÅç¤¤¨S¦³°İÃD¡C[/yellow]")
+        console.print("[yellow]æ¸¬é©—ä¸­æ²’æœ‰å•é¡Œã€‚[/yellow]")
         return posttest_data, []
 
     for i, q_data in enumerate(posttest_data['questions']):
          # Validate question structure
         if not all(k in q_data for k in ["question", "choices", "correct_answer", "explanation", "difficulty"]):
-             console.print(f"[yellow]¸õ¹L®æ¦¡¤£¥¿½Tªº°İÃD {i+1}¡C[/yellow]")
+             console.print(f"[yellow]è·³éæ ¼å¼ä¸æ­£ç¢ºçš„å•é¡Œ {i+1}ã€‚[/yellow]")
              total_questions -= 1
              continue
 
         q = Question.model_validate(q_data) # Validate with Pydantic
 
-        console.print(f"\n[bold]°İÃD {i+1}:[/bold] {q.question}")
+        console.print(f"\n[bold]å•é¡Œ {i+1}:[/bold] {q.question}")
         choice_map = {}
         for choice in q.choices:
             letter = choice.split('.')[0].strip().upper()
@@ -460,13 +460,13 @@ def administer_posttest(
             choice_map[letter] = choice
 
         if not choice_map:
-            console.print(f"[yellow]°İÃD {i+1} ¨S¦³¦³®Äªº¿ï¶µ¡A¸õ¹L¡C[/yellow]")
+            console.print(f"[yellow]å•é¡Œ {i+1} æ²’æœ‰æœ‰æ•ˆçš„é¸é …ï¼Œè·³éã€‚[/yellow]")
             total_questions -= 1
             continue
 
         valid_answer_keys = list(choice_map.keys())
         answer = Prompt.ask(
-            f"\n±zªºµª®× ({'/'.join(valid_answer_keys)})",
+            f"\næ‚¨çš„ç­”æ¡ˆ ({'/'.join(valid_answer_keys)})",
             choices=valid_answer_keys,
             show_choices=False
         ).upper()
@@ -476,12 +476,12 @@ def administer_posttest(
 
         if is_correct:
             score += 1
-            console.print("[bold green]¥¿½T¡I[/bold green]")
+            console.print("[bold green]æ­£ç¢ºï¼[/bold green]")
         else:
-            console.print(f"[bold red]¿ù»~¡C¥¿½Tµª®×¬O {q.correct_answer}[/bold red]")
+            console.print(f"[bold red]éŒ¯èª¤ã€‚æ­£ç¢ºç­”æ¡ˆæ˜¯ {q.correct_answer}[/bold red]")
 
-        console.print(f"[italic]¸ÑÄÀ: {q.explanation}[/italic]")
-        console.print(f"[dim]Ãø«×: {q.difficulty}[/dim]")
+        console.print(f"[italic]è§£é‡‹: {q.explanation}[/italic]")
+        console.print(f"[dim]é›£åº¦: {q.difficulty}[/dim]")
 
         results.append({
             "question": q.question,
@@ -495,26 +495,26 @@ def administer_posttest(
     new_level = current_level
     if total_questions > 0:
         percentage = (score / total_questions) * 100
-        console.print(f"\n[bold]´úÅç§¹¦¨¡I±zªº¤À¼Æ¡G{score}/{total_questions} ({percentage:.1f}%)[/bold]")
+        console.print(f"\n[bold]æ¸¬é©—å®Œæˆï¼æ‚¨çš„åˆ†æ•¸ï¼š{score}/{total_questions} ({percentage:.1f}%)[/bold]")
 
         # Update level based on performance
-        if percentage >= 80 and current_level != "°ª¯Å":
-            new_level = "¤¤¯Å" if current_level == "ªì¾ÇªÌ" else "°ª¯Å"
-            console.print(f"[bold green]ªí²{Àu²§¡I±zªºª¾ÃÑ¤ô¥­¤w±q {current_level} ´£¤É¨ì {new_level}¡C[/bold green]")
-        elif percentage < 50 and current_level != "ªì¾ÇªÌ":
-             new_level = "¤¤¯Å" if current_level == "°ª¯Å" else "ªì¾ÇªÌ"
-             console.print(f"[yellow]±z¥i¯à»İ­n§ó¦h½m²ß¡C±zªºª¾ÃÑ¤ô¥­¤w±q {current_level} ½Õ¾ã¬° {new_level}¡C[/yellow]")
+        if percentage >= 80 and current_level != "é«˜ç´š":
+            new_level = "ä¸­ç´š" if current_level == "åˆå­¸è€…" else "é«˜ç´š"
+            console.print(f"[bold green]è¡¨ç¾å„ªç•°ï¼æ‚¨çš„çŸ¥è­˜æ°´å¹³å·²å¾ {current_level} æå‡åˆ° {new_level}ã€‚[/bold green]")
+        elif percentage < 50 and current_level != "åˆå­¸è€…":
+             new_level = "ä¸­ç´š" if current_level == "é«˜ç´š" else "åˆå­¸è€…"
+             console.print(f"[yellow]æ‚¨å¯èƒ½éœ€è¦æ›´å¤šç·´ç¿’ã€‚æ‚¨çš„çŸ¥è­˜æ°´å¹³å·²å¾ {current_level} èª¿æ•´ç‚º {new_level}ã€‚[/yellow]")
         else:
-            console.print(f"[yellow]±zªºª¾ÃÑ¤ô¥­«O«ù¦b {current_level}¡C[/yellow]")
+            console.print(f"[yellow]æ‚¨çš„çŸ¥è­˜æ°´å¹³ä¿æŒåœ¨ {current_level}ã€‚[/yellow]")
 
     else:
-        console.print("[yellow]µLªk­pºâ¤À¼Æ©Î§ó·sª¾ÃÑ¤ô¥­¡C[/yellow]")
+        console.print("[yellow]ç„¡æ³•è¨ˆç®—åˆ†æ•¸æˆ–æ›´æ–°çŸ¥è­˜æ°´å¹³ã€‚[/yellow]")
         percentage = 0.0
 
     # Update student profile
     student_profile.current_knowledge_level = new_level # Update with the potentially new level
     student_profile.learning_history.append({
-        "activity_type": "«á´ú",
+        "activity_type": "å¾Œæ¸¬",
         "module": module_title,
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "score": f"{score}/{total_questions}",
@@ -534,25 +534,25 @@ def create_learning_log(
     student_profile: StudentProfile
 ) -> Optional[LearningLog]:
     """Guides the student to create a learning log and analyzes it."""
-    module_title = module.get('title', '¥¼©R¦W³¹¸`')
-    console.print(f"\n[bold cyan]===== ¾Ç²ß¤é»x (Learning Log): {module_title} =====[/bold cyan]")
+    module_title = module.get('title', 'æœªå‘½åç« ç¯€')
+    console.print(f"\n[bold cyan]===== å­¸ç¿’æ—¥èªŒ (Learning Log): {module_title} =====[/bold cyan]")
 
     module_topic = module_title.split(": ", 1)[-1].strip() if ": " in module_title else module_title
-    module_summary = module.get('description', 'µL') # Use module description as summary
+    module_summary = module.get('description', 'ç„¡') # Use module description as summary
 
     # Format test results for the prompter chain
     score = sum(1 for r in posttest_results if r["is_correct"])
     total = len(posttest_results)
-    test_results_str = f"¤À¼Æ: {score}/{total} ¥¿½T ({(score/total*100):.1f}% if total > 0 else 0.0)\n"
+    test_results_str = f"åˆ†æ•¸: {score}/{total} æ­£ç¢º ({(score/total*100):.1f}% if total > 0 else 0.0)\n"
     strengths = [r['question'] for r in posttest_results if r['is_correct']]
     weaknesses = [r['question'] for r in posttest_results if not r['is_correct']]
-    test_results_str += "ªí²{¦nªº°İÃD: " + (", ".join(strengths) if strengths else "µL")
-    test_results_str += "\n»İ­n¥[±jªº°İÃD: " + (", ".join(weaknesses) if weaknesses else "µL")
+    test_results_str += "è¡¨ç¾å¥½çš„å•é¡Œ: " + (", ".join(strengths) if strengths else "ç„¡")
+    test_results_str += "\néœ€è¦åŠ å¼·çš„å•é¡Œ: " + (", ".join(weaknesses) if weaknesses else "ç„¡")
 
     # Generate reflection prompts
     prompter_chain = create_learning_log_prompter(chat_model)
     reflection_prompts: Optional[str] = None
-    console.print("[yellow]¥¿¦b¥Í¦¨¾Ç²ß¤é»x´£¥Ü...[/yellow]")
+    console.print("[yellow]æ­£åœ¨ç”Ÿæˆå­¸ç¿’æ—¥èªŒæç¤º...[/yellow]")
     try:
         reflection_prompts = prompter_chain.invoke({
             "module_title": module_topic,
@@ -561,12 +561,12 @@ def create_learning_log(
         })
         console.print(Markdown(reflection_prompts))
     except Exception as e:
-        console.print(f"[bold red]¥Í¦¨¤é»x´£¥Ü®Éµo¥Í¿ù»~: {e}[/bold red]")
-        console.print("[yellow]½Ğ¦Û¦æ¤Ï«ä±z¾Ç¨ì¤F¤°»ò¡B¹J¨ìªº§xÃø¥H¤Î±µ¤U¨Óªº­pµe¡C[/yellow]")
+        console.print(f"[bold red]ç”Ÿæˆæ—¥èªŒæç¤ºæ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
+        console.print("[yellow]è«‹è‡ªè¡Œåæ€æ‚¨å­¸åˆ°äº†ä»€éº¼ã€é‡åˆ°çš„å›°é›£ä»¥åŠæ¥ä¸‹ä¾†çš„è¨ˆç•«ã€‚[/yellow]")
 
 
     # Get student reflections
-    console.print("\n[bold yellow]½Ğ®Ú¾Ú´£¥Ü©Î¦Û¦æ¤Ï«ä¡A¼¶¼g±zªº¾Ç²ß¤é»x¡]¿é¤J 'done' µ²§ô¡^¡G[/bold yellow]")
+    console.print("\n[bold yellow]è«‹æ ¹æ“šæç¤ºæˆ–è‡ªè¡Œåæ€ï¼Œæ’°å¯«æ‚¨çš„å­¸ç¿’æ—¥èªŒï¼ˆè¼¸å…¥ 'done' çµæŸï¼‰ï¼š[/bold yellow]")
     log_content_lines = []
     while True:
         try:
@@ -579,7 +579,7 @@ def create_learning_log(
     log_content = "\n".join(log_content_lines).strip()
 
     if not log_content:
-        console.print("[yellow]¥¼¿é¤J¾Ç²ß¤é»x¤º®e¡C[/yellow]")
+        console.print("[yellow]æœªè¼¸å…¥å­¸ç¿’æ—¥èªŒå…§å®¹ã€‚[/yellow]")
         return None
 
     # Create initial log object
@@ -598,7 +598,7 @@ def create_learning_log(
     # Analyze the learning log
     analyzer_chain = create_learning_log_analyzer(chat_model)
     analysis: Optional[Dict] = None
-    console.print("[yellow]¥¿¦b¤ÀªR±zªº¾Ç²ß¤é»x...[/yellow]")
+    console.print("[yellow]æ­£åœ¨åˆ†ææ‚¨çš„å­¸ç¿’æ—¥èªŒ...[/yellow]")
     try:
         analysis = analyzer_chain.invoke({
             "student_name": student_profile.name,
@@ -606,7 +606,7 @@ def create_learning_log(
             "log_content": log_content
         })
     except Exception as e:
-        console.print(f"[bold red]¤ÀªR¾Ç²ß¤é»x®Éµo¥Í¿ù»~: {e}[/bold red]")
+        console.print(f"[bold red]åˆ†æå­¸ç¿’æ—¥èªŒæ™‚ç™¼ç”ŸéŒ¯èª¤: {e}[/bold red]")
         # Save the log without analysis results
         analysis = {} # Empty analysis dict
 
@@ -629,20 +629,20 @@ def create_learning_log(
         student_profile.areas_for_improvement = updated_weaknesses
 
         # Display analysis summary
-        console.print("\n[bold green]¾Ç²ß¤é»x¤ÀªRºK­n:[/bold green]")
-        console.print(f"  [bold]²z¸Ñµ{«×:[/bold] {analysis.get('understanding_level', '¥¼µû¦ô')}")
-        console.print(f"  [bold]°»´ú¨ìªºÀu¶Õ:[/bold] {', '.join(new_strengths) if new_strengths else 'µL'}")
-        console.print(f"  [bold]«ØÄ³§ï¶iªº»â°ì:[/bold] {', '.join(new_weaknesses) if new_weaknesses else 'µL'}")
-        console.print(f"  [bold]«ØÄ³ªº¤U¤@¨B:[/bold] {', '.join(log.next_steps) if log.next_steps else 'µL'}")
+        console.print("\n[bold green]å­¸ç¿’æ—¥èªŒåˆ†ææ‘˜è¦:[/bold green]")
+        console.print(f"  [bold]ç†è§£ç¨‹åº¦:[/bold] {analysis.get('understanding_level', 'æœªè©•ä¼°')}")
+        console.print(f"  [bold]åµæ¸¬åˆ°çš„å„ªå‹¢:[/bold] {', '.join(new_strengths) if new_strengths else 'ç„¡'}")
+        console.print(f"  [bold]å»ºè­°æ”¹é€²çš„é ˜åŸŸ:[/bold] {', '.join(new_weaknesses) if new_weaknesses else 'ç„¡'}")
+        console.print(f"  [bold]å»ºè­°çš„ä¸‹ä¸€æ­¥:[/bold] {', '.join(log.next_steps) if log.next_steps else 'ç„¡'}")
 
     # Save the learning log
     log_path = os.path.join(LOGS_DIR, f"{log_id}.json")
     try:
         with open(log_path, "w", encoding="utf-8") as f:
             f.write(log.model_dump_json(indent=4))
-        console.print(f"[green]¾Ç²ß¤é»x¤wÀx¦s¦Ü {log_path}[/green]")
+        console.print(f"[green]å­¸ç¿’æ—¥èªŒå·²å„²å­˜è‡³ {log_path}[/green]")
     except IOError as e:
-        console.print(f"[bold red]µLªkÀx¦s¾Ç²ß¤é»x {log_path}: {e}[/bold red]")
+        console.print(f"[bold red]ç„¡æ³•å„²å­˜å­¸ç¿’æ—¥èªŒ {log_path}: {e}[/bold red]")
 
     # Save the updated student profile
     save_profile(student_profile)

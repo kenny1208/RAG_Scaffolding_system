@@ -1,4 +1,4 @@
-# -*- coding: big5 -*-
+# -*- coding: UTF-8 -*-
 
 import os
 import json
@@ -13,7 +13,7 @@ from config import PROFILES_DIR, console
 
 def create_new_profile() -> StudentProfile:
     """Creates a new, basic student profile."""
-    name = Prompt.ask("½Ğ¿é¤J¾Ç¥Í©m¦W (Enter student name)")
+    name = Prompt.ask("è«‹è¼¸å…¥å­¸ç”Ÿå§“å (Enter student name)")
     student_id = str(uuid.uuid4())[:8] # Ensure unique enough ID
 
     profile = StudentProfile(
@@ -29,11 +29,11 @@ def create_new_profile() -> StudentProfile:
 
     profile_path = os.path.join(PROFILES_DIR, f"{student_id}.json")
     try:
-        with open(profile_path, "w", encoding="cp950") as f: 
+        with open(profile_path, "w", encoding="UTF-8") as f: 
             f.write(profile.model_dump_json(indent=4))
-        console.print(f"[green]·s¾Ç¥ÍÀÉ®×¤w«Ø¥ß¨ÃÀx¦s¦Ü {profile_path}[/green]")
+        console.print(f"[green]æ–°å­¸ç”Ÿæª”æ¡ˆå·²å»ºç«‹ä¸¦å„²å­˜è‡³ {profile_path}[/green]")
     except IOError as e:
-        console.print(f"[bold red]µLªkÀx¦s¾Ç¥ÍÀÉ®× {profile_path}: {e}[/bold red]")
+        console.print(f"[bold red]ç„¡æ³•å„²å­˜å­¸ç”Ÿæª”æ¡ˆ {profile_path}: {e}[/bold red]")
         # Handle error appropriately, maybe return None or raise exception
 
     return profile
@@ -41,34 +41,34 @@ def create_new_profile() -> StudentProfile:
 def load_profile(profile_path: str) -> Optional[StudentProfile]:
     """Loads a student profile from a JSON file."""
     if not os.path.exists(profile_path) or os.path.getsize(profile_path) == 0:
-        console.print(f"[red]ÀÉ®×¤£¦s¦b©Î¬°ªÅ: {profile_path}[/red]")
+        console.print(f"[red]æª”æ¡ˆä¸å­˜åœ¨æˆ–ç‚ºç©º: {profile_path}[/red]")
         return None
 
     try:
-        with open(profile_path, "r", encoding="cp950") as f: 
+        with open(profile_path, "r", encoding="UTF-8") as f: 
             data = json.load(f)
         profile = StudentProfile.model_validate(data)
         return profile
     except json.JSONDecodeError:
-        console.print(f"[red]µLªk¸ÑªR JSON ÀÉ®×: {profile_path}[/red]")
+        console.print(f"[red]ç„¡æ³•è§£æ JSON æª”æ¡ˆ: {profile_path}[/red]")
         return None
     except Exception as e: # Catch Pydantic validation errors too
-        console.print(f"[red]¸ü¤J©ÎÅçÃÒÀÉ®×®Éµo¥Í¿ù»~ {profile_path}: {e}[/red]")
+        console.print(f"[red]è¼‰å…¥æˆ–é©—è­‰æª”æ¡ˆæ™‚ç™¼ç”ŸéŒ¯èª¤ {profile_path}: {e}[/red]")
         return None
 
 def save_profile(student_profile: StudentProfile):
     """Saves the student profile to its JSON file."""
     if not student_profile or not student_profile.id:
-        console.print("[red]µL®Äªº¾Ç¥ÍÀÉ®×¡AµLªkÀx¦s¡C[/red]")
+        console.print("[red]ç„¡æ•ˆçš„å­¸ç”Ÿæª”æ¡ˆï¼Œç„¡æ³•å„²å­˜ã€‚[/red]")
         return
 
     profile_path = os.path.join(PROFILES_DIR, f"{student_profile.id}.json")
     try:
-        with open(profile_path, "w", encoding="cp950") as f:
+        with open(profile_path, "w", encoding="UTF-8") as f:
             f.write(student_profile.model_dump_json(indent=4))
-        # console.print(f"[blue]¾Ç¥ÍÀÉ®×¤w§ó·s: {profile_path}[/blue]") # Optional: reduce verbosity
+        # console.print(f"[blue]å­¸ç”Ÿæª”æ¡ˆå·²æ›´æ–°: {profile_path}[/blue]") # Optional: reduce verbosity
     except IOError as e:
-        console.print(f"[bold red]µLªkÀx¦s¾Ç¥ÍÀÉ®× {profile_path}: {e}[/bold red]")
+        console.print(f"[bold red]ç„¡æ³•å„²å­˜å­¸ç”Ÿæª”æ¡ˆ {profile_path}: {e}[/bold red]")
 
 
 def manage_student_profile() -> Optional[StudentProfile]:
@@ -76,13 +76,13 @@ def manage_student_profile() -> Optional[StudentProfile]:
     profiles = glob(os.path.join(PROFILES_DIR, "*.json")) # Use os.path.join
 
     if profiles:
-        console.print("[bold]¿ï¾Ü²{¦³ÀÉ®×©Î«Ø¥ß·sÀÉ®×:[/bold]")
-        console.print("0. «Ø¥ß·s¾Ç¥ÍÀÉ®×")
+        console.print("[bold]é¸æ“‡ç¾æœ‰æª”æ¡ˆæˆ–å»ºç«‹æ–°æª”æ¡ˆ:[/bold]")
+        console.print("0. å»ºç«‹æ–°å­¸ç”Ÿæª”æ¡ˆ")
 
         profile_options = {}
         for i, profile_path in enumerate(profiles, 1):
             # Attempt to load name from JSON for display
-            profile_name = f"ÀÉ®×: {pathlib.Path(profile_path).stem}" # Default
+            profile_name = f"æª”æ¡ˆ: {pathlib.Path(profile_path).stem}" # Default
             temp_profile = load_profile(profile_path) # Temporarily load to get name
             if temp_profile:
                 profile_name = temp_profile.name
@@ -93,7 +93,7 @@ def manage_student_profile() -> Optional[StudentProfile]:
         valid_choices = [str(i) for i in range(len(profiles) + 1)]
 
         choice_str = Prompt.ask(
-            "½Ğ¿é¤J±zªº¿ï¾Ü",
+            "è«‹è¼¸å…¥æ‚¨çš„é¸æ“‡",
             choices=valid_choices,
             default="0" # Make creating new the default maybe?
         )
@@ -106,12 +106,12 @@ def manage_student_profile() -> Optional[StudentProfile]:
             profile = load_profile(selected_path)
             # If loading failed (e.g., corrupted file), offer to create new
             if not profile:
-                 console.print("[yellow]¸ü¤J©Ò¿ïÀÉ®×®Éµo¥Í¿ù»~¡C[/yellow]")
-                 if Prompt.ask("¬O§_­n«Ø¥ß·sÀÉ®× ?", choices=["y", "n"], default="y") == "y":
+                 console.print("[yellow]è¼‰å…¥æ‰€é¸æª”æ¡ˆæ™‚ç™¼ç”ŸéŒ¯èª¤ã€‚[/yellow]")
+                 if Prompt.ask("æ˜¯å¦è¦å»ºç«‹æ–°æª”æ¡ˆ ?", choices=["y", "n"], default="y") == "y":
                      return create_new_profile()
                  else:
                      return None # Or exit, or retry selection
             return profile # Return the successfully loaded profile
     else:
-        console.print("[yellow]§ä¤£¨ì²{¦³¾Ç¥ÍÀÉ®×¡C[/yellow]")
+        console.print("[yellow]æ‰¾ä¸åˆ°ç¾æœ‰å­¸ç”Ÿæª”æ¡ˆã€‚[/yellow]")
         return create_new_profile()

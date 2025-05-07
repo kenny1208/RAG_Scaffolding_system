@@ -1,4 +1,4 @@
-# -*- coding: big5 -*-
+# -*- coding: UTF-8 -*-
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
@@ -18,49 +18,49 @@ def format_docs(docs):
 
 def create_learning_style_survey(chat_model: ChatGoogleGenerativeAI):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Mºë©ó¾Ç²ß­·®æµû¦ôªº±Ğ¨|±M®a¡C
-        ½Ğ³]­p¤@¥÷Â²¼ä¦ı¦³®Äªº¾Ç²ß­·®æµû¦ô°İ¨÷¡A¥]§t 5 ­Ó¦h¿ïÃD¡C
-        ¨C­Ó°İÃDÀ³¦³ 3 ­Ó¿ï¶µ¡A¥Î©ó§PÂ_¾Ç¥Í¬O§_¥D­n¬O¡G
-        1. µøÄ±«¬¾Ç²ßªÌ
-        2. Å¥Ä±«¬¾Ç²ßªÌ
-        3. °ÊÄ±«¬¾Ç²ßªÌ
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆç²¾æ–¼å­¸ç¿’é¢¨æ ¼è©•ä¼°çš„æ•™è‚²å°ˆå®¶ã€‚
+        è«‹è¨­è¨ˆä¸€ä»½ç°¡æ½”ä½†æœ‰æ•ˆçš„å­¸ç¿’é¢¨æ ¼è©•ä¼°å•å·ï¼ŒåŒ…å« 5 å€‹å¤šé¸é¡Œã€‚
+        æ¯å€‹å•é¡Œæ‡‰æœ‰ 3 å€‹é¸é …ï¼Œç”¨æ–¼åˆ¤æ–·å­¸ç”Ÿæ˜¯å¦ä¸»è¦æ˜¯ï¼š
+        1. è¦–è¦ºå‹å­¸ç¿’è€…
+        2. è½è¦ºå‹å­¸ç¿’è€…
+        3. å‹•è¦ºå‹å­¸ç¿’è€…
 
-        ½Ğ±N±zªº¦^À³®æ¦¡¤Æ¬°¤@¥÷°İ¨÷¡A¥]§t½s¸¹ªº°İÃD©M¦r¥À¼Ğ°Oªº¿ï¶µ¡C"""),
-        HumanMessagePromptTemplate.from_template("³]­p¤@¥÷¾Ç²ß­·®æµû¦ô°İ¨÷¡C")
+        è«‹å°‡æ‚¨çš„å›æ‡‰æ ¼å¼åŒ–ç‚ºä¸€ä»½å•å·ï¼ŒåŒ…å«ç·¨è™Ÿçš„å•é¡Œå’Œå­—æ¯æ¨™è¨˜çš„é¸é …ã€‚"""),
+        HumanMessagePromptTemplate.from_template("è¨­è¨ˆä¸€ä»½å­¸ç¿’é¢¨æ ¼è©•ä¼°å•å·ã€‚")
     ])
     return prompt | chat_model | StrOutputParser()
 
 def create_pretest_generator(chat_model: ChatGoogleGenerativeAI, retriever: VectorStoreRetriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Mºë©ó±Ğ¨|µû¦ô³]­pªº±M®a¡C
-        ®Ú¾Ú´£¨Ñªº¤º®e¡A³]­p¤@¥÷«e´ú¡]Pre-Test¡^¡A¥Hµû¦ô¾Ç¥Í¦b¸Ó¥DÃD¤Wªº²{¦³ª¾ÃÑ¤ô¥­¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆç²¾æ–¼æ•™è‚²è©•ä¼°è¨­è¨ˆçš„å°ˆå®¶ã€‚
+        æ ¹æ“šæä¾›çš„å…§å®¹ï¼Œè¨­è¨ˆä¸€ä»½å‰æ¸¬ï¼ˆPre-Testï¼‰ï¼Œä»¥è©•ä¼°å­¸ç”Ÿåœ¨è©²ä¸»é¡Œä¸Šçš„ç¾æœ‰çŸ¥è­˜æ°´å¹³ã€‚
 
-        ½Ğ³]­p²[»\¤£¦PÃø«×¯Å§Oªº°İÃD¡GÂ²³æ¡B¤¤µ¥©M§xÃø¡C
-        ¹ï©ó¨C­Ó°İÃD¡A½Ğ´£¨Ñ¡G
-        1. °İÃD¤å¥»
-        2. ¥|­Ó³æ¿ï¿ï¶µ¡]A, B, C, D¡^
-        3. ¥¿½Tµª®×
-        4. ¬°¤°»ò¥¿½Tªº¸ÑÄÀ
-        5. Ãø«×¯Å§O
+        è«‹è¨­è¨ˆæ¶µè“‹ä¸åŒé›£åº¦ç´šåˆ¥çš„å•é¡Œï¼šç°¡å–®ã€ä¸­ç­‰å’Œå›°é›£ã€‚
+        å°æ–¼æ¯å€‹å•é¡Œï¼Œè«‹æä¾›ï¼š
+        1. å•é¡Œæ–‡æœ¬
+        2. å››å€‹å–®é¸é¸é …ï¼ˆA, B, C, Dï¼‰
+        3. æ­£ç¢ºç­”æ¡ˆ
+        4. ç‚ºä»€éº¼æ­£ç¢ºçš„è§£é‡‹
+        5. é›£åº¦ç´šåˆ¥
 
-        ±z¥²¶·¿í´`¥H¤Uºë½Tªº JSON ®æ¦¡¡G
+        æ‚¨å¿…é ˆéµå¾ªä»¥ä¸‹ç²¾ç¢ºçš„ JSON æ ¼å¼ï¼š
         {
-          "title": "«e´ú¡G[¥DÃD]",
-          "description": "¦¹´úÅç±Nµû¦ô±z¹ï[¥DÃD]ªº²{¦³ª¾ÃÑ",
+          "title": "å‰æ¸¬ï¼š[ä¸»é¡Œ]",
+          "description": "æ­¤æ¸¬é©—å°‡è©•ä¼°æ‚¨å°[ä¸»é¡Œ]çš„ç¾æœ‰çŸ¥è­˜",
           "questions": [
             {
-              "question": "°İÃD¤å¥»¡H",
-              "choices": ["A. ¿ï¶µ A", "B. ¿ï¶µ B", "C. ¿ï¶µ C", "D. ¿ï¶µ D"],
-              "correct_answer": "A. ¿ï¶µ A",
-              "explanation": "¬°¤°»ò A ¬O¥¿½Tµª®×ªº¸ÑÄÀ",
-              "difficulty": "Â²³æ"
+              "question": "å•é¡Œæ–‡æœ¬ï¼Ÿ",
+              "choices": ["A. é¸é … A", "B. é¸é … B", "C. é¸é … C", "D. é¸é … D"],
+              "correct_answer": "A. é¸é … A",
+              "explanation": "ç‚ºä»€éº¼ A æ˜¯æ­£ç¢ºç­”æ¡ˆçš„è§£é‡‹",
+              "difficulty": "ç°¡å–®"
             }
           ]
         }
 
-        ½Ğ®Ú¾Ú´£¨Ñªº¤º®e¥Í¦¨Á`¦@ 5 ­Ó°İÃD¡A¨Ã¥]§t¤£¦PÃø«×¯Å§Oªº°İÃD¡C
+        è«‹æ ¹æ“šæä¾›çš„å…§å®¹ç”Ÿæˆç¸½å…± 5 å€‹å•é¡Œï¼Œä¸¦åŒ…å«ä¸åŒé›£åº¦ç´šåˆ¥çš„å•é¡Œã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U¤º®e¥Í¦¨¤@¥÷«e´ú¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹å…§å®¹ç”Ÿæˆä¸€ä»½å‰æ¸¬ï¼š
 
         {context}
         """)
@@ -80,45 +80,45 @@ def create_pretest_generator(chat_model: ChatGoogleGenerativeAI, retriever: Vect
 
 def create_learning_path_generator(chat_model: ChatGoogleGenerativeAI, retriever: VectorStoreRetriever):
     prompt = ChatPromptTemplate.from_messages([
-         SystemMessage(content="""±z¬O¤@¦ì±Mºë©ó­Ó¤H¤Æ¾Ç²ß¸ô®|³]­pªº±Ğ¨|½Òµ{³]­p±M®a¡C
-        ®Ú¾Ú´£¨Ñªº¾Ç¥ÍÀÉ®×¡B´úÅçµ²ªG©M¤º®e¡A³Ğ«Ø¤@±ø¾A¦X¥L¦Û¾Çªº¾Ç²ß¸ô®|¡C
+         SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆç²¾æ–¼å€‹äººåŒ–å­¸ç¿’è·¯å¾‘è¨­è¨ˆçš„æ•™è‚²èª²ç¨‹è¨­è¨ˆå°ˆå®¶ã€‚
+        æ ¹æ“šæä¾›çš„å­¸ç”Ÿæª”æ¡ˆã€æ¸¬é©—çµæœå’Œå…§å®¹ï¼Œå‰µå»ºä¸€æ¢é©åˆä»–è‡ªå­¸çš„å­¸ç¿’è·¯å¾‘ã€‚
 
-        ±zªº¾Ç²ß¸ô®|À³¸Ó¡G
-        1. °w¹ï¾Ç¥Íªº¾Ç²ß­·®æ¡Bª¾ÃÑ¤ô¥­©M¿³½ì¶i¦æ¶q¨­©w¨î
-        2. ¥]§t²M´·ªº¾Ç²ß¥Ø¼Ğ
-        3. ¿í´`ÆN¬[­ì«h¡A³v¨B¼W¥[Ãø«×¨Ã´î¤Ö¤ä«ù
+        æ‚¨çš„å­¸ç¿’è·¯å¾‘æ‡‰è©²ï¼š
+        1. é‡å°å­¸ç”Ÿçš„å­¸ç¿’é¢¨æ ¼ã€çŸ¥è­˜æ°´å¹³å’Œèˆˆè¶£é€²è¡Œé‡èº«å®šåˆ¶
+        2. åŒ…å«æ¸…æ™°çš„å­¸ç¿’ç›®æ¨™
+        3. éµå¾ªé·¹æ¶åŸå‰‡ï¼Œé€æ­¥å¢åŠ é›£åº¦ä¸¦æ¸›å°‘æ”¯æŒ
 
-        ±zªº¦^À³¥²¶·¿í´`¥H¤Uºë½Tªº JSON ®æ¦¡¡G
+        æ‚¨çš„å›æ‡‰å¿…é ˆéµå¾ªä»¥ä¸‹ç²¾ç¢ºçš„ JSON æ ¼å¼ï¼š
         {
-          "title": "°w¹ï[¥DÃD]ªº­Ó¤H¤Æ¾Ç²ß¸ô®|",
-          "description": "¦¹¾Ç²ß¸ô®|°w¹ï[name]ªº¾Ç²ß­·®æ©M·í«eª¾ÃÑ¤ô¥­¶i¦æ¶q¨­©w¨î",
-          "objectives": ["¥Ø¼Ğ 1", "¥Ø¼Ğ 2", "¥Ø¼Ğ 3"],
+          "title": "é‡å°[ä¸»é¡Œ]çš„å€‹äººåŒ–å­¸ç¿’è·¯å¾‘",
+          "description": "æ­¤å­¸ç¿’è·¯å¾‘é‡å°[name]çš„å­¸ç¿’é¢¨æ ¼å’Œç•¶å‰çŸ¥è­˜æ°´å¹³é€²è¡Œé‡èº«å®šåˆ¶",
+          "objectives": ["ç›®æ¨™ 1", "ç›®æ¨™ 2", "ç›®æ¨™ 3"],
           "modules": [
             {
-              "title": "³¹¸` 1: [¼ĞÃD]",
-              "description": "³¹¸`´y­z",
+              "title": "ç« ç¯€ 1: [æ¨™é¡Œ]",
+              "description": "ç« ç¯€æè¿°",
               "activities": [
                 {
-                  "type": "¾\Åª",
-                  "title": "¬¡°Ê¼ĞÃD",
-                  "description": "¬¡°Ê´y­z",
-                  "difficulty": "ªì¾ÇªÌ"
+                  "type": "é–±è®€",
+                  "title": "æ´»å‹•æ¨™é¡Œ",
+                  "description": "æ´»å‹•æè¿°",
+                  "difficulty": "åˆå­¸è€…"
                 }
               ],
-              "resources": ["Á¿¸q³¹¸`1-1", "Á¿¸q³¹¸`1-2"],
+              "resources": ["è¬›ç¾©ç« ç¯€1-1", "è¬›ç¾©ç« ç¯€1-2"],
             }
           ]
         }
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U¤º®e¥Í¦¨­Ó¤H¤Æ¾Ç²ß¸ô®|¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹å…§å®¹ç”Ÿæˆå€‹äººåŒ–å­¸ç¿’è·¯å¾‘ï¼š
 
-        ¾Ç¥ÍÀÉ®×¡G
+        å­¸ç”Ÿæª”æ¡ˆï¼š
         {profile}
 
-        ´úÅçµ²ªG¡G
+        æ¸¬é©—çµæœï¼š
         {test_results}
 
-        ¬ÛÃö¤º®e¡G
+        ç›¸é—œå…§å®¹ï¼š
         {context}
         """)
     ])
@@ -138,26 +138,26 @@ def create_learning_path_generator(chat_model: ChatGoogleGenerativeAI, retriever
 
 def create_peer_discussion_ai(chat_model: ChatGoogleGenerativeAI, retriever: VectorStoreRetriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¡u¾Ç²ß¹Ù¦ñ¡v¡A¤@­Ó¤Íµ½¥B¦³À°§Uªº AI ¦P¾«¡A»P¾Ç¥Í¶i¦æ¦³«Ø³]©Êªº°Q½×¡C
-        ±zªº¨¤¦â¬O¡G
-        1. ¼ÒÀÀ¤@¦ì¤]¦b¾Ç²ß¸Ó¥DÃD¦ı¦³¤@©w¨£¸Ñªº¦P¾«
-        2. ´£¥X«P¶i§å§P©Ê«ä¦Òªº²`«ä¼ô¼{ªº°İÃD
-        3. ´£¨Ñ·Å©Mªº«ü¾É¡A¦Ó¤£¬Oª½±µµ¹¥Xµª®×
-        4. ¥H¹ï¸Üªº¤è¦¡ªí¹F·Qªk¡A¹³¬O¾Ç¥Í¤§¶¡ªº¥æ¬y
-        5. ¨Ï¥ÎÄ¬®æ©Ô©³¦¡´£°İªkÀ°§U¾Ç¥Íµo²{µª®×
-        6. ¹ªÀy¨Ã«O«ù¿n·¥ªººA«×
+        SystemMessage(content="""æ‚¨æ˜¯ã€Œå­¸ç¿’å¤¥ä¼´ã€ï¼Œä¸€å€‹å‹å–„ä¸”æœ‰å¹«åŠ©çš„ AI åŒå„•ï¼Œèˆ‡å­¸ç”Ÿé€²è¡Œæœ‰å»ºè¨­æ€§çš„è¨è«–ã€‚
+        æ‚¨çš„è§’è‰²æ˜¯ï¼š
+        1. æ¨¡æ“¬ä¸€ä½ä¹Ÿåœ¨å­¸ç¿’è©²ä¸»é¡Œä½†æœ‰ä¸€å®šè¦‹è§£çš„åŒå„•
+        2. æå‡ºä¿ƒé€²æ‰¹åˆ¤æ€§æ€è€ƒçš„æ·±æ€ç†Ÿæ…®çš„å•é¡Œ
+        3. æä¾›æº«å’Œçš„æŒ‡å°ï¼Œè€Œä¸æ˜¯ç›´æ¥çµ¦å‡ºç­”æ¡ˆ
+        4. ä»¥å°è©±çš„æ–¹å¼è¡¨é”æƒ³æ³•ï¼Œåƒæ˜¯å­¸ç”Ÿä¹‹é–“çš„äº¤æµ
+        5. ä½¿ç”¨è˜‡æ ¼æ‹‰åº•å¼æå•æ³•å¹«åŠ©å­¸ç”Ÿç™¼ç¾ç­”æ¡ˆ
+        6. é¼“å‹µä¸¦ä¿æŒç©æ¥µçš„æ…‹åº¦
 
-        ®Ú¾Ú´£¨Ñªº¬ÛÃö¤º®e¦^À³¡A¦ı¤£­n¥u¬OÂ²³æ¦a­I»w¸ê°T¡C
-        ¦Ó¬O¥H¦ÛµMªº¤è¦¡¶i¦æ¨Ó¦^°Q½×¡A´N¹³¤@°_¾Ç²ß¤@¼Ë¡C
+        æ ¹æ“šæä¾›çš„ç›¸é—œå…§å®¹å›æ‡‰ï¼Œä½†ä¸è¦åªæ˜¯ç°¡å–®åœ°èƒŒèª¦è³‡è¨Šã€‚
+        è€Œæ˜¯ä»¥è‡ªç„¶çš„æ–¹å¼é€²è¡Œä¾†å›è¨è«–ï¼Œå°±åƒä¸€èµ·å­¸ç¿’ä¸€æ¨£ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""¾Ç¥Í§Æ±æ°Q½×³o­Ó¥DÃD¡G
+        HumanMessagePromptTemplate.from_template("""å­¸ç”Ÿå¸Œæœ›è¨è«–é€™å€‹ä¸»é¡Œï¼š
 
-        ¥DÃD: {topic}
+        ä¸»é¡Œ: {topic}
 
-        ¬ÛÃö¤º®e:
+        ç›¸é—œå…§å®¹:
         {context}
 
-        ¾Ç¥Í°T®§:
+        å­¸ç”Ÿè¨Šæ¯:
         {message}
         """)
     ])
@@ -176,45 +176,45 @@ def create_peer_discussion_ai(chat_model: ChatGoogleGenerativeAI, retriever: Vec
 
 def create_posttest_generator(chat_model: ChatGoogleGenerativeAI, retriever: VectorStoreRetriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±M·~ªº±Ğ¨|µû¦ô³]­p®v¡C
-        ®Ú¾Ú´£¨Ñªº¾Ç²ß³¹¸`¤º®e©M¾Ç¥Íªº·í«eª¾ÃÑ¤ô¥­¡A³]­p¤@¥÷«á´ú¡A¥]§t¦h¿ïÃD¥Hµû¦ô¾Ç¥Íªº¾Ç²ß¦¨ªG¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆæ¥­çš„æ•™è‚²è©•ä¼°è¨­è¨ˆå¸«ã€‚
+        æ ¹æ“šæä¾›çš„å­¸ç¿’ç« ç¯€å…§å®¹å’Œå­¸ç”Ÿçš„ç•¶å‰çŸ¥è­˜æ°´å¹³ï¼Œè¨­è¨ˆä¸€ä»½å¾Œæ¸¬ï¼ŒåŒ…å«å¤šé¸é¡Œä»¥è©•ä¼°å­¸ç”Ÿçš„å­¸ç¿’æˆæœã€‚
 
-        Ãø«×À³»P¾Ç¥Íªº·í«e¤ô¥­¬Û²Å¡G
-        - ªì¾ÇªÌ¡G§ó¦hÂ²³æ°İÃD¡]70%¡^¡A¤@¨Ç¤¤µ¥°İÃD¡]30%¡^
-        - ¤¤¯ÅªÌ¡G¤@¨ÇÂ²³æ°İÃD¡]30%¡^¡A¥D­n¬O¤¤µ¥°İÃD¡]50%¡^¡A¤@¨Ç§xÃø°İÃD¡]20%¡^
-        - °ª¯ÅªÌ¡G¤@¨Ç¤¤µ¥°İÃD¡]30%¡^¡A¥D­n¬O§xÃø°İÃD¡]70%¡^
+        é›£åº¦æ‡‰èˆ‡å­¸ç”Ÿçš„ç•¶å‰æ°´å¹³ç›¸ç¬¦ï¼š
+        - åˆå­¸è€…ï¼šæ›´å¤šç°¡å–®å•é¡Œï¼ˆ70%ï¼‰ï¼Œä¸€äº›ä¸­ç­‰å•é¡Œï¼ˆ30%ï¼‰
+        - ä¸­ç´šè€…ï¼šä¸€äº›ç°¡å–®å•é¡Œï¼ˆ30%ï¼‰ï¼Œä¸»è¦æ˜¯ä¸­ç­‰å•é¡Œï¼ˆ50%ï¼‰ï¼Œä¸€äº›å›°é›£å•é¡Œï¼ˆ20%ï¼‰
+        - é«˜ç´šè€…ï¼šä¸€äº›ä¸­ç­‰å•é¡Œï¼ˆ30%ï¼‰ï¼Œä¸»è¦æ˜¯å›°é›£å•é¡Œï¼ˆ70%ï¼‰
 
-        ³]­pªº°İÃDÀ³´ú¸Õ¾Ç¥Í¹ï¤º®eªº²z¸Ñ¡BÀ³¥Î©M¤ÀªR¯à¤O¡C
+        è¨­è¨ˆçš„å•é¡Œæ‡‰æ¸¬è©¦å­¸ç”Ÿå°å…§å®¹çš„ç†è§£ã€æ‡‰ç”¨å’Œåˆ†æèƒ½åŠ›ã€‚
 
-        ¹ï©ó¨C­Ó°İÃD¡A½Ğ´£¨Ñ¡G
-        1. °İÃD¤å¥»
-        2. ¥|­Ó¦h¿ï¿ï¶µ¡]A, B, C, D¡^
-        3. ¥¿½Tµª®×
-        4. ¬°¤°»ò¥¿½Tªº¸ÑÄÀ
-        5. Ãø«×¯Å§O
+        å°æ–¼æ¯å€‹å•é¡Œï¼Œè«‹æä¾›ï¼š
+        1. å•é¡Œæ–‡æœ¬
+        2. å››å€‹å¤šé¸é¸é …ï¼ˆA, B, C, Dï¼‰
+        3. æ­£ç¢ºç­”æ¡ˆ
+        4. ç‚ºä»€éº¼æ­£ç¢ºçš„è§£é‡‹
+        5. é›£åº¦ç´šåˆ¥
 
-        ±z¥²¶·¿í´`¥H¤Uºë½Tªº JSON ®æ¦¡¡G
+        æ‚¨å¿…é ˆéµå¾ªä»¥ä¸‹ç²¾ç¢ºçš„ JSON æ ¼å¼ï¼š
         {
-          "title": "«á´ú¡G[¥DÃD]",
-          "description": "¦¹´úÅç±Nµû¦ô±z¹ï[¥DÃD]ªº¾Ç²ß¦¨ªG",
+          "title": "å¾Œæ¸¬ï¼š[ä¸»é¡Œ]",
+          "description": "æ­¤æ¸¬é©—å°‡è©•ä¼°æ‚¨å°[ä¸»é¡Œ]çš„å­¸ç¿’æˆæœ",
           "questions": [
             {
-              "question": "°İÃD¤å¥»¡H",
-              "choices": ["A. ¿ï¶µ A", "B. ¿ï¶µ B", "C. ¿ï¶µ C", "D. ¿ï¶µ D"],
-              "correct_answer": "A. ¿ï¶µ A",
-              "explanation": "¬°¤°»ò A ¬O¥¿½Tµª®×ªº¸ÑÄÀ",
-              "difficulty": "Â²³æ"
+              "question": "å•é¡Œæ–‡æœ¬ï¼Ÿ",
+              "choices": ["A. é¸é … A", "B. é¸é … B", "C. é¸é … C", "D. é¸é … D"],
+              "correct_answer": "A. é¸é … A",
+              "explanation": "ç‚ºä»€éº¼ A æ˜¯æ­£ç¢ºç­”æ¡ˆçš„è§£é‡‹",
+              "difficulty": "ç°¡å–®"
             }
           ]
         }
 
-        ®Ú¾Ú¾Ç¥Íªº¤ô¥­¥Í¦¨Á`¦@ 5 ­Ó°İÃD¡A¨Ã¾A·í¤À°tÃø«×¡C
+        æ ¹æ“šå­¸ç”Ÿçš„æ°´å¹³ç”Ÿæˆç¸½å…± 5 å€‹å•é¡Œï¼Œä¸¦é©ç•¶åˆ†é…é›£åº¦ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U¤º®e¥Í¦¨¤@¥÷«á´ú¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹å…§å®¹ç”Ÿæˆä¸€ä»½å¾Œæ¸¬ï¼š
 
-        ¾Ç¥Íªº·í«eª¾ÃÑ¤ô¥­: {knowledge_level}
-        ³¹¸`¤º®e¥DÃD: {module_topic}
-        ¬ÛÃö¤º®e:
+        å­¸ç”Ÿçš„ç•¶å‰çŸ¥è­˜æ°´å¹³: {knowledge_level}
+        ç« ç¯€å…§å®¹ä¸»é¡Œ: {module_topic}
+        ç›¸é—œå…§å®¹:
         {context}
         """)
     ])
@@ -233,55 +233,55 @@ def create_posttest_generator(chat_model: ChatGoogleGenerativeAI, retriever: Vec
 
 def create_learning_log_prompter(chat_model: ChatGoogleGenerativeAI):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì¤Ï«ä¾Ç²ß±Ğ½m¡A±MªùÀ°§U¾Ç¥Í³Ğ«Ø¦³·N¸qªº¾Ç²ß¤é»x¡C
-        ®Ú¾Ú¾Ç¥Í§¹¦¨ªº¾Ç²ß³¹¸`©M´úÅçµ²ªG¡A¤Ş¾É¥L­Ì¤Ï«ä¦Û¤vªº¾Ç²ß¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½åæ€å­¸ç¿’æ•™ç·´ï¼Œå°ˆé–€å¹«åŠ©å­¸ç”Ÿå‰µå»ºæœ‰æ„ç¾©çš„å­¸ç¿’æ—¥èªŒã€‚
+        æ ¹æ“šå­¸ç”Ÿå®Œæˆçš„å­¸ç¿’ç« ç¯€å’Œæ¸¬é©—çµæœï¼Œå¼•å°ä»–å€‘åæ€è‡ªå·±çš„å­¸ç¿’ã€‚
 
-        ´£¥X²`«ä¼ô¼{ªº¶}©ñ¦¡°İÃD¥H«P¶i¤Ï«ä¡A¥]¬A¡G
-        1. ¥L­Ì¾Ç¨ì¤F¤°»ò¡]ÃöÁä·§©À©M¨£¸Ñ¡^
-        2. ¥L­Ì¹ï¾Ç²ß¹Lµ{ªº·P¨ü
-        3. ¥L­ÌÄ±±o¦³¬D¾Ôªº¦a¤è
-        4. ¥L­Ì¤´µM¦³¤°»ò°İÃD
+        æå‡ºæ·±æ€ç†Ÿæ…®çš„é–‹æ”¾å¼å•é¡Œä»¥ä¿ƒé€²åæ€ï¼ŒåŒ…æ‹¬ï¼š
+        1. ä»–å€‘å­¸åˆ°äº†ä»€éº¼ï¼ˆé—œéµæ¦‚å¿µå’Œè¦‹è§£ï¼‰
+        2. ä»–å€‘å°å­¸ç¿’éç¨‹çš„æ„Ÿå—
+        3. ä»–å€‘è¦ºå¾—æœ‰æŒ‘æˆ°çš„åœ°æ–¹
+        4. ä»–å€‘ä»ç„¶æœ‰ä»€éº¼å•é¡Œ
 
-        ±zªº¥Ø¼Ğ¬OÀ°§U¾Ç¥Í³Ğ«Ø¤@¥÷Â×´I¥B¦³¤Ï«ä©Êªº¾Ç²ß¤é»x¡A¹ï¥L­Ìªº¦¨ªø¦³»ù­È¡C
+        æ‚¨çš„ç›®æ¨™æ˜¯å¹«åŠ©å­¸ç”Ÿå‰µå»ºä¸€ä»½è±å¯Œä¸”æœ‰åæ€æ€§çš„å­¸ç¿’æ—¥èªŒï¼Œå°ä»–å€‘çš„æˆé•·æœ‰åƒ¹å€¼ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""À°§U¾Ç¥Í°ò©ó¥H¤U¤º®e³Ğ«Ø¾Ç²ß¤é»x¤Ï«ä¡G
+        HumanMessagePromptTemplate.from_template("""å¹«åŠ©å­¸ç”ŸåŸºæ–¼ä»¥ä¸‹å…§å®¹å‰µå»ºå­¸ç¿’æ—¥èªŒåæ€ï¼š
 
-        §¹¦¨ªº³¹¸`: {module_title}
+        å®Œæˆçš„ç« ç¯€: {module_title}
 
-        ³¹¸`¤º®eºK­n: {module_summary}
+        ç« ç¯€å…§å®¹æ‘˜è¦: {module_summary}
 
-        ´úÅçµ²ªG: {test_results}
+        æ¸¬é©—çµæœ: {test_results}
         """)
     ])
     return prompt | chat_model | StrOutputParser()
 
 def create_learning_log_analyzer(chat_model: ChatGoogleGenerativeAI):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±M·~ªº±Ğ¨|¤ÀªR®v¡A±Mªù¤ÀªR¾Ç¥Íªº¾Ç²ß¤é»x¡C
-        ®Ú¾Ú¾Ç¥Íªº¾Ç²ß¤é»x¡Aµû¦ô¡G
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆæ¥­çš„æ•™è‚²åˆ†æå¸«ï¼Œå°ˆé–€åˆ†æå­¸ç”Ÿçš„å­¸ç¿’æ—¥èªŒã€‚
+        æ ¹æ“šå­¸ç”Ÿçš„å­¸ç¿’æ—¥èªŒï¼Œè©•ä¼°ï¼š
 
-        1. ¹ïÃöÁä·§©Àªº²z¸Ñµ{«×
-        2. Àu¶Õ©M¦Û«Hªº»â°ì
-        3. ²V²c©Î»~¸Ñªº»â°ì
-        4. ¹ï§÷®Æªº±¡·P¤ÏÀ³
-        5. ¾Ç²ß­·®æªº«ü¼Ğ
+        1. å°é—œéµæ¦‚å¿µçš„ç†è§£ç¨‹åº¦
+        2. å„ªå‹¢å’Œè‡ªä¿¡çš„é ˜åŸŸ
+        3. æ··æ·†æˆ–èª¤è§£çš„é ˜åŸŸ
+        4. å°ææ–™çš„æƒ…æ„Ÿåæ‡‰
+        5. å­¸ç¿’é¢¨æ ¼çš„æŒ‡æ¨™
 
-        ±N±zªº¦^À³®æ¦¡¤Æ¬°¥H¤Uºë½Tªº JSON µ²ºc:
+        å°‡æ‚¨çš„å›æ‡‰æ ¼å¼åŒ–ç‚ºä»¥ä¸‹ç²¾ç¢ºçš„ JSON çµæ§‹:
         {
-          "understanding_level": "°ª/¤¤/§C",
-          "strengths": ["Àu¶Õ 1", "Àu¶Õ 2"],
-          "areas_for_improvement": ["§ï¶i»â°ì 1", "§ï¶i»â°ì 2"],
-          "emotional_response": "¹ï±¡·P¤ÏÀ³ªº´y­z",
-          "learning_style_indicators": ["«ü¼Ğ 1", "«ü¼Ğ 2"],
-          "recommended_next_steps": ["«ØÄ³¨BÆJ 1", "«ØÄ³¨BÆJ 2"],
-          "suggested_resources": ["¸ê·½ 1", "¸ê·½ 2"]
+          "understanding_level": "é«˜/ä¸­/ä½",
+          "strengths": ["å„ªå‹¢ 1", "å„ªå‹¢ 2"],
+          "areas_for_improvement": ["æ”¹é€²é ˜åŸŸ 1", "æ”¹é€²é ˜åŸŸ 2"],
+          "emotional_response": "å°æƒ…æ„Ÿåæ‡‰çš„æè¿°",
+          "learning_style_indicators": ["æŒ‡æ¨™ 1", "æŒ‡æ¨™ 2"],
+          "recommended_next_steps": ["å»ºè­°æ­¥é©Ÿ 1", "å»ºè­°æ­¥é©Ÿ 2"],
+          "suggested_resources": ["è³‡æº 1", "è³‡æº 2"]
         }
         """),
-        HumanMessagePromptTemplate.from_template("""¤ÀªR¥H¤U¾Ç²ß¤é»x¡G
+        HumanMessagePromptTemplate.from_template("""åˆ†æä»¥ä¸‹å­¸ç¿’æ—¥èªŒï¼š
 
-        ¾Ç¥Í: {student_name}
-        ¥DÃD: {topic}
-        ¾Ç²ß¤é»x¤º®e:
+        å­¸ç”Ÿ: {student_name}
+        ä¸»é¡Œ: {topic}
+        å­¸ç¿’æ—¥èªŒå…§å®¹:
         {log_content}
         """)
     ])
@@ -291,35 +291,35 @@ def create_knowledge_level_assessor(chat_model: ChatGoogleGenerativeAI):
     # Note: Original code had StrOutputParser but the prompt asks for JSON.
     # Assuming JSON output is desired based on the prompt's format specification.
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Ğ¨|µû¦ô±M®a¡C
-        ®Ú¾Ú¾Ç¥Íªº´úÅçµ²ªG¡A½T©w¥L­Ì¦b¦¹¯S©w¥DÃD¤Wªºª¾ÃÑ¤ô¥­¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½æ•™è‚²è©•ä¼°å°ˆå®¶ã€‚
+        æ ¹æ“šå­¸ç”Ÿçš„æ¸¬é©—çµæœï¼Œç¢ºå®šä»–å€‘åœ¨æ­¤ç‰¹å®šä¸»é¡Œä¸Šçš„çŸ¥è­˜æ°´å¹³ã€‚
 
-        ¦Ò¼{¡G
-        1. ¥¿½Tµª®×ªº¼Æ¶q
-        2. ¥¿½T¦^µªªº°İÃDÃø«×
-        3. µª®×¼Ò¦¡¡]¤@­Pªº²z¸Ñ»P®t¶Z¡^
+        è€ƒæ…®ï¼š
+        1. æ­£ç¢ºç­”æ¡ˆçš„æ•¸é‡
+        2. æ­£ç¢ºå›ç­”çš„å•é¡Œé›£åº¦
+        3. ç­”æ¡ˆæ¨¡å¼ï¼ˆä¸€è‡´çš„ç†è§£èˆ‡å·®è·ï¼‰
 
-        ±N¾Ç¥Íªºª¾ÃÑ¤ô¥­¤ÀÃş¬°¡G
-        - ªì¾ÇªÌ¡G°ò¥»¼ô±x¡A²z¸ÑÂ²³æ·§©À
-        - ¤¤¯ÅªÌ¡G¨}¦nªº®Ö¤ß·§©À²z¸Ñ¡A¤@©wªºÀ³¥Î¯à¤O
-        - °ª¯ÅªÌ¡G²`¨è²z¸Ñ¡A¯à±N·§©ÀÀ³¥Î©ó·s±¡¹Ò
+        å°‡å­¸ç”Ÿçš„çŸ¥è­˜æ°´å¹³åˆ†é¡ç‚ºï¼š
+        - åˆå­¸è€…ï¼šåŸºæœ¬ç†Ÿæ‚‰ï¼Œç†è§£ç°¡å–®æ¦‚å¿µ
+        - ä¸­ç´šè€…ï¼šè‰¯å¥½çš„æ ¸å¿ƒæ¦‚å¿µç†è§£ï¼Œä¸€å®šçš„æ‡‰ç”¨èƒ½åŠ›
+        - é«˜ç´šè€…ï¼šæ·±åˆ»ç†è§£ï¼Œèƒ½å°‡æ¦‚å¿µæ‡‰ç”¨æ–¼æ–°æƒ…å¢ƒ
 
-        ¬°±zªºµû¦ô´£¨ÑÂ²µuªº²z¥Ñ¡C
+        ç‚ºæ‚¨çš„è©•ä¼°æä¾›ç°¡çŸ­çš„ç†ç”±ã€‚
 
-        ±N±zªº¦^À³®æ¦¡¤Æ¬° JSON ¹ï¶H¡G
+        å°‡æ‚¨çš„å›æ‡‰æ ¼å¼åŒ–ç‚º JSON å°è±¡ï¼š
         {
-          "knowledge_level": "ªì¾ÇªÌ/¤¤¯ÅªÌ/°ª¯ÅªÌ",
-          "justification": "¹ïµû¦ôªºÂ²µu¸ÑÄÀ",
-          "strengths": ["Àu¶Õ 1", "Àu¶Õ 2"],
-          "areas_for_improvement": ["§ï¶i»â°ì 1", "§ï¶i»â°ì 2"],
-          "recommended_focus": "¾Ç¥Í±µ¤U¨ÓÀ³¸Ó±Mª`©ó¤°»ò"
+          "knowledge_level": "åˆå­¸è€…/ä¸­ç´šè€…/é«˜ç´šè€…",
+          "justification": "å°è©•ä¼°çš„ç°¡çŸ­è§£é‡‹",
+          "strengths": ["å„ªå‹¢ 1", "å„ªå‹¢ 2"],
+          "areas_for_improvement": ["æ”¹é€²é ˜åŸŸ 1", "æ”¹é€²é ˜åŸŸ 2"],
+          "recommended_focus": "å­¸ç”Ÿæ¥ä¸‹ä¾†æ‡‰è©²å°ˆæ³¨æ–¼ä»€éº¼"
         }
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U´úÅçµ²ªGµû¦ô¾Ç¥Íªºª¾ÃÑ¤ô¥­¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹æ¸¬é©—çµæœè©•ä¼°å­¸ç”Ÿçš„çŸ¥è­˜æ°´å¹³ï¼š
 
-        ´úÅç: {test_title}
+        æ¸¬é©—: {test_title}
 
-        °İÃD©Mµª®×:
+        å•é¡Œå’Œç­”æ¡ˆ:
         {test_results_details}
         """) # Changed key name for clarity
     ])
@@ -327,27 +327,27 @@ def create_knowledge_level_assessor(chat_model: ChatGoogleGenerativeAI):
 
 def create_module_content_generator(chat_model: ChatGoogleGenerativeAI, retriever: VectorStoreRetriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±M·~ªº±Ğ¨|¤º®e³Ğ§@ªÌ¡C
-        ®Ú¾Ú´£¨Ñªº³¹¸`¥DÃD¥H¤Î¾Ç¥Íªº¾Ç²ß­·®æ©Mª¾ÃÑ¤ô¥­¡A³Ğ«Ø¤Ş¤H¤J³Óªº±Ğ¨|¤º®e¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆæ¥­çš„æ•™è‚²å…§å®¹å‰µä½œè€…ã€‚
+        æ ¹æ“šæä¾›çš„ç« ç¯€ä¸»é¡Œä»¥åŠå­¸ç”Ÿçš„å­¸ç¿’é¢¨æ ¼å’ŒçŸ¥è­˜æ°´å¹³ï¼Œå‰µå»ºå¼•äººå…¥å‹çš„æ•™è‚²å…§å®¹ã€‚
 
-        ±zªº¤º®eÀ³¡G
-        1. °w¹ï¾Ç¥Íªº¾Ç²ß­·®æ¡]µøÄ±«¬¡BÅ¥Ä±«¬©Î°ÊÄ±«¬¡^¶i¦æ¶q¨­©w¨î
-        2. §¹¥ş²Å¦XÆN¬[±Ğ¨|²z½×
-        3. ¾A¦X¾Ç¥Íªºª¾ÃÑ¤ô¥­
-        4. ¥]§tÃöÁä·§©Àªº²M´·¸ÑÄÀ
-        5. µ²ºc²M´·¡A¥]§t©ú½Tªº³¡¤À©M¼ĞÃD
-        6. ¥HÃöÁäÂIªºÂ²µuÁ`µ²µ²§À
-        7. ¤£­n¨Ï¥Î¹Ïªí©Î¹Ï¹³¡A¥i¥H¨Ï¥Îªí®æ
+        æ‚¨çš„å…§å®¹æ‡‰ï¼š
+        1. é‡å°å­¸ç”Ÿçš„å­¸ç¿’é¢¨æ ¼ï¼ˆè¦–è¦ºå‹ã€è½è¦ºå‹æˆ–å‹•è¦ºå‹ï¼‰é€²è¡Œé‡èº«å®šåˆ¶
+        2. å®Œå…¨ç¬¦åˆé·¹æ¶æ•™è‚²ç†è«–
+        3. é©åˆå­¸ç”Ÿçš„çŸ¥è­˜æ°´å¹³
+        4. åŒ…å«é—œéµæ¦‚å¿µçš„æ¸…æ™°è§£é‡‹
+        5. çµæ§‹æ¸…æ™°ï¼ŒåŒ…å«æ˜ç¢ºçš„éƒ¨åˆ†å’Œæ¨™é¡Œ
+        6. ä»¥é—œéµé»çš„ç°¡çŸ­ç¸½çµçµå°¾
+        7. ä¸è¦ä½¿ç”¨åœ–è¡¨æˆ–åœ–åƒï¼Œå¯ä»¥ä½¿ç”¨è¡¨æ ¼
 
-        ¨Ï¥Î markdown ®æ¦¡¤Æ±zªº¤º®e¥H´£°ª¥iÅª©Ê¡C
+        ä½¿ç”¨ markdown æ ¼å¼åŒ–æ‚¨çš„å…§å®¹ä»¥æé«˜å¯è®€æ€§ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""¬°¥H¤U¤º®e³Ğ«Ø±Ğ¨|¤º®e¡G
+        HumanMessagePromptTemplate.from_template("""ç‚ºä»¥ä¸‹å…§å®¹å‰µå»ºæ•™è‚²å…§å®¹ï¼š
 
-        ³¹¸`¥DÃD: {module_topic}
-        ¾Ç¥Í¾Ç²ß­·®æ: {learning_style}
-        ¾Ç¥Íª¾ÃÑ¤ô¥­: {knowledge_level}
+        ç« ç¯€ä¸»é¡Œ: {module_topic}
+        å­¸ç”Ÿå­¸ç¿’é¢¨æ ¼: {learning_style}
+        å­¸ç”ŸçŸ¥è­˜æ°´å¹³: {knowledge_level}
 
-        ¬ÛÃö¨Ó·½§÷®Æ:
+        ç›¸é—œä¾†æºææ–™:
         {context}
         """)
     ])

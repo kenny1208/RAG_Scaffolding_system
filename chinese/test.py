@@ -1,4 +1,4 @@
-# -*- coding: big5 -*-
+# -*- coding: UTF-8 -*-
 
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
@@ -147,7 +147,7 @@ def manage_student_profile():
         console.print("0. Create new student profile")
         
         for i, profile_path in enumerate(profiles, 1):
-            with open(profile_path, "r", encoding="cp950") as f:
+            with open(profile_path, "r", encoding="UTF-8") as f:
                 try:
                     data = json.load(f)
                     profile = StudentProfile.model_validate(data)
@@ -170,7 +170,7 @@ def manage_student_profile():
                 console.print("[red]Selected profile is empty, creating a new one...[/red]")
                 return create_new_profile()
             
-            with open(path, "r", encoding="CP950") as f:
+            with open(path, "r", encoding="UTF-8") as f:
                 try:
                     data = json.load(f)
                 except json.JSONDecodeError:
@@ -205,50 +205,50 @@ def create_new_profile():
 # Create chains for different functionalities
 def create_learning_style_survey(chat_model):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Mºë©ó¾Ç²ß­·®æµû¦ôªº±Ğ¨|±M®a¡C
-        ½Ğ³]­p¤@¥÷Â²¼ä¦ı¦³®Äªº¾Ç²ß­·®æµû¦ô°İ¨÷¡A¥]§t 5 ­Ó¦h¿ïÃD¡C
-        ¨C­Ó°İÃDÀ³¦³ 3 ­Ó¿ï¶µ¡A¥Î©ó§PÂ_¾Ç¥Í¬O§_¥D­n¬O¡G
-        1. µøÄ±«¬¾Ç²ßªÌ
-        2. Å¥Ä±«¬¾Ç²ßªÌ
-        3. °ÊÄ±«¬¾Ç²ßªÌ
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆç²¾æ–¼å­¸ç¿’é¢¨æ ¼è©•ä¼°çš„æ•™è‚²å°ˆå®¶ã€‚
+        è«‹è¨­è¨ˆä¸€ä»½ç°¡æ½”ä½†æœ‰æ•ˆçš„å­¸ç¿’é¢¨æ ¼è©•ä¼°å•å·ï¼ŒåŒ…å« 5 å€‹å¤šé¸é¡Œã€‚
+        æ¯å€‹å•é¡Œæ‡‰æœ‰ 3 å€‹é¸é …ï¼Œç”¨æ–¼åˆ¤æ–·å­¸ç”Ÿæ˜¯å¦ä¸»è¦æ˜¯ï¼š
+        1. è¦–è¦ºå‹å­¸ç¿’è€…
+        2. è½è¦ºå‹å­¸ç¿’è€…
+        3. å‹•è¦ºå‹å­¸ç¿’è€…
         
-        ½Ğ±N±zªº¦^À³®æ¦¡¤Æ¬°¤@¥÷°İ¨÷¡A¥]§t½s¸¹ªº°İÃD©M¦r¥À¼Ğ°Oªº¿ï¶µ¡C"""),
-        HumanMessagePromptTemplate.from_template("³]­p¤@¥÷¾Ç²ß­·®æµû¦ô°İ¨÷¡C")
+        è«‹å°‡æ‚¨çš„å›æ‡‰æ ¼å¼åŒ–ç‚ºä¸€ä»½å•å·ï¼ŒåŒ…å«ç·¨è™Ÿçš„å•é¡Œå’Œå­—æ¯æ¨™è¨˜çš„é¸é …ã€‚"""),
+        HumanMessagePromptTemplate.from_template("è¨­è¨ˆä¸€ä»½å­¸ç¿’é¢¨æ ¼è©•ä¼°å•å·ã€‚")
     ])
     
     return prompt | chat_model | StrOutputParser()
 
 def create_pretest_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Mºë©ó±Ğ¨|µû¦ô³]­pªº±M®a¡C
-        ®Ú¾Ú´£¨Ñªº¤º®e¡A³]­p¤@¥÷«e´ú¡]Pre-Test¡^¡A¥Hµû¦ô¾Ç¥Í¦b¸Ó¥DÃD¤Wªº²{¦³ª¾ÃÑ¤ô¥­¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆç²¾æ–¼æ•™è‚²è©•ä¼°è¨­è¨ˆçš„å°ˆå®¶ã€‚
+        æ ¹æ“šæä¾›çš„å…§å®¹ï¼Œè¨­è¨ˆä¸€ä»½å‰æ¸¬ï¼ˆPre-Testï¼‰ï¼Œä»¥è©•ä¼°å­¸ç”Ÿåœ¨è©²ä¸»é¡Œä¸Šçš„ç¾æœ‰çŸ¥è­˜æ°´å¹³ã€‚
         
-        ½Ğ³]­p²[»\¤£¦PÃø«×¯Å§Oªº°İÃD¡GÂ²³æ¡B¤¤µ¥©M§xÃø¡C
-        ¹ï©ó¨C­Ó°İÃD¡A½Ğ´£¨Ñ¡G
-        1. °İÃD¤å¥»
-        2. ¥|­Ó¦h¿ï¿ï¶µ¡]A, B, C, D¡^
-        3. ¥¿½Tµª®×
-        4. ¬°¤°»ò¥¿½Tªº¸ÑÄÀ
-        5. Ãø«×¯Å§O
+        è«‹è¨­è¨ˆæ¶µè“‹ä¸åŒé›£åº¦ç´šåˆ¥çš„å•é¡Œï¼šç°¡å–®ã€ä¸­ç­‰å’Œå›°é›£ã€‚
+        å°æ–¼æ¯å€‹å•é¡Œï¼Œè«‹æä¾›ï¼š
+        1. å•é¡Œæ–‡æœ¬
+        2. å››å€‹å¤šé¸é¸é …ï¼ˆA, B, C, Dï¼‰
+        3. æ­£ç¢ºç­”æ¡ˆ
+        4. ç‚ºä»€éº¼æ­£ç¢ºçš„è§£é‡‹
+        5. é›£åº¦ç´šåˆ¥
         
-        ±z¥²¶·¿í´`¥H¤Uºë½Tªº JSON ®æ¦¡¡G
+        æ‚¨å¿…é ˆéµå¾ªä»¥ä¸‹ç²¾ç¢ºçš„ JSON æ ¼å¼ï¼š
         {
-          "title": "«e´ú¡G[¥DÃD]",
-          "description": "¦¹´úÅç±Nµû¦ô±z¹ï[¥DÃD]ªº²{¦³ª¾ÃÑ",
+          "title": "å‰æ¸¬ï¼š[ä¸»é¡Œ]",
+          "description": "æ­¤æ¸¬é©—å°‡è©•ä¼°æ‚¨å°[ä¸»é¡Œ]çš„ç¾æœ‰çŸ¥è­˜",
           "questions": [
             {
-              "question": "°İÃD¤å¥»¡H",
-              "choices": ["A. ¿ï¶µ A", "B. ¿ï¶µ B", "C. ¿ï¶µ C", "D. ¿ï¶µ D"],
-              "correct_answer": "A. ¿ï¶µ A",
-              "explanation": "¬°¤°»ò A ¬O¥¿½Tµª®×ªº¸ÑÄÀ",
-              "difficulty": "Â²³æ"
+              "question": "å•é¡Œæ–‡æœ¬ï¼Ÿ",
+              "choices": ["A. é¸é … A", "B. é¸é … B", "C. é¸é … C", "D. é¸é … D"],
+              "correct_answer": "A. é¸é … A",
+              "explanation": "ç‚ºä»€éº¼ A æ˜¯æ­£ç¢ºç­”æ¡ˆçš„è§£é‡‹",
+              "difficulty": "ç°¡å–®"
             }
           ]
         }
 
-        ½Ğ®Ú¾Ú´£¨Ñªº¤º®e¥Í¦¨Á`¦@ 5 ­Ó°İÃD¡A¨Ã¥]§t¤£¦PÃø«×¯Å§Oªº°İÃD¡C
+        è«‹æ ¹æ“šæä¾›çš„å…§å®¹ç”Ÿæˆç¸½å…± 5 å€‹å•é¡Œï¼Œä¸¦åŒ…å«ä¸åŒé›£åº¦ç´šåˆ¥çš„å•é¡Œã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U¤º®e¥Í¦¨¤@¥÷«e´ú¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹å…§å®¹ç”Ÿæˆä¸€ä»½å‰æ¸¬ï¼š
         
         {context}
         """)
@@ -274,45 +274,45 @@ def create_pretest_generator(chat_model, retriever):
 
 def create_learning_path_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Mºë©ó­Ó¤H¤Æ¾Ç²ß¸ô®|³]­pªº±Ğ¨|½Òµ{³]­p±M®a¡C
-        ®Ú¾Ú´£¨Ñªº¾Ç¥ÍÀÉ®×¡B´úÅçµ²ªG©M¤º®e¡A³Ğ«Ø¤@±ø¾A¦X¥L¦Û¾Çªº¾Ç²ß¸ô®|¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆç²¾æ–¼å€‹äººåŒ–å­¸ç¿’è·¯å¾‘è¨­è¨ˆçš„æ•™è‚²èª²ç¨‹è¨­è¨ˆå°ˆå®¶ã€‚
+        æ ¹æ“šæä¾›çš„å­¸ç”Ÿæª”æ¡ˆã€æ¸¬é©—çµæœå’Œå…§å®¹ï¼Œå‰µå»ºä¸€æ¢é©åˆä»–è‡ªå­¸çš„å­¸ç¿’è·¯å¾‘ã€‚
         
-        ±zªº¾Ç²ß¸ô®|À³¸Ó¡G
-        1. °w¹ï¾Ç¥Íªº¾Ç²ß­·®æ¡Bª¾ÃÑ¤ô¥­©M¿³½ì¶i¦æ¶q¨­©w¨î
-        2. ¥]§t²M´·ªº¾Ç²ß¥Ø¼Ğ
-        3. ¿í´`ÆN¬[­ì«h¡A³v¨B¼W¥[Ãø«×¨Ã´î¤Ö¤ä«ù
+        æ‚¨çš„å­¸ç¿’è·¯å¾‘æ‡‰è©²ï¼š
+        1. é‡å°å­¸ç”Ÿçš„å­¸ç¿’é¢¨æ ¼ã€çŸ¥è­˜æ°´å¹³å’Œèˆˆè¶£é€²è¡Œé‡èº«å®šåˆ¶
+        2. åŒ…å«æ¸…æ™°çš„å­¸ç¿’ç›®æ¨™
+        3. éµå¾ªé·¹æ¶åŸå‰‡ï¼Œé€æ­¥å¢åŠ é›£åº¦ä¸¦æ¸›å°‘æ”¯æŒ
         
-        ±zªº¦^À³¥²¶·¿í´`¥H¤Uºë½Tªº JSON ®æ¦¡¡G
+        æ‚¨çš„å›æ‡‰å¿…é ˆéµå¾ªä»¥ä¸‹ç²¾ç¢ºçš„ JSON æ ¼å¼ï¼š
         {
-          "title": "°w¹ï[¥DÃD]ªº­Ó¤H¤Æ¾Ç²ß¸ô®|",
-          "description": "¦¹¾Ç²ß¸ô®|°w¹ï[name]ªº¾Ç²ß­·®æ©M·í«eª¾ÃÑ¤ô¥­¶i¦æ¶q¨­©w¨î",
-          "objectives": ["¥Ø¼Ğ 1", "¥Ø¼Ğ 2", "¥Ø¼Ğ 3"],
+          "title": "é‡å°[ä¸»é¡Œ]çš„å€‹äººåŒ–å­¸ç¿’è·¯å¾‘",
+          "description": "æ­¤å­¸ç¿’è·¯å¾‘é‡å°[name]çš„å­¸ç¿’é¢¨æ ¼å’Œç•¶å‰çŸ¥è­˜æ°´å¹³é€²è¡Œé‡èº«å®šåˆ¶",
+          "objectives": ["ç›®æ¨™ 1", "ç›®æ¨™ 2", "ç›®æ¨™ 3"],
           "modules": [
             {
-              "title": "³¹¸` 1: [¼ĞÃD]",
-              "description": "³¹¸`´y­z",
+              "title": "ç« ç¯€ 1: [æ¨™é¡Œ]",
+              "description": "ç« ç¯€æè¿°",
               "activities": [
                 {
-                  "type": "¾\Åª",
-                  "title": "¬¡°Ê¼ĞÃD",
-                  "description": "¬¡°Ê´y­z",
-                  "difficulty": "ªì¾ÇªÌ"
+                  "type": "é–±è®€",
+                  "title": "æ´»å‹•æ¨™é¡Œ",
+                  "description": "æ´»å‹•æè¿°",
+                  "difficulty": "åˆå­¸è€…"
                 }
               ],
-              "resources": ["Á¿¸q³¹¸`1-1", "Á¿¸q³¹¸`1-2"],
+              "resources": ["è¬›ç¾©ç« ç¯€1-1", "è¬›ç¾©ç« ç¯€1-2"],
             }
           ]
         }
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U¤º®e¥Í¦¨­Ó¤H¤Æ¾Ç²ß¸ô®|¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹å…§å®¹ç”Ÿæˆå€‹äººåŒ–å­¸ç¿’è·¯å¾‘ï¼š
         
-        ¾Ç¥ÍÀÉ®×¡G
+        å­¸ç”Ÿæª”æ¡ˆï¼š
         {profile}
         
-        ´úÅçµ²ªG¡G
+        æ¸¬é©—çµæœï¼š
         {test_results}
         
-        ¤º®e¡G
+        å…§å®¹ï¼š
         {context}
         """)
     ])
@@ -336,26 +336,26 @@ def create_learning_path_generator(chat_model, retriever):
 
 def create_peer_discussion_ai(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¡u¾Ç²ß¹Ù¦ñ¡v¡A¤@­Ó¤Íµ½¥B¦³À°§Uªº AI ¦P¾«¡A»P¾Ç¥Í¶i¦æ¦³«Ø³]©Êªº°Q½×¡C
-        ±zªº¨¤¦â¬O¡G
-        1. ¼ÒÀÀ¤@¦ì¤]¦b¾Ç²ß¸Ó¥DÃD¦ı¦³¤@©w¨£¸Ñªº¦P¾«
-        2. ´£¥X«P¶i§å§P©Ê«ä¦Òªº²`«ä¼ô¼{ªº°İÃD
-        3. ´£¨Ñ·Å©Mªº«ü¾É¡A¦Ó¤£¬Oª½±µµ¹¥Xµª®×
-        4. ¥H¹ï¸Üªº¤è¦¡ªí¹F·Qªk¡A¹³¬O¾Ç¥Í¤§¶¡ªº¥æ¬y
-        5. ¨Ï¥ÎÄ¬®æ©Ô©³¦¡´£°İªkÀ°§U¾Ç¥Íµo²{µª®×
-        6. ¹ªÀy¨Ã«O«ù¿n·¥ªººA«×
+        SystemMessage(content="""æ‚¨æ˜¯ã€Œå­¸ç¿’å¤¥ä¼´ã€ï¼Œä¸€å€‹å‹å–„ä¸”æœ‰å¹«åŠ©çš„ AI åŒå„•ï¼Œèˆ‡å­¸ç”Ÿé€²è¡Œæœ‰å»ºè¨­æ€§çš„è¨è«–ã€‚
+        æ‚¨çš„è§’è‰²æ˜¯ï¼š
+        1. æ¨¡æ“¬ä¸€ä½ä¹Ÿåœ¨å­¸ç¿’è©²ä¸»é¡Œä½†æœ‰ä¸€å®šè¦‹è§£çš„åŒå„•
+        2. æå‡ºä¿ƒé€²æ‰¹åˆ¤æ€§æ€è€ƒçš„æ·±æ€ç†Ÿæ…®çš„å•é¡Œ
+        3. æä¾›æº«å’Œçš„æŒ‡å°ï¼Œè€Œä¸æ˜¯ç›´æ¥çµ¦å‡ºç­”æ¡ˆ
+        4. ä»¥å°è©±çš„æ–¹å¼è¡¨é”æƒ³æ³•ï¼Œåƒæ˜¯å­¸ç”Ÿä¹‹é–“çš„äº¤æµ
+        5. ä½¿ç”¨è˜‡æ ¼æ‹‰åº•å¼æå•æ³•å¹«åŠ©å­¸ç”Ÿç™¼ç¾ç­”æ¡ˆ
+        6. é¼“å‹µä¸¦ä¿æŒç©æ¥µçš„æ…‹åº¦
         
-        ®Ú¾Ú´£¨Ñªº¬ÛÃö¤º®e¦^À³¡A¦ı¤£­n¥u¬OÂ²³æ¦a­I»w¸ê°T¡C
-        ¦Ó¬O¥H¦ÛµMªº¤è¦¡¶i¦æ¨Ó¦^°Q½×¡A´N¹³¤@°_¾Ç²ß¤@¼Ë¡C
+        æ ¹æ“šæä¾›çš„ç›¸é—œå…§å®¹å›æ‡‰ï¼Œä½†ä¸è¦åªæ˜¯ç°¡å–®åœ°èƒŒèª¦è³‡è¨Šã€‚
+        è€Œæ˜¯ä»¥è‡ªç„¶çš„æ–¹å¼é€²è¡Œä¾†å›è¨è«–ï¼Œå°±åƒä¸€èµ·å­¸ç¿’ä¸€æ¨£ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""¾Ç¥Í§Æ±æ°Q½×³o­Ó¥DÃD¡G
+        HumanMessagePromptTemplate.from_template("""å­¸ç”Ÿå¸Œæœ›è¨è«–é€™å€‹ä¸»é¡Œï¼š
         
-        ¥DÃD: {topic}
+        ä¸»é¡Œ: {topic}
         
-        ¬ÛÃö¤º®e:
+        ç›¸é—œå…§å®¹:
         {context}
         
-        ¾Ç¥Í°T®§:
+        å­¸ç”Ÿè¨Šæ¯:
         {message}
         """)
     ])
@@ -364,7 +364,7 @@ def create_peer_discussion_ai(chat_model, retriever):
         {
             "topic": RunnablePassthrough(),
             "message": RunnablePassthrough(),
-            # ¥ı¨ú inputs["context"]¡A¦Aµ¹ retriever¡A³Ì«á¦X¨Ö chunks
+            # å…ˆå– inputs["context"]ï¼Œå†çµ¦ retrieverï¼Œæœ€å¾Œåˆä½µ chunks
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
@@ -380,44 +380,44 @@ def create_peer_discussion_ai(chat_model, retriever):
 
 def create_posttest_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±M·~ªº±Ğ¨|µû¦ô³]­p®v¡C
-        ®Ú¾Ú´£¨Ñªº¾Ç²ß³¹¸`¤º®e©M¾Ç¥Íªº·í«eª¾ÃÑ¤ô¥­¡A³]­p¤@¥÷«á´ú¡A¥]§t¦h¿ïÃD¥Hµû¦ô¾Ç¥Íªº¾Ç²ß¦¨ªG¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆæ¥­çš„æ•™è‚²è©•ä¼°è¨­è¨ˆå¸«ã€‚
+        æ ¹æ“šæä¾›çš„å­¸ç¿’ç« ç¯€å…§å®¹å’Œå­¸ç”Ÿçš„ç•¶å‰çŸ¥è­˜æ°´å¹³ï¼Œè¨­è¨ˆä¸€ä»½å¾Œæ¸¬ï¼ŒåŒ…å«å¤šé¸é¡Œä»¥è©•ä¼°å­¸ç”Ÿçš„å­¸ç¿’æˆæœã€‚
         
-        Ãø«×À³»P¾Ç¥Íªº·í«e¤ô¥­¬Û²Å¡G
-        - ªì¾ÇªÌ¡G§ó¦hÂ²³æ°İÃD¡]70%¡^¡A¤@¨Ç¤¤µ¥°İÃD¡]30%¡^
-        - ¤¤¯ÅªÌ¡G¤@¨ÇÂ²³æ°İÃD¡]30%¡^¡A¥D­n¬O¤¤µ¥°İÃD¡]50%¡^¡A¤@¨Ç§xÃø°İÃD¡]20%¡^
-        - °ª¯ÅªÌ¡G¤@¨Ç¤¤µ¥°İÃD¡]40%¡^¡A¥D­n¬O§xÃø°İÃD¡]60%¡^
+        é›£åº¦æ‡‰èˆ‡å­¸ç”Ÿçš„ç•¶å‰æ°´å¹³ç›¸ç¬¦ï¼š
+        - åˆå­¸è€…ï¼šæ›´å¤šç°¡å–®å•é¡Œï¼ˆ70%ï¼‰ï¼Œä¸€äº›ä¸­ç­‰å•é¡Œï¼ˆ30%ï¼‰
+        - ä¸­ç´šè€…ï¼šä¸€äº›ç°¡å–®å•é¡Œï¼ˆ30%ï¼‰ï¼Œä¸»è¦æ˜¯ä¸­ç­‰å•é¡Œï¼ˆ50%ï¼‰ï¼Œä¸€äº›å›°é›£å•é¡Œï¼ˆ20%ï¼‰
+        - é«˜ç´šè€…ï¼šä¸€äº›ä¸­ç­‰å•é¡Œï¼ˆ40%ï¼‰ï¼Œä¸»è¦æ˜¯å›°é›£å•é¡Œï¼ˆ60%ï¼‰
         
-        ³]­pªº°İÃDÀ³´ú¸Õ¾Ç¥Í¹ï¤º®eªº²z¸Ñ¡BÀ³¥Î©M¤ÀªR¯à¤O¡C
+        è¨­è¨ˆçš„å•é¡Œæ‡‰æ¸¬è©¦å­¸ç”Ÿå°å…§å®¹çš„ç†è§£ã€æ‡‰ç”¨å’Œåˆ†æèƒ½åŠ›ã€‚
         
-        ¹ï©ó¨C­Ó°İÃD¡A½Ğ´£¨Ñ¡G
-        1. °İÃD¤å¥»
-        2. ¥|­Ó¦h¿ï¿ï¶µ¡]A, B, C, D¡^
-        3. ¥¿½Tµª®×
-        4. ¬°¤°»ò¥¿½Tªº¸ÑÄÀ
-        5. Ãø«×¯Å§O
+        å°æ–¼æ¯å€‹å•é¡Œï¼Œè«‹æä¾›ï¼š
+        1. å•é¡Œæ–‡æœ¬
+        2. å››å€‹å¤šé¸é¸é …ï¼ˆA, B, C, Dï¼‰
+        3. æ­£ç¢ºç­”æ¡ˆ
+        4. ç‚ºä»€éº¼æ­£ç¢ºçš„è§£é‡‹
+        5. é›£åº¦ç´šåˆ¥
         
-        ±z¥²¶·¿í´`¥H¤Uºë½Tªº JSON ®æ¦¡¡G
+        æ‚¨å¿…é ˆéµå¾ªä»¥ä¸‹ç²¾ç¢ºçš„ JSON æ ¼å¼ï¼š
         {
-          "title": "«á´ú¡G[¥DÃD]",
-          "description": "¦¹´úÅç±Nµû¦ô±z¹ï[¥DÃD]ªº¾Ç²ß¦¨ªG",
+          "title": "å¾Œæ¸¬ï¼š[ä¸»é¡Œ]",
+          "description": "æ­¤æ¸¬é©—å°‡è©•ä¼°æ‚¨å°[ä¸»é¡Œ]çš„å­¸ç¿’æˆæœ",
           "questions": [
             {
-              "question": "°İÃD¤å¥»¡H",
-              "choices": ["A. ¿ï¶µ A", "B. ¿ï¶µ B", "C. ¿ï¶µ C", "D. ¿ï¶µ D"],
-              "correct_answer": "A. ¿ï¶µ A",
-              "explanation": "¬°¤°»ò A ¬O¥¿½Tµª®×ªº¸ÑÄÀ",
-              "difficulty": "Â²³æ"
+              "question": "å•é¡Œæ–‡æœ¬ï¼Ÿ",
+              "choices": ["A. é¸é … A", "B. é¸é … B", "C. é¸é … C", "D. é¸é … D"],
+              "correct_answer": "A. é¸é … A",
+              "explanation": "ç‚ºä»€éº¼ A æ˜¯æ­£ç¢ºç­”æ¡ˆçš„è§£é‡‹",
+              "difficulty": "ç°¡å–®"
             }
           ]
         }
 
-        ®Ú¾Ú¾Ç¥Íªº¤ô¥­¥Í¦¨Á`¦@ 5 ­Ó°İÃD¡A¨Ã¾A·í¤À°tÃø«×¡C
+        æ ¹æ“šå­¸ç”Ÿçš„æ°´å¹³ç”Ÿæˆç¸½å…± 5 å€‹å•é¡Œï¼Œä¸¦é©ç•¶åˆ†é…é›£åº¦ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U¤º®e¥Í¦¨¤@¥÷«á´ú¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹å…§å®¹ç”Ÿæˆä¸€ä»½å¾Œæ¸¬ï¼š
         
-        ¾Ç¥Íªº·í«eª¾ÃÑ¤ô¥­: {knowledge_level}
-        ¼Ò²Õ¤º®e: {context}
+        å­¸ç”Ÿçš„ç•¶å‰çŸ¥è­˜æ°´å¹³: {knowledge_level}
+        æ¨¡çµ„å…§å®¹: {context}
         """)
     ])
     
@@ -440,24 +440,24 @@ def create_posttest_generator(chat_model, retriever):
 
 def create_learning_log_prompter(chat_model):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì¤Ï«ä¾Ç²ß±Ğ½m¡A±MªùÀ°§U¾Ç¥Í³Ğ«Ø¦³·N¸qªº¾Ç²ß¤é»x¡C
-        ®Ú¾Ú¾Ç¥Í§¹¦¨ªº¾Ç²ß¼Ò²Õ©M´úÅçµ²ªG¡A¤Ş¾É¥L­Ì¤Ï«ä¦Û¤vªº¾Ç²ß¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½åæ€å­¸ç¿’æ•™ç·´ï¼Œå°ˆé–€å¹«åŠ©å­¸ç”Ÿå‰µå»ºæœ‰æ„ç¾©çš„å­¸ç¿’æ—¥èªŒã€‚
+        æ ¹æ“šå­¸ç”Ÿå®Œæˆçš„å­¸ç¿’æ¨¡çµ„å’Œæ¸¬é©—çµæœï¼Œå¼•å°ä»–å€‘åæ€è‡ªå·±çš„å­¸ç¿’ã€‚
         
-        ´£¥X²`«ä¼ô¼{ªº¶}©ñ¦¡°İÃD¥H«P¶i¤Ï«ä¡A¥]¬A¡G
-        1. ¥L­Ì¾Ç¨ì¤F¤°»ò¡]ÃöÁä·§©À©M¨£¸Ñ¡^
-        2. ¥L­Ì¹ï¾Ç²ß¹Lµ{ªº·P¨ü
-        3. ¥L­ÌÄ±±o¦³¬D¾Ôªº¦a¤è
-        4. ¥L­Ì¤´µM¦³¤°»ò°İÃD
+        æå‡ºæ·±æ€ç†Ÿæ…®çš„é–‹æ”¾å¼å•é¡Œä»¥ä¿ƒé€²åæ€ï¼ŒåŒ…æ‹¬ï¼š
+        1. ä»–å€‘å­¸åˆ°äº†ä»€éº¼ï¼ˆé—œéµæ¦‚å¿µå’Œè¦‹è§£ï¼‰
+        2. ä»–å€‘å°å­¸ç¿’éç¨‹çš„æ„Ÿå—
+        3. ä»–å€‘è¦ºå¾—æœ‰æŒ‘æˆ°çš„åœ°æ–¹
+        4. ä»–å€‘ä»ç„¶æœ‰ä»€éº¼å•é¡Œ
         
-        ±zªº¥Ø¼Ğ¬OÀ°§U¾Ç¥Í³Ğ«Ø¤@¥÷Â×´I¥B¦³¤Ï«ä©Êªº¾Ç²ß¤é»x¡A¹ï¥L­Ìªº¦¨ªø¦³»ù­È¡C
+        æ‚¨çš„ç›®æ¨™æ˜¯å¹«åŠ©å­¸ç”Ÿå‰µå»ºä¸€ä»½è±å¯Œä¸”æœ‰åæ€æ€§çš„å­¸ç¿’æ—¥èªŒï¼Œå°ä»–å€‘çš„æˆé•·æœ‰åƒ¹å€¼ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""À°§U¾Ç¥Í°ò©ó¥H¤U¤º®e³Ğ«Ø¾Ç²ß¤é»x¤Ï«ä¡G
+        HumanMessagePromptTemplate.from_template("""å¹«åŠ©å­¸ç”ŸåŸºæ–¼ä»¥ä¸‹å…§å®¹å‰µå»ºå­¸ç¿’æ—¥èªŒåæ€ï¼š
         
-        §¹¦¨ªº¼Ò²Õ: {module_title}
+        å®Œæˆçš„æ¨¡çµ„: {module_title}
         
-        ¼Ò²Õ¤º®eºK­n: {module_summary}
+        æ¨¡çµ„å…§å®¹æ‘˜è¦: {module_summary}
         
-        ´úÅçµ²ªG: {test_results}
+        æ¸¬é©—çµæœ: {test_results}
         """)
     ])
     
@@ -467,31 +467,31 @@ def create_learning_log_prompter(chat_model):
 
 def create_learning_log_analyzer(chat_model):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±M·~ªº±Ğ¨|¤ÀªR®v¡A±Mªù¤ÀªR¾Ç¥Íªº¾Ç²ß¤é»x¡C
-        ®Ú¾Ú¾Ç¥Íªº¾Ç²ß¤é»x¡Aµû¦ô¡G
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆæ¥­çš„æ•™è‚²åˆ†æå¸«ï¼Œå°ˆé–€åˆ†æå­¸ç”Ÿçš„å­¸ç¿’æ—¥èªŒã€‚
+        æ ¹æ“šå­¸ç”Ÿçš„å­¸ç¿’æ—¥èªŒï¼Œè©•ä¼°ï¼š
         
-        1. ¹ïÃöÁä·§©Àªº²z¸Ñµ{«×
-        2. Àu¶Õ©M¦Û«Hªº»â°ì
-        3. ²V²c©Î»~¸Ñªº»â°ì
-        4. ¹ï§÷®Æªº±¡·P¤ÏÀ³
-        5. ¾Ç²ß­·®æªº«ü¼Ğ
+        1. å°é—œéµæ¦‚å¿µçš„ç†è§£ç¨‹åº¦
+        2. å„ªå‹¢å’Œè‡ªä¿¡çš„é ˜åŸŸ
+        3. æ··æ·†æˆ–èª¤è§£çš„é ˜åŸŸ
+        4. å°ææ–™çš„æƒ…æ„Ÿåæ‡‰
+        5. å­¸ç¿’é¢¨æ ¼çš„æŒ‡æ¨™
         
-        ±N±zªº¦^À³®æ¦¡¤Æ¬°¥H¤Uºë½Tªº JSON µ²ºc:
+        å°‡æ‚¨çš„å›æ‡‰æ ¼å¼åŒ–ç‚ºä»¥ä¸‹ç²¾ç¢ºçš„ JSON çµæ§‹:
         {
-          "understanding_level": "°ª/¤¤/§C",
-          "strengths": ["Àu¶Õ 1", "Àu¶Õ 2"],
-          "areas_for_improvement": ["§ï¶i»â°ì 1", "§ï¶i»â°ì 2"],
-          "emotional_response": "¹ï±¡·P¤ÏÀ³ªº´y­z",
-          "learning_style_indicators": ["«ü¼Ğ 1", "«ü¼Ğ 2"],
-          "recommended_next_steps": ["«ØÄ³¨BÆJ 1", "«ØÄ³¨BÆJ 2"],
-          "suggested_resources": ["¸ê·½ 1", "¸ê·½ 2"]
+          "understanding_level": "é«˜/ä¸­/ä½",
+          "strengths": ["å„ªå‹¢ 1", "å„ªå‹¢ 2"],
+          "areas_for_improvement": ["æ”¹é€²é ˜åŸŸ 1", "æ”¹é€²é ˜åŸŸ 2"],
+          "emotional_response": "å°æƒ…æ„Ÿåæ‡‰çš„æè¿°",
+          "learning_style_indicators": ["æŒ‡æ¨™ 1", "æŒ‡æ¨™ 2"],
+          "recommended_next_steps": ["å»ºè­°æ­¥é©Ÿ 1", "å»ºè­°æ­¥é©Ÿ 2"],
+          "suggested_resources": ["è³‡æº 1", "è³‡æº 2"]
         }
         """),
-        HumanMessagePromptTemplate.from_template("""¤ÀªR¥H¤U¾Ç²ß¤é»x¡G
+        HumanMessagePromptTemplate.from_template("""åˆ†æä»¥ä¸‹å­¸ç¿’æ—¥èªŒï¼š
         
-        ¾Ç¥Í: {student_name}
-        ¥DÃD: {topic}
-        ¾Ç²ß¤é»x¤º®e:
+        å­¸ç”Ÿ: {student_name}
+        ä¸»é¡Œ: {topic}
+        å­¸ç¿’æ—¥èªŒå…§å®¹:
         {log_content}
         """)
     ])
@@ -502,35 +502,35 @@ def create_learning_log_analyzer(chat_model):
 
 def create_knowledge_level_assessor(chat_model):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±Ğ¨|µû¦ô±M®a¡C
-        ®Ú¾Ú¾Ç¥Íªº´úÅçµ²ªG¡A½T©w¥L­Ì¦b¦¹¯S©w¥DÃD¤Wªºª¾ÃÑ¤ô¥­¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½æ•™è‚²è©•ä¼°å°ˆå®¶ã€‚
+        æ ¹æ“šå­¸ç”Ÿçš„æ¸¬é©—çµæœï¼Œç¢ºå®šä»–å€‘åœ¨æ­¤ç‰¹å®šä¸»é¡Œä¸Šçš„çŸ¥è­˜æ°´å¹³ã€‚
         
-        ¦Ò¼{¡G
-        1. ¥¿½Tµª®×ªº¼Æ¶q
-        2. ¥¿½T¦^µªªº°İÃDÃø«×
-        3. µª®×¼Ò¦¡¡]¤@­Pªº²z¸Ñ»P®t¶Z¡^
+        è€ƒæ…®ï¼š
+        1. æ­£ç¢ºç­”æ¡ˆçš„æ•¸é‡
+        2. æ­£ç¢ºå›ç­”çš„å•é¡Œé›£åº¦
+        3. ç­”æ¡ˆæ¨¡å¼ï¼ˆä¸€è‡´çš„ç†è§£èˆ‡å·®è·ï¼‰
         
-        ±N¾Ç¥Íªºª¾ÃÑ¤ô¥­¤ÀÃş¬°¡G
-        - ªì¾ÇªÌ¡G°ò¥»¼ô±x¡A²z¸ÑÂ²³æ·§©À
-        - ¤¤¯ÅªÌ¡G¨}¦nªº®Ö¤ß·§©À²z¸Ñ¡A¤@©wªºÀ³¥Î¯à¤O
-        - °ª¯ÅªÌ¡G²`¨è²z¸Ñ¡A¯à±N·§©ÀÀ³¥Î©ó·s±¡¹Ò
+        å°‡å­¸ç”Ÿçš„çŸ¥è­˜æ°´å¹³åˆ†é¡ç‚ºï¼š
+        - åˆå­¸è€…ï¼šåŸºæœ¬ç†Ÿæ‚‰ï¼Œç†è§£ç°¡å–®æ¦‚å¿µ
+        - ä¸­ç´šè€…ï¼šè‰¯å¥½çš„æ ¸å¿ƒæ¦‚å¿µç†è§£ï¼Œä¸€å®šçš„æ‡‰ç”¨èƒ½åŠ›
+        - é«˜ç´šè€…ï¼šæ·±åˆ»ç†è§£ï¼Œèƒ½å°‡æ¦‚å¿µæ‡‰ç”¨æ–¼æ–°æƒ…å¢ƒ
         
-        ¬°±zªºµû¦ô´£¨ÑÂ²µuªº²z¥Ñ¡C
+        ç‚ºæ‚¨çš„è©•ä¼°æä¾›ç°¡çŸ­çš„ç†ç”±ã€‚
         
-        ±N±zªº¦^À³®æ¦¡¤Æ¬° JSON ¹ï¶H¡G
+        å°‡æ‚¨çš„å›æ‡‰æ ¼å¼åŒ–ç‚º JSON å°è±¡ï¼š
         {
-          "knowledge_level": "ªì¾ÇªÌ/¤¤¯ÅªÌ/°ª¯ÅªÌ",
-          "justification": "¹ïµû¦ôªºÂ²µu¸ÑÄÀ",
-          "strengths": ["Àu¶Õ 1", "Àu¶Õ 2"],
-          "areas_for_improvement": ["§ï¶i»â°ì 1", "§ï¶i»â°ì 2"],
-          "recommended_focus": "¾Ç¥Í±µ¤U¨ÓÀ³¸Ó±Mª`©ó¤°»ò"
+          "knowledge_level": "åˆå­¸è€…/ä¸­ç´šè€…/é«˜ç´šè€…",
+          "justification": "å°è©•ä¼°çš„ç°¡çŸ­è§£é‡‹",
+          "strengths": ["å„ªå‹¢ 1", "å„ªå‹¢ 2"],
+          "areas_for_improvement": ["æ”¹é€²é ˜åŸŸ 1", "æ”¹é€²é ˜åŸŸ 2"],
+          "recommended_focus": "å­¸ç”Ÿæ¥ä¸‹ä¾†æ‡‰è©²å°ˆæ³¨æ–¼ä»€éº¼"
         }
         """),
-        HumanMessagePromptTemplate.from_template("""®Ú¾Ú¥H¤U´úÅçµ²ªGµû¦ô¾Ç¥Íªºª¾ÃÑ¤ô¥­¡G
+        HumanMessagePromptTemplate.from_template("""æ ¹æ“šä»¥ä¸‹æ¸¬é©—çµæœè©•ä¼°å­¸ç”Ÿçš„çŸ¥è­˜æ°´å¹³ï¼š
         
-        ´úÅç: {test_title}
+        æ¸¬é©—: {test_title}
         
-        °İÃD©Mµª®×:
+        å•é¡Œå’Œç­”æ¡ˆ:
         {test_results}
         """)
     ])
@@ -541,27 +541,27 @@ def create_knowledge_level_assessor(chat_model):
 
 def create_module_content_generator(chat_model, retriever):
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""±z¬O¤@¦ì±M·~ªº±Ğ¨|¤º®e³Ğ§@ªÌ¡C
-        ®Ú¾Ú´£¨Ñªº¼Ò²Õ¥DÃD¥H¤Î¾Ç¥Íªº¾Ç²ß­·®æ©Mª¾ÃÑ¤ô¥­¡A³Ğ«Ø¤Ş¤H¤J³Óªº±Ğ¨|¤º®e¡C
+        SystemMessage(content="""æ‚¨æ˜¯ä¸€ä½å°ˆæ¥­çš„æ•™è‚²å…§å®¹å‰µä½œè€…ã€‚
+        æ ¹æ“šæä¾›çš„æ¨¡çµ„ä¸»é¡Œä»¥åŠå­¸ç”Ÿçš„å­¸ç¿’é¢¨æ ¼å’ŒçŸ¥è­˜æ°´å¹³ï¼Œå‰µå»ºå¼•äººå…¥å‹çš„æ•™è‚²å…§å®¹ã€‚
         
-        ±zªº¤º®eÀ³¡G
-        1. °w¹ï¾Ç¥Íªº¾Ç²ß­·®æ¡]µøÄ±«¬¡BÅ¥Ä±«¬©Î°ÊÄ±«¬¡^¶i¦æ¶q¨­©w¨î
-        2. ¾A¦X¾Ç¥Íªºª¾ÃÑ¤ô¥­
-        3. ¥]§tÃöÁä·§©Àªº²M´·¸ÑÄÀ
-        4. ¨Ï¥Î¥Ü¨Ò©MÃş¤ñ¨Ó»¡©ú­nÂI
-        5. ¥]¬A¾A¦Xª¾ÃÑ¤ô¥­ªºÆN¬[¤¸¯À
-        6. µ²ºc²M´·¡A¥]§t©ú½Tªº³¡¤À©M¼ĞÃD
-        7. ¥HÃöÁäÂIªºÂ²µuÁ`µ²µ²§À
+        æ‚¨çš„å…§å®¹æ‡‰ï¼š
+        1. é‡å°å­¸ç”Ÿçš„å­¸ç¿’é¢¨æ ¼ï¼ˆè¦–è¦ºå‹ã€è½è¦ºå‹æˆ–å‹•è¦ºå‹ï¼‰é€²è¡Œé‡èº«å®šåˆ¶
+        2. é©åˆå­¸ç”Ÿçš„çŸ¥è­˜æ°´å¹³
+        3. åŒ…å«é—œéµæ¦‚å¿µçš„æ¸…æ™°è§£é‡‹
+        4. ä½¿ç”¨ç¤ºä¾‹å’Œé¡æ¯”ä¾†èªªæ˜è¦é»
+        5. åŒ…æ‹¬é©åˆçŸ¥è­˜æ°´å¹³çš„é·¹æ¶å…ƒç´ 
+        6. çµæ§‹æ¸…æ™°ï¼ŒåŒ…å«æ˜ç¢ºçš„éƒ¨åˆ†å’Œæ¨™é¡Œ
+        7. ä»¥é—œéµé»çš„ç°¡çŸ­ç¸½çµçµå°¾
         
-        ¨Ï¥Î markdown ®æ¦¡¤Æ±zªº¤º®e¥H´£°ª¥iÅª©Ê¡C
+        ä½¿ç”¨ markdown æ ¼å¼åŒ–æ‚¨çš„å…§å®¹ä»¥æé«˜å¯è®€æ€§ã€‚
         """),
-        HumanMessagePromptTemplate.from_template("""¬°¥H¤U¤º®e³Ğ«Ø±Ğ¨|¤º®e¡G
+        HumanMessagePromptTemplate.from_template("""ç‚ºä»¥ä¸‹å…§å®¹å‰µå»ºæ•™è‚²å…§å®¹ï¼š
         
-        ¼Ò²Õ¥DÃD: {module_topic}
-        ¾Ç¥Í¾Ç²ß­·®æ: {learning_style}
-        ¾Ç¥Íª¾ÃÑ¤ô¥­: {knowledge_level}
+        æ¨¡çµ„ä¸»é¡Œ: {module_topic}
+        å­¸ç”Ÿå­¸ç¿’é¢¨æ ¼: {learning_style}
+        å­¸ç”ŸçŸ¥è­˜æ°´å¹³: {knowledge_level}
         
-        ¬ÛÃö¨Ó·½§÷®Æ:
+        ç›¸é—œä¾†æºææ–™:
         {context}
         """)
     ])
@@ -571,7 +571,7 @@ def create_module_content_generator(chat_model, retriever):
             "module_topic": RunnablePassthrough(),
             "learning_style": RunnablePassthrough(),
             "knowledge_level": RunnablePassthrough(),
-            # ¥ı±q inputs ®³¥X context ¦r¦ê¡A¦Aµ¹ retriever ÀË¯Á¡A³Ì«á§â chunks «÷±µ
+            # å…ˆå¾ inputs æ‹¿å‡º context å­—ä¸²ï¼Œå†çµ¦ retriever æª¢ç´¢ï¼Œæœ€å¾ŒæŠŠ chunks æ‹¼æ¥
             "context": (
                 (lambda inputs: inputs["context"])
                 | retriever
@@ -587,31 +587,31 @@ def create_module_content_generator(chat_model, retriever):
 
 # Core system functions
 def conduct_learning_style_survey(chat_model, student_profile):
-    console.print("\n[bold cyan]===== ¾Ç²ß­·®æµû¦ô =====[/bold cyan]")
+    console.print("\n[bold cyan]===== å­¸ç¿’é¢¨æ ¼è©•ä¼° =====[/bold cyan]")
     
     survey_chain = create_learning_style_survey(chat_model)
     survey = survey_chain.invoke({})
     
     console.print(Markdown(survey))
-    console.print("\n[bold yellow]½Ğ¦^µª¨C­Ó°İÃD¥HÀ°§U½T©w±zªº¾Ç²ß­·®æ¡C[bold yellow]")
+    console.print("\n[bold yellow]è«‹å›ç­”æ¯å€‹å•é¡Œä»¥å¹«åŠ©ç¢ºå®šæ‚¨çš„å­¸ç¿’é¢¨æ ¼ã€‚[bold yellow]")
     
-    # ³B²z°İ¨÷µ²ªG
-    console.print("\n[bold]§¹¦¨°İ¨÷«á¡A­şºØ¾Ç²ß­·®æ³Ì²Å¦X±z¡H[/bold]")
-    console.print("1. µøÄ±«¬¾Ç²ßªÌ")
-    console.print("2. Å¥Ä±«¬¾Ç²ßªÌ")
-    console.print("3. °ÊÄ±«¬¾Ç²ßªÌ")
+    # è™•ç†å•å·çµæœ
+    console.print("\n[bold]å®Œæˆå•å·å¾Œï¼Œå“ªç¨®å­¸ç¿’é¢¨æ ¼æœ€ç¬¦åˆæ‚¨ï¼Ÿ[/bold]")
+    console.print("1. è¦–è¦ºå‹å­¸ç¿’è€…")
+    console.print("2. è½è¦ºå‹å­¸ç¿’è€…")
+    console.print("3. å‹•è¦ºå‹å­¸ç¿’è€…")
     
-    style_choice = Prompt.ask("¿ï¾Ü±zªº¥D­n¾Ç²ß­·®æ", choices=["1", "2", "3"])
+    style_choice = Prompt.ask("é¸æ“‡æ‚¨çš„ä¸»è¦å­¸ç¿’é¢¨æ ¼", choices=["1", "2", "3"])
     
     learning_styles = {
-        "1": "µøÄ±«¬",
-        "2": "Å¥Ä±«¬",
-        "3": "°ÊÄ±«¬"
+        "1": "è¦–è¦ºå‹",
+        "2": "è½è¦ºå‹",
+        "3": "å‹•è¦ºå‹"
     }
     
     student_profile.learning_style = learning_styles[style_choice]
     administer_pretest
-    # Àx¦s§ó·s«áªºÀÉ®×
+    # å„²å­˜æ›´æ–°å¾Œçš„æª”æ¡ˆ
     with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
 
@@ -619,37 +619,37 @@ def conduct_learning_style_survey(chat_model, student_profile):
     return student_profile
 
 def administer_pretest(chat_model, retriever, student_profile):
-    console.print("\n[bold cyan]===== «e´ú =====[/bold cyan]")
-    console.print("[yellow]®Ú¾Ú¤º®e¥Í¦¨«e´ú...[/yellow]")
+    console.print("\n[bold cyan]===== å‰æ¸¬ =====[/bold cyan]")
+    console.print("[yellow]æ ¹æ“šå…§å®¹ç”Ÿæˆå‰æ¸¬...[/yellow]")
     
     pretest_chain = create_pretest_generator(chat_model, retriever)
-    # ª½±µ¶Ç mapping¡A¨Ã®³¨ì dict
+    # ç›´æ¥å‚³ mappingï¼Œä¸¦æ‹¿åˆ° dict
     pretest = pretest_chain.invoke({
-        "context": ""    # ©Î¬O´À´«¦¨¥DÃD¦r¦ê
+        "context": ""    # æˆ–æ˜¯æ›¿æ›æˆä¸»é¡Œå­—ä¸²
     })
-    # ¦pªG Parser ¥¿±`¡Apretest ´N¤w¸g¬O­Ó dict ¤F
+    # å¦‚æœ Parser æ­£å¸¸ï¼Œpretest å°±å·²ç¶“æ˜¯å€‹ dict äº†
     
     console.print(f"\n[bold green]{pretest['title']}[/bold green]")
     console.print(f"[italic]{pretest['description']}[/italic]\n")
     
-    # °õ¦æ´úÅç
+    # åŸ·è¡Œæ¸¬é©—
     score = 0
     total_questions = len(pretest['questions'])
     results = []
     
     for i, q in enumerate(pretest['questions']):
-        console.print(f"\n[bold]°İÃD {i+1}:[/bold] {q['question']}")
+        console.print(f"\n[bold]å•é¡Œ {i+1}:[/bold] {q['question']}")
         for choice in q['choices']:
             console.print(f"  {choice}")
         
-        answer = Prompt.ask("\n±zªºµª®× (A, B, C ©Î D)").upper()
+        answer = Prompt.ask("\næ‚¨çš„ç­”æ¡ˆ (A, B, C æˆ– D)").upper()
         correct_letter = q['correct_answer'][0].upper()
         
         if answer == correct_letter:
             score += 1
-            console.print("[bold green]¥¿½T¡I[/bold green]")
+            console.print("[bold green]æ­£ç¢ºï¼[/bold green]")
         else:
-            console.print(f"[bold red]¿ù»~¡C¥¿½Tµª®×¬O {q['correct_answer']}[/bold red]")
+            console.print(f"[bold red]éŒ¯èª¤ã€‚æ­£ç¢ºç­”æ¡ˆæ˜¯ {q['correct_answer']}[/bold red]")
         
         console.print(f"[italic]{q['explanation']}[/italic]")
         
@@ -661,41 +661,41 @@ def administer_pretest(chat_model, retriever, student_profile):
             "difficulty": q['difficulty']
         })
     
-    # ­pºâ¤À¼Æ
+    # è¨ˆç®—åˆ†æ•¸
     percentage = (score / total_questions) * 100
-    console.print(f"\n[bold]´úÅç§¹¦¨¡I±zªº¤À¼Æ¡G{score}/{total_questions} ({percentage:.1f}%)[/bold]")
+    console.print(f"\n[bold]æ¸¬é©—å®Œæˆï¼æ‚¨çš„åˆ†æ•¸ï¼š{score}/{total_questions} ({percentage:.1f}%)[/bold]")
     
-    # µû¦ôª¾ÃÑ¤ô¥­
+    # è©•ä¼°çŸ¥è­˜æ°´å¹³
     if percentage >= 80:
-        knowledge_level = "°ª¯Å"
+        knowledge_level = "é«˜ç´š"
     elif percentage >= 50:
-        knowledge_level = "¤¤¯Å"
+        knowledge_level = "ä¸­ç´š"
     else:
-        knowledge_level = "ªì¾ÇªÌ"
+        knowledge_level = "åˆå­¸è€…"
     
-    console.print(f"[yellow]®Ú¾Ú±zªº«e´úµ²ªG¡A±zªº·í«eª¾ÃÑ¤ô¥­¬O¡G[bold]{knowledge_level}[/bold][/yellow]")
+    console.print(f"[yellow]æ ¹æ“šæ‚¨çš„å‰æ¸¬çµæœï¼Œæ‚¨çš„ç•¶å‰çŸ¥è­˜æ°´å¹³æ˜¯ï¼š[bold]{knowledge_level}[/bold][/yellow]")
     
-    # §ó·s¾Ç¥ÍÀÉ®×
+    # æ›´æ–°å­¸ç”Ÿæª”æ¡ˆ
     student_profile.current_knowledge_level = knowledge_level
     student_profile.learning_history.append({
-        "activity_type": "«e´ú",
+        "activity_type": "å‰æ¸¬",
         "timestamp": datetime.datetime.now().isoformat(),
         "score": f"{score}/{total_questions}",
         "percentage": percentage,
         "knowledge_level": knowledge_level
     })
     
-    # Àx¦s§ó·s«áªºÀÉ®×
+    # å„²å­˜æ›´æ–°å¾Œçš„æª”æ¡ˆ
     with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
     
     return pretest, results, knowledge_level
 
 def generate_learning_path(chat_model, retriever, student_profile, pretest_results):
-    console.print("\n[bold cyan]===== ¥Í¦¨­Ó¤H¤Æ¾Ç²ß¸ô®| =====[/bold cyan]")
-    console.print("[yellow]®Ú¾Ú±zªºÀÉ®×©M´úÅçµ²ªG³Ğ«Ø¾Ç²ß¸ô®|...[/yellow]")
+    console.print("\n[bold cyan]===== ç”Ÿæˆå€‹äººåŒ–å­¸ç¿’è·¯å¾‘ =====[/bold cyan]")
+    console.print("[yellow]æ ¹æ“šæ‚¨çš„æª”æ¡ˆå’Œæ¸¬é©—çµæœå‰µå»ºå­¸ç¿’è·¯å¾‘...[/yellow]")
     
-    # ®æ¦¡¤Æ´úÅçµ²ªG¥H¨ÑÃì¨Ï¥Î
+    # æ ¼å¼åŒ–æ¸¬é©—çµæœä»¥ä¾›éˆä½¿ç”¨
     test_results_formatted = json.dumps({
         "score_percentage": (sum(1 for r in pretest_results if r["is_correct"]) / len(pretest_results)) * 100,
         "knowledge_level": student_profile.current_knowledge_level,
@@ -703,7 +703,7 @@ def generate_learning_path(chat_model, retriever, student_profile, pretest_resul
         "weaknesses": [r["question"] for r in pretest_results if not r["is_correct"]]
     })
     
-    # ®æ¦¡¤ÆÀÉ®×¥H¨ÑÃì¨Ï¥Î
+    # æ ¼å¼åŒ–æª”æ¡ˆä»¥ä¾›éˆä½¿ç”¨
     profile_formatted = json.dumps({
         "name": student_profile.name,
         "learning_style": student_profile.learning_style,
@@ -756,90 +756,90 @@ def deliver_module_content(chat_model, retriever, student_profile, module):
         "module_topic": module_topic,
         "learning_style": student_profile.learning_style,
         "knowledge_level": student_profile.current_knowledge_level,
-        # ³o¸Ìµ¹¤@­Ó¦r¦ê¡AÅı retriever ¥Î¨Ó°µ¬Û¦ü«×ÀË¯Á
+        # é€™è£¡çµ¦ä¸€å€‹å­—ä¸²ï¼Œè®“ retriever ç”¨ä¾†åšç›¸ä¼¼åº¦æª¢ç´¢
         "context": ""  
     })
     
     console.print(Markdown(content))
     
-    # µ¹¤©®É¶¡¾\Åª¤º®e
-    console.print("\n[yellow]½Ğªá®É¶¡¾\Åª¨Ã²z¸Ñ¤º®e¡C[yellow]")
-    Prompt.ask("\n·Ç³Æ¦nÄ~Äò®É½Ğ«ö Enter")
+    # çµ¦äºˆæ™‚é–“é–±è®€å…§å®¹
+    console.print("\n[yellow]è«‹èŠ±æ™‚é–“é–±è®€ä¸¦ç†è§£å…§å®¹ã€‚[yellow]")
+    Prompt.ask("\næº–å‚™å¥½ç¹¼çºŒæ™‚è«‹æŒ‰ Enter")
     
     return content
 
 def engage_peer_discussion(chat_model, retriever, topic):
-    console.print(f"\n[bold cyan]===== ¦P¾«°Q½×: {topic} =====[/bold cyan]")
-    console.print("[yellow]»P±zªº AI ¾Ç²ß¹Ù¦ñ¨£­±¡I´£¥X°İÃD©Î°Q½×¥DÃD¥H¥[²`±zªº²z¸Ñ¡C[yellow]")
+    console.print(f"\n[bold cyan]===== åŒå„•è¨è«–: {topic} =====[/bold cyan]")
+    console.print("[yellow]èˆ‡æ‚¨çš„ AI å­¸ç¿’å¤¥ä¼´è¦‹é¢ï¼æå‡ºå•é¡Œæˆ–è¨è«–ä¸»é¡Œä»¥åŠ æ·±æ‚¨çš„ç†è§£ã€‚[yellow]")
     
     discussion_chain = create_peer_discussion_ai(chat_model, retriever)
     
-    console.print("\n[bold green]¾Ç²ß¹Ù¦ñ:[/bold green] ¶Ù¡I§Ú¤]¦b¾Ç²ß³o­Ó¥DÃD¡C±z·Q°Q½×­ş¨Ç¤è­±©Î¦³¤°»ò°İÃD·Q°İ¡H")
+    console.print("\n[bold green]å­¸ç¿’å¤¥ä¼´:[/bold green] å—¨ï¼æˆ‘ä¹Ÿåœ¨å­¸ç¿’é€™å€‹ä¸»é¡Œã€‚æ‚¨æƒ³è¨è«–å“ªäº›æ–¹é¢æˆ–æœ‰ä»€éº¼å•é¡Œæƒ³å•ï¼Ÿ")
     
     conversation_history = []
     
     while True:
-        user_message = Prompt.ask("\n[bold blue]±z[/bold blue]")
+        user_message = Prompt.ask("\n[bold blue]æ‚¨[/bold blue]")
         
-        if user_message.lower() in ["°h¥X", "µ²§ô", "¦A¨£", "µ²§ô°Q½×"]:
-            console.print("\n[bold green]¾Ç²ß¹Ù¦ñ:[/bold green] «Ü´Îªº°Q½×¡I¦pªG±z·Qµy«á¦A²á¡A½Ğ§i¶D§Ú¡C")
+        if user_message.lower() in ["é€€å‡º", "çµæŸ", "å†è¦‹", "çµæŸè¨è«–"]:
+            console.print("\n[bold green]å­¸ç¿’å¤¥ä¼´:[/bold green] å¾ˆæ£’çš„è¨è«–ï¼å¦‚æœæ‚¨æƒ³ç¨å¾Œå†èŠï¼Œè«‹å‘Šè¨´æˆ‘ã€‚")
             break
         
         response = discussion_chain.invoke({
             "topic": topic,
             "message": user_message,
-            # ³o¸Ìµ¹­Ó¦r¦ê¡]¥i¥H¥Î topic¡B¤]¥i¥HªÅ¦r¦ê¡^
+            # é€™è£¡çµ¦å€‹å­—ä¸²ï¼ˆå¯ä»¥ç”¨ topicã€ä¹Ÿå¯ä»¥ç©ºå­—ä¸²ï¼‰
             "context": ""  
         })
-        console.print(f"\n[bold green]¾Ç²ß¹Ù¦ñ:[/bold green] {response}")
+        console.print(f"\n[bold green]å­¸ç¿’å¤¥ä¼´:[/bold green] {response}")
         
         conversation_history.append({"role": "user", "content": user_message})
         conversation_history.append({"role": "assistant", "content": response})
         
-        if len(conversation_history) >= 10:  # ­­¨î°Q½×ªø«×
-            console.print("\n[yellow]§Ú­Ì¤w¸g¶i¦æ¤F¤@¦¸«Ü¦nªº°Q½×¡C·Ç³Æ¦nÄ~Äò¶Ü¡H[yellow]")
-            if Confirm.ask("µ²§ô°Q½×¡H"):
+        if len(conversation_history) >= 10:  # é™åˆ¶è¨è«–é•·åº¦
+            console.print("\n[yellow]æˆ‘å€‘å·²ç¶“é€²è¡Œäº†ä¸€æ¬¡å¾ˆå¥½çš„è¨è«–ã€‚æº–å‚™å¥½ç¹¼çºŒå—ï¼Ÿ[yellow]")
+            if Confirm.ask("çµæŸè¨è«–ï¼Ÿ"):
                 break
     
     return conversation_history
 
 def administer_posttest(chat_model, retriever, module, student_profile):
-    console.print(f"\n[bold cyan]===== «á´ú: {module['title']} =====[/bold cyan]")
-    console.print("[yellow]´ú¸Õ±z¹ï¼Ò²Õ¤º®eªº²z¸Ñ...[/yellow]")
+    console.print(f"\n[bold cyan]===== å¾Œæ¸¬: {module['title']} =====[/bold cyan]")
+    console.print("[yellow]æ¸¬è©¦æ‚¨å°æ¨¡çµ„å…§å®¹çš„ç†è§£...[/yellow]")
     
-    # Àò¨ú¼Ò²Õ¥DÃD
+    # ç²å–æ¨¡çµ„ä¸»é¡Œ
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     
-    # ®Ú¾Ú¼Ò²Õ¤º®e©M¾Ç¥Í¤ô¥­¥Í¦¨«á´ú°İÃD
+    # æ ¹æ“šæ¨¡çµ„å…§å®¹å’Œå­¸ç”Ÿæ°´å¹³ç”Ÿæˆå¾Œæ¸¬å•é¡Œ
     posttest_chain = create_posttest_generator(chat_model, retriever)
-    # ª½±µ¶Ç mapping¡A®³¨ì dict
+    # ç›´æ¥å‚³ mappingï¼Œæ‹¿åˆ° dict
     posttest = posttest_chain.invoke({
         "knowledge_level": student_profile.current_knowledge_level,
         "context": module_topic
     })
-    # posttest["questions"] ª½±µ¨Ï¥Î¡A¤£¦A json.loads
+    # posttest["questions"] ç›´æ¥ä½¿ç”¨ï¼Œä¸å† json.loads
     
     console.print(f"\n[bold green]{posttest['title']}[/bold green]")
     console.print(f"[italic]{posttest['description']}[/italic]\n")
     
-    # °õ¦æ´úÅç
+    # åŸ·è¡Œæ¸¬é©—
     score = 0
     total_questions = len(posttest['questions'])
     results = []
     
     for i, q in enumerate(posttest['questions']):
-        console.print(f"\n[bold]°İÃD {i+1}:[/bold] {q['question']}")
+        console.print(f"\n[bold]å•é¡Œ {i+1}:[/bold] {q['question']}")
         for choice in q['choices']:
             console.print(f"  {choice}")
         
-        answer = Prompt.ask("\n±zªºµª®× (A, B, C ©Î D)").upper()
+        answer = Prompt.ask("\næ‚¨çš„ç­”æ¡ˆ (A, B, C æˆ– D)").upper()
         correct_letter = q['correct_answer'][0].upper()
         
         if answer == correct_letter:
             score += 1
-            console.print("[bold green]¥¿½T¡I[/bold green]")
+            console.print("[bold green]æ­£ç¢ºï¼[/bold green]")
         else:
-            console.print(f"[bold red]¿ù»~¡C¥¿½Tµª®×¬O {q['correct_answer']}[/bold red]")
+            console.print(f"[bold red]éŒ¯èª¤ã€‚æ­£ç¢ºç­”æ¡ˆæ˜¯ {q['correct_answer']}[/bold red]")
         
         console.print(f"[italic]{q['explanation']}[/italic]")
         
@@ -851,33 +851,33 @@ def administer_posttest(chat_model, retriever, module, student_profile):
             "difficulty": q['difficulty']
         })
     
-    # ­pºâ¤À¼Æ
+    # è¨ˆç®—åˆ†æ•¸
     percentage = (score / total_questions) * 100
-    console.print(f"\n[bold]´úÅç§¹¦¨¡I±zªº¤À¼Æ¡G{score}/{total_questions} ({percentage:.1f}%)[/bold]")
+    console.print(f"\n[bold]æ¸¬é©—å®Œæˆï¼æ‚¨çš„åˆ†æ•¸ï¼š{score}/{total_questions} ({percentage:.1f}%)[/bold]")
     
-    # µû¦ô¶i¨B¨Ã®Ú¾Ú»İ­n½Õ¾ãª¾ÃÑ¤ô¥­
+    # è©•ä¼°é€²æ­¥ä¸¦æ ¹æ“šéœ€è¦èª¿æ•´çŸ¥è­˜æ°´å¹³
     previous_level = student_profile.current_knowledge_level
     
-    if percentage >= 80 and previous_level != "°ª¯Å":
-        if previous_level == "ªì¾ÇªÌ":
-            new_level = "¤¤¯Å"
+    if percentage >= 80 and previous_level != "é«˜ç´š":
+        if previous_level == "åˆå­¸è€…":
+            new_level = "ä¸­ç´š"
         else:
-            new_level = "°ª¯Å"
-        console.print(f"[bold green]¶i¨B«Ü¤j¡I±zªºª¾ÃÑ¤ô¥­¤w±q {previous_level} ´£¤É¨ì {new_level}¡C[bold green]")
+            new_level = "é«˜ç´š"
+        console.print(f"[bold green]é€²æ­¥å¾ˆå¤§ï¼æ‚¨çš„çŸ¥è­˜æ°´å¹³å·²å¾ {previous_level} æå‡åˆ° {new_level}ã€‚[bold green]")
         student_profile.current_knowledge_level = new_level
-    elif percentage < 50 and previous_level != "ªì¾ÇªÌ":
-        if previous_level == "°ª¯Å":
-            new_level = "¤¤¯Å"
+    elif percentage < 50 and previous_level != "åˆå­¸è€…":
+        if previous_level == "é«˜ç´š":
+            new_level = "ä¸­ç´š"
         else:
-            new_level = "ªì¾ÇªÌ"
-        console.print(f"[yellow]±z¥i¯à»İ­n§ó¦h½m²ß¡C±zªºª¾ÃÑ¤ô¥­¤w±q {previous_level} ½Õ¾ã¬° {new_level}¡C[yellow]")
+            new_level = "åˆå­¸è€…"
+        console.print(f"[yellow]æ‚¨å¯èƒ½éœ€è¦æ›´å¤šç·´ç¿’ã€‚æ‚¨çš„çŸ¥è­˜æ°´å¹³å·²å¾ {previous_level} èª¿æ•´ç‚º {new_level}ã€‚[yellow]")
         student_profile.current_knowledge_level = new_level
     else:
-        console.print(f"[yellow]±zªºª¾ÃÑ¤ô¥­«O«ù¦b {previous_level}¡C[yellow]")
+        console.print(f"[yellow]æ‚¨çš„çŸ¥è­˜æ°´å¹³ä¿æŒåœ¨ {previous_level}ã€‚[yellow]")
     
-    # §ó·s¾Ç¥ÍÀÉ®×
+    # æ›´æ–°å­¸ç”Ÿæª”æ¡ˆ
     student_profile.learning_history.append({
-        "activity_type": "«á´ú",
+        "activity_type": "å¾Œæ¸¬",
         "module": module['title'],
         "timestamp": datetime.datetime.now().isoformat(),
         "score": f"{score}/{total_questions}",
@@ -886,25 +886,25 @@ def administer_posttest(chat_model, retriever, module, student_profile):
         "current_level": student_profile.current_knowledge_level
     })
     
-    # Àx¦s§ó·s«áªºÀÉ®×
+    # å„²å­˜æ›´æ–°å¾Œçš„æª”æ¡ˆ
     with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
     
     return posttest, results
 
 def create_learning_log(chat_model, module, test_results, student_profile):
-    console.print(f"\n[bold cyan]===== ¾Ç²ß¤é»x: {module['title']} =====[/bold cyan]")
+    console.print(f"\n[bold cyan]===== å­¸ç¿’æ—¥èªŒ: {module['title']} =====[/bold cyan]")
     
-    # Àò¨ú¼Ò²Õ¥DÃD©MºK­n
+    # ç²å–æ¨¡çµ„ä¸»é¡Œå’Œæ‘˜è¦
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     module_summary = module['description']
     
-    # ®æ¦¡¤Æ´úÅçµ²ªG
-    test_results_str = f"¤À¼Æ: {sum(1 for r in test_results if r['is_correct'])}/{len(test_results)} ÃD¥¿½T\n"
-    test_results_str += "Àu¶Õ: " + ", ".join([r['question'] for r in test_results if r['is_correct']])
-    test_results_str += "\n»İ­n§ï¶iªº»â°ì: " + ", ".join([r['question'] for r in test_results if not r['is_correct']])
+    # æ ¼å¼åŒ–æ¸¬é©—çµæœ
+    test_results_str = f"åˆ†æ•¸: {sum(1 for r in test_results if r['is_correct'])}/{len(test_results)} é¡Œæ­£ç¢º\n"
+    test_results_str += "å„ªå‹¢: " + ", ".join([r['question'] for r in test_results if r['is_correct']])
+    test_results_str += "\néœ€è¦æ”¹é€²çš„é ˜åŸŸ: " + ", ".join([r['question'] for r in test_results if not r['is_correct']])
     
-    # ¥Í¦¨¤Ï«ä´£¥Ü
+    # ç”Ÿæˆåæ€æç¤º
     learning_log_chain = create_learning_log_prompter(chat_model)
     reflection_prompts = learning_log_chain.invoke({
         "module_title": module_topic,
@@ -914,8 +914,8 @@ def create_learning_log(chat_model, module, test_results, student_profile):
     
     console.print(Markdown(reflection_prompts))
     
-    # Àò¨ú¾Ç¥Í¤Ï«ä
-    console.print("\n[bold yellow]½Ğ®Ú¾Ú¤W­z´£¥Ü¼¶¼g±zªº¾Ç²ß¤é»x¤Ï«ä¡G[bold yellow]")
+    # ç²å–å­¸ç”Ÿåæ€
+    console.print("\n[bold yellow]è«‹æ ¹æ“šä¸Šè¿°æç¤ºæ’°å¯«æ‚¨çš„å­¸ç¿’æ—¥èªŒåæ€ï¼š[bold yellow]")
     log_content = ""
     
     while True:
@@ -924,7 +924,7 @@ def create_learning_log(chat_model, module, test_results, student_profile):
             break
         log_content += line + "\n"
     
-    # ³Ğ«Ø¨Ã«O¦s¾Ç²ß¤é»x
+    # å‰µå»ºä¸¦ä¿å­˜å­¸ç¿’æ—¥èªŒ
     log_id = str(uuid.uuid4())[:8]
     log = LearningLog(
         id=log_id,
@@ -932,12 +932,12 @@ def create_learning_log(chat_model, module, test_results, student_profile):
         timestamp=datetime.datetime.now().isoformat(),
         topic=module_topic,
         content=log_content,
-        reflections=[],  # ±N¥Ñ¤ÀªR¶ñ¥R
-        questions=[],    # ±N¥Ñ¤ÀªR¶ñ¥R
-        next_steps=[]    # ±N¥Ñ¤ÀªR¶ñ¥R
+        reflections=[],  # å°‡ç”±åˆ†æå¡«å……
+        questions=[],    # å°‡ç”±åˆ†æå¡«å……
+        next_steps=[]    # å°‡ç”±åˆ†æå¡«å……
     )
     
-    # ¤ÀªR¾Ç²ß¤é»x
+    # åˆ†æå­¸ç¿’æ—¥èªŒ
     analyzer_chain = create_learning_log_analyzer(chat_model)
     analysis = analyzer_chain.invoke({
         "student_name": student_profile.name,
@@ -946,7 +946,7 @@ def create_learning_log(chat_model, module, test_results, student_profile):
     })
     
     try:
-        # ®Ú¾Ú¤ÀªR§ó·s¾Ç¥ÍÀÉ®×
+        # æ ¹æ“šåˆ†ææ›´æ–°å­¸ç”Ÿæª”æ¡ˆ
         if "strengths" in analysis:
             for strength in analysis["strengths"]:
                 if strength not in student_profile.strengths:
@@ -960,30 +960,30 @@ def create_learning_log(chat_model, module, test_results, student_profile):
         if "recommended_next_steps" in analysis:
             log.next_steps = analysis["recommended_next_steps"]
         
-        # Åã¥Ü¤ÀªRºK­n
-        console.print("\n[bold green]¾Ç²ß¤é»x¤ÀªRµ²ªG:[/bold green]")
-        console.print(f"[bold]²z¸Ñµ{«×:[/bold] {analysis.get('understanding_level', '¥¼½T©w')}")
+        # é¡¯ç¤ºåˆ†ææ‘˜è¦
+        console.print("\n[bold green]å­¸ç¿’æ—¥èªŒåˆ†æçµæœ:[/bold green]")
+        console.print(f"[bold]ç†è§£ç¨‹åº¦:[/bold] {analysis.get('understanding_level', 'æœªç¢ºå®š')}")
         
-        console.print("\n[bold]Àu¶Õ:[/bold]")
+        console.print("\n[bold]å„ªå‹¢:[/bold]")
         for strength in analysis.get("strengths", []):
             console.print(f" {strength}")
         
-        console.print("\n[bold]»İ­n§ï¶iªº»â°ì:[/bold]")
+        console.print("\n[bold]éœ€è¦æ”¹é€²çš„é ˜åŸŸ:[/bold]")
         for area in analysis.get("areas_for_improvement", []):
             console.print(f" {area}")
         
-        console.print("\n[bold]«ØÄ³ªº¤U¤@¨B¦æ°Ê:[/bold]")
+        console.print("\n[bold]å»ºè­°çš„ä¸‹ä¸€æ­¥è¡Œå‹•:[/bold]")
         for step in analysis.get("recommended_next_steps", []):
             console.print(f" {step}")
     
     except KeyError:
-        console.print("[bold red]¤ÀªR¾Ç²ß¤é»x®É¥X¿ù¡C¶È«O¦s­ì©l¤é»x¡C[bold red]")
+        console.print("[bold red]åˆ†æå­¸ç¿’æ—¥èªŒæ™‚å‡ºéŒ¯ã€‚åƒ…ä¿å­˜åŸå§‹æ—¥èªŒã€‚[bold red]")
     
-    # «O¦s¾Ç²ß¤é»x
+    # ä¿å­˜å­¸ç¿’æ—¥èªŒ
     with open(f"chinese/learning_logs/{log_id}.json", "w") as f:
         f.write(log.model_dump_json(indent=4))
     
-    # §ó·s¨Ã«O¦s¾Ç¥ÍÀÉ®×
+    # æ›´æ–°ä¸¦ä¿å­˜å­¸ç”Ÿæª”æ¡ˆ
     with open(f"chinese/student_profiles/{student_profile.id}.json", "w") as f:
         f.write(student_profile.model_dump_json(indent=4))
     
@@ -992,78 +992,78 @@ def create_learning_log(chat_model, module, test_results, student_profile):
 # Main application function
 def main():
     console.print("[bold cyan]=====================================[/bold cyan]")
-    console.print("[bold cyan]== RAG ÆN¬[±Ğ¨|¨t²Î ==[/bold cyan]")
+    console.print("[bold cyan]== RAG é·¹æ¶æ•™è‚²ç³»çµ± ==[/bold cyan]")
     console.print("[bold cyan]=====================================[/bold cyan]\n")
     
-    # ªì©l¤Æ¼Ò«¬©M RAG ¨t²Î
-    console.print("[yellow]¥¿¦bªì©l¤Æ¨t²Î...[/yellow]")
+    # åˆå§‹åŒ–æ¨¡å‹å’Œ RAG ç³»çµ±
+    console.print("[yellow]æ­£åœ¨åˆå§‹åŒ–ç³»çµ±...[/yellow]")
     chat_model, embedding = initialize_models()
     retriever = initialize_rag_system(embedding)
     
-    # ºŞ²z¾Ç¥ÍÀÉ®×
+    # ç®¡ç†å­¸ç”Ÿæª”æ¡ˆ
     student_profile = manage_student_profile()
-    console.print(f"\n[bold green]Åwªï, {student_profile.name}![/bold green]")
+    console.print(f"\n[bold green]æ­¡è¿, {student_profile.name}![/bold green]")
     
-    # ¦pªG©|¥¼§¹¦¨¾Ç²ß­·®æµû¦ô¡A¶i¦æµû¦ô
+    # å¦‚æœå°šæœªå®Œæˆå­¸ç¿’é¢¨æ ¼è©•ä¼°ï¼Œé€²è¡Œè©•ä¼°
     if not student_profile.learning_style:
         student_profile = conduct_learning_style_survey(chat_model, student_profile)
     else:
-        console.print(f"\n[yellow]±zªº¾Ç²ß­·®æ¬O: [bold]{student_profile.learning_style}[/bold][/yellow]")
+        console.print(f"\n[yellow]æ‚¨çš„å­¸ç¿’é¢¨æ ¼æ˜¯: [bold]{student_profile.learning_style}[/bold][/yellow]")
     
-    # ¶i¦æ«e´ú
+    # é€²è¡Œå‰æ¸¬
     pretest, pretest_results, knowledge_level = administer_pretest(chat_model, retriever, student_profile)
     
-    # ¥Í¦¨­Ó¤H¤Æ¾Ç²ß¸ô®|
+    # ç”Ÿæˆå€‹äººåŒ–å­¸ç¿’è·¯å¾‘
     learning_path = generate_learning_path(chat_model, retriever, student_profile, pretest_results)
     
-    # ¾Ç²ß¹Lµ{
+    # å­¸ç¿’éç¨‹
     for module_index, module in enumerate(learning_path['modules']):
-        console.print(f"\n[bold cyan]===== ¶}©l¼Ò²Õ {module_index + 1}/{len(learning_path['modules'])} =====[/bold cyan]")
+        console.print(f"\n[bold cyan]===== é–‹å§‹æ¨¡çµ„ {module_index + 1}/{len(learning_path['modules'])} =====[/bold cyan]")
         
-        # ¸ß°İ¨Ï¥ÎªÌ¬O§_·Ç³Æ¦n¶i¦æ¦¹¼Ò²Õ
-        proceed = Confirm.ask(f"·Ç³Æ¦n¶}©l¼Ò²Õ: {module['title']}")
+        # è©¢å•ä½¿ç”¨è€…æ˜¯å¦æº–å‚™å¥½é€²è¡Œæ­¤æ¨¡çµ„
+        proceed = Confirm.ask(f"æº–å‚™å¥½é–‹å§‹æ¨¡çµ„: {module['title']}")
         if not proceed:
             continue
         
-        # ´£¨Ñ¼Ò²Õ¤º®e
+        # æä¾›æ¨¡çµ„å…§å®¹
         module_content = deliver_module_content(chat_model, retriever, student_profile, module)
         
-        # ¶i¦æ¦P¾«°Q½×
+        # é€²è¡ŒåŒå„•è¨è«–
         module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
         discussion_history = engage_peer_discussion(chat_model, retriever, module_topic)
         
-        # ¶i¦æ«á´ú
+        # é€²è¡Œå¾Œæ¸¬
         posttest, posttest_results = administer_posttest(chat_model, retriever, module, student_profile)
         
-        # ³Ğ«Ø¾Ç²ß¤é»x
+        # å‰µå»ºå­¸ç¿’æ—¥èªŒ
         learning_log = create_learning_log(chat_model, module, posttest_results, student_profile)
         
-        # ¸ß°İ¨Ï¥ÎªÌ¬O§_·QÄ~Äò¶i¦æ¤U¤@­Ó¼Ò²Õ
+        # è©¢å•ä½¿ç”¨è€…æ˜¯å¦æƒ³ç¹¼çºŒé€²è¡Œä¸‹ä¸€å€‹æ¨¡çµ„
         if module_index < len(learning_path['modules']) - 1:
-            continue_learning = Confirm.ask("¬O§_Ä~Äò¶i¦æ¤U¤@­Ó¼Ò²Õ?")
+            continue_learning = Confirm.ask("æ˜¯å¦ç¹¼çºŒé€²è¡Œä¸‹ä¸€å€‹æ¨¡çµ„?")
             if not continue_learning:
                 break
     
-    console.print("\n[bold green]===== ¾Ç²ß¸ô®|§¹¦¨ =====[/bold green]")
-    console.print("[yellow]·PÁÂ±z¨Ï¥Î RAG ÆN¬[±Ğ¨|¨t²Î¡I[/yellow]")
-    console.print(f"[yellow]±zªº·í«eª¾ÃÑ¤ô¥­: [bold]{student_profile.current_knowledge_level}[/bold][/yellow]")
+    console.print("\n[bold green]===== å­¸ç¿’è·¯å¾‘å®Œæˆ =====[/bold green]")
+    console.print("[yellow]æ„Ÿè¬æ‚¨ä½¿ç”¨ RAG é·¹æ¶æ•™è‚²ç³»çµ±ï¼[/yellow]")
+    console.print(f"[yellow]æ‚¨çš„ç•¶å‰çŸ¥è­˜æ°´å¹³: [bold]{student_profile.current_knowledge_level}[/bold][/yellow]")
     
-    # Á`µ²¾Ç²ß¶i«×
-    console.print("\n[bold]±zªº¾Ç²ß®Èµ{ºK­n:[/bold]")
-    console.print(f" §¹¦¨¤F {len(student_profile.learning_history)} ¶µ¾Ç²ß¬¡°Ê")
-    console.print(f" ·í«eÀu¶Õ: {', '.join(student_profile.strengths) if student_profile.strengths else '©|¥¼½T©w'}")
-    console.print(f" »İ­n§ï¶iªº»â°ì: {', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else '©|¥¼½T©w'}")
+    # ç¸½çµå­¸ç¿’é€²åº¦
+    console.print("\n[bold]æ‚¨çš„å­¸ç¿’æ—…ç¨‹æ‘˜è¦:[/bold]")
+    console.print(f" å®Œæˆäº† {len(student_profile.learning_history)} é …å­¸ç¿’æ´»å‹•")
+    console.print(f" ç•¶å‰å„ªå‹¢: {', '.join(student_profile.strengths) if student_profile.strengths else 'å°šæœªç¢ºå®š'}")
+    console.print(f" éœ€è¦æ”¹é€²çš„é ˜åŸŸ: {', '.join(student_profile.areas_for_improvement) if student_profile.areas_for_improvement else 'å°šæœªç¢ºå®š'}")
     
-    console.print("\n[bold]«ùÄò¾Ç²ßªº«ØÄ³:[/bold]")
-    if student_profile.current_knowledge_level == "ªì¾ÇªÌ":
-        console.print(" ±Mª`©ó´x´¤°òÂ¦·§©À")
-        console.print(" ¦h½m²ßªì¾ÇªÌ¨ì¤¤¯Åªº½d¨Ò")
-    elif student_profile.current_knowledge_level == "¤¤¯Å":
-        console.print(" ¥[²`¹ï½ÆÂø¥DÃDªº²z¸Ñ")
-        console.print(" ¶}©l±N·§©ÀÀ³¥Î©ó¹ê»Ú°İÃD")
-    else:  # °ª¯Å
-        console.print(" ±´¯Á¸Ó»â°ìªº±M·~¥DÃD")
-        console.print(" ¦Ò¼{±Ğ¾Ç©Î«ü¾É¥L¤H¥H¾d©T±zªºª¾ÃÑ")
+    console.print("\n[bold]æŒçºŒå­¸ç¿’çš„å»ºè­°:[/bold]")
+    if student_profile.current_knowledge_level == "åˆå­¸è€…":
+        console.print(" å°ˆæ³¨æ–¼æŒæ¡åŸºç¤æ¦‚å¿µ")
+        console.print(" å¤šç·´ç¿’åˆå­¸è€…åˆ°ä¸­ç´šçš„ç¯„ä¾‹")
+    elif student_profile.current_knowledge_level == "ä¸­ç´š":
+        console.print(" åŠ æ·±å°è¤‡é›œä¸»é¡Œçš„ç†è§£")
+        console.print(" é–‹å§‹å°‡æ¦‚å¿µæ‡‰ç”¨æ–¼å¯¦éš›å•é¡Œ")
+    else:  # é«˜ç´š
+        console.print(" æ¢ç´¢è©²é ˜åŸŸçš„å°ˆæ¥­ä¸»é¡Œ")
+        console.print(" è€ƒæ…®æ•™å­¸æˆ–æŒ‡å°ä»–äººä»¥éå›ºæ‚¨çš„çŸ¥è­˜")
 
 if __name__ == "__main__":
     main()
