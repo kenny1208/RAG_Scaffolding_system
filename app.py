@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 import os
 import uuid
@@ -16,11 +16,17 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 import nltk
+from chinese.test import (
+    initialize_models, initialize_rag_system, manage_student_profile,
+    conduct_learning_style_survey, administer_pretest, generate_learning_path,
+    deliver_module_content, engage_peer_discussion, administer_posttest,
+    create_learning_log
+)
 
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['UPLOAD_FOLDER'] = 'data'
 app.config['VECTOR_DB_DIR'] = 'vectordbs'
 app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
@@ -642,6 +648,251 @@ def analyze_learning_log(student_name, topic, log_content):
 def index():
     return render_template('index.html')
 
+@app.route('/select_user')
+def select_user():
+    # Get list of existing profiles
+    profiles = []
+    profile_dir = 'chinese/student_profiles'
+    if os.path.exists(profile_dir):
+        for file in os.listdir(profile_dir):
+            if file.endswith('.json'):
+                with open(os.path.join(profile_dir, file), 'r', encoding='utf-8') as f:
+                    profile = json.load(f)
+                    profiles.append({
+                        'id': profile['id'],
+                        'name': profile['name']
+                    })
+    return render_template('select_user.html', profiles=profiles)
+
+@app.route('/create_user', methods=['GET', 'POST'])
+def create_user():
+    if request.method == 'POST':
+        name = request.form['name']
+        student_id = str(uuid.uuid4())[:8]
+        
+        # Create basic profile
+        profile = {
+            'id': student_id,
+            'name': name,
+            'learning_style': '',
+            'current_knowledge_level': '',
+            'strengths': [],
+            'areas_for_improvement': [],
+            'interests': [],
+            'learning_history': [],
+            'current_module_index': 0
+        }
+        
+        # Save profile
+        os.makedirs('chinese/student_profiles', exist_ok=True)
+        with open(f'chinese/student_profiles/{student_id}.json', 'w', encoding='utf-8') as f:
+            json.dump(profile, f, ensure_ascii=False, indent=4)
+        
+        session['student_id'] = student_id
+        return redirect(url_for('upload_pdf'))
+    
+    return render_template('create_user.html')
+
+@app.route('/upload_pdf', methods=['GET', 'POST'])
+def upload_pdf():
+    if 'student_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    if request.method == 'POST':
+        if 'pdfs' not in request.files:
+            flash('No files selected')
+            return redirect(request.url)
+        
+        files = request.files.getlist('pdfs')
+        if not files or files[0].filename == '':
+            flash('No files selected')
+            return redirect(request.url)
+        
+        # Generate a unique session ID for this upload
+        session_id = str(uuid.uuid4())
+        session['session_id'] = session_id
+        
+        # Create session directory
+        session_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id)
+        os.makedirs(session_dir, exist_ok=True)
+        
+        file_paths = []
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(session_dir, filename)
+                file.save(file_path)
+                file_paths.append(file_path)
+        
+        if not file_paths:
+            flash('No valid PDF files uploaded')
+            return redirect(request.url)
+        
+        try:
+            # Process all PDFs and create vector store
+            chunks, summary = process_pdfs(file_paths, session_id)
+            
+            # Store file paths in session
+            session['pdf_files'] = [os.path.basename(path) for path in file_paths]
+            
+            # Redirect to learning style survey
+            return redirect(url_for('learning_style_survey'))
+            
+        except Exception as e:
+            flash(f'Error processing files: {str(e)}')
+            return redirect(request.url)
+    
+    return render_template('upload_pdf.html')
+
+@app.route('/learning_style_survey', methods=['GET', 'POST'])
+def learning_style_survey():
+    if 'student_id' not in session or 'session_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    if request.method == 'POST':
+        data = request.json
+        felder_results = data.get('felder_silverman_results', {})
+        
+        if not felder_results:
+            return jsonify({'error': 'Learning style assessment results are required'}), 400
+        
+        # Map the primary visual/verbal dimension to the learning style for compatibility with existing code
+        # While also saving the full Felder-Silverman profile for future use
+        primary_style = felder_results.get('dimension3', 'visual')  # Default to visual if missing
+        
+        # Update student profile
+        profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{session['student_id']}.json")
+        
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = json.load(f)
+        else:
+            # Create a new profile if it doesn't exist
+            profile = {
+                'id': session['student_id'],
+                'name': f"Student_{session['student_id']}",
+                'learning_style': '',
+                'current_knowledge_level': '',
+                'strengths': [],
+                'areas_for_improvement': [],
+                'interests': [],
+                'learning_history': []
+            }
+        
+        # Update the profile with both simplified and detailed learning style info
+        profile['learning_style'] = primary_style
+        profile['felder_silverman_profile'] = felder_results
+        
+        # Save the updated profile
+        with open(profile_path, 'w') as f:
+            json.dump(profile, f, ensure_ascii=False, indent=4)
+        
+        # Redirect to pretest
+        return jsonify({'success': True, 'redirect': url_for('pretest')})
+    
+    # For GET requests, just render the template with the pre-designed questions
+    return render_template('learning_style_survey.html')
+
+@app.route('/pretest', methods=['GET', 'POST'])
+def pretest():
+    if 'student_id' not in session or 'session_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    if request.method == 'POST':
+        data = request.json
+        answers = data.get('answers', [])
+        pretest_data = session.get('pretest')
+        
+        if not pretest_data:
+            return jsonify({'error': 'No pretest available'}), 400
+        
+        if len(answers) != len(pretest_data['questions']):
+            return jsonify({'error': 'Number of answers does not match number of questions'}), 400
+        
+        # Calculate score and determine knowledge level
+        correct_count = 0
+        results = []
+        
+        for i, answer in enumerate(answers):
+            question = pretest_data['questions'][i]
+            correct_letter = question['correct_answer'][0].upper()
+            is_correct = answer.upper() == correct_letter
+            
+            if is_correct:
+                correct_count += 1
+            
+            results.append({
+                'question': question['question'],
+                'student_answer': answer,
+                'correct_answer': question['correct_answer'],
+                'is_correct': is_correct,
+                'explanation': question['explanation'],
+                'difficulty': question['difficulty']
+            })
+        
+        score_percentage = (correct_count / len(answers)) * 100
+        knowledge_level = evaluate_knowledge_level(score_percentage)
+        
+        # Update student profile
+        profile = create_or_get_student_profile()
+        profile.current_knowledge_level = knowledge_level
+        profile.learning_history.append({
+            'activity_type': 'pretest',
+            'timestamp': datetime.datetime.now().isoformat(),
+            'score': f'{correct_count}/{len(answers)}',
+            'percentage': score_percentage,
+            'knowledge_level': knowledge_level
+        })
+        save_student_profile(profile)
+        
+        # Store results for learning path generation
+        session['pretest_results'] = {
+            'score_percentage': score_percentage,
+            'knowledge_level': knowledge_level,
+            'results': results
+        }
+        
+        # Generate learning path
+        learning_path = generate_learning_path(session['session_id'], profile, session['pretest_results'])
+        session['learning_path'] = learning_path
+        
+        # Redirect to learning interface
+        return redirect(url_for('learning'))
+    
+    # Generate pretest
+    pretest_data = create_pretest(session['session_id'])
+    session['pretest'] = pretest_data
+    return render_template('pretest.html', pretest=pretest_data)
+
+@app.route('/learning', methods=['GET', 'POST'])
+def learning():
+    if 'student_id' not in session or 'session_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    # Load student profile
+    with open(f'chinese/student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    # Start the learning process
+    if not student_profile['learning_style']:
+        # Conduct learning style survey
+        student_profile = conduct_learning_style_survey(chat_model, student_profile)
+    
+    if not student_profile.get('learning_path'):
+        # Administer pretest and generate learning path
+        pretest, pretest_results, knowledge_level = administer_pretest(chat_model, retriever, student_profile)
+        learning_path = generate_learning_path(chat_model, retriever, student_profile, pretest_results)
+        student_profile['learning_path'] = learning_path
+        student_profile['current_module_index'] = 0
+        
+        # Save updated profile
+        with open(f'chinese/student_profiles/{session["student_id"]}.json', 'w', encoding='utf-8') as f:
+            json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    
+    return render_template('learning.html', 
+                         student_profile=student_profile,
+                         current_module=student_profile['learning_path']['modules'][student_profile['current_module_index']])
+
 @app.route('/api/profile', methods=['GET', 'POST'])
 def profile():
     if request.method == 'POST':
@@ -677,123 +928,6 @@ def learning_style():
     else:
         survey = create_learning_style_survey()
         return jsonify(survey)
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'files[]' not in request.files:
-        return jsonify({'error': 'No files provided'}), 400
-    
-    files = request.files.getlist('files[]')
-    
-    if not files or files[0].filename == '':
-        return jsonify({'error': 'No files selected'}), 400
-    
-    # Generate a unique session ID
-    session_id = str(uuid.uuid4())
-    session['session_id'] = session_id
-    
-    # Create session directory
-    session_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id)
-    os.makedirs(session_dir, exist_ok=True)
-    
-    file_paths = []
-    for file in files:
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(session_dir, filename)
-            file.save(file_path)
-            file_paths.append(file_path)
-    
-    if not file_paths:
-        return jsonify({'error': 'No valid PDF files uploaded'}), 400
-    
-    try:
-        chunks, summary = process_pdfs(file_paths, session_id)
-        
-        return jsonify({
-            'success': True,
-            'summary': summary,
-            'message': f'Successfully processed {len(file_paths)} files with {len(chunks)} chunks of content'
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/pretest', methods=['GET'])
-def pretest():
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
-    
-    try:
-        pretest_data = create_pretest(session_id)
-        session['pretest'] = pretest_data  # Store for later evaluation
-        return jsonify(pretest_data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/evaluate-pretest', methods=['POST'])
-def evaluate_pretest():
-    data = request.json
-    answers = data.get('answers', [])
-    pretest_data = session.get('pretest')
-    
-    if not pretest_data:
-        return jsonify({'error': 'No pretest available'}), 400
-    
-    if len(answers) != len(pretest_data['questions']):
-        return jsonify({'error': 'Number of answers does not match number of questions'}), 400
-    
-    # Calculate score
-    correct_count = 0
-    results = []
-    
-    for i, answer in enumerate(answers):
-        question = pretest_data['questions'][i]
-        correct_letter = question['correct_answer'][0].upper()
-        is_correct = answer.upper() == correct_letter
-        
-        if is_correct:
-            correct_count += 1
-        
-        results.append({
-            'question': question['question'],
-            'student_answer': answer,
-            'correct_answer': question['correct_answer'],
-            'is_correct': is_correct,
-            'explanation': question['explanation'],
-            'difficulty': question['difficulty']
-        })
-    
-    score_percentage = (correct_count / len(answers)) * 100
-    knowledge_level = evaluate_knowledge_level(score_percentage)
-    
-    # Update student profile
-    profile = create_or_get_student_profile()
-    profile.current_knowledge_level = knowledge_level
-    profile.learning_history.append({
-        'activity_type': 'pretest',
-        'timestamp': datetime.datetime.now().isoformat(),
-        'score': f'{correct_count}/{len(answers)}',
-        'percentage': score_percentage,
-        'knowledge_level': knowledge_level
-    })
-    save_student_profile(profile)
-    
-    # Store results for learning path generation
-    session['pretest_results'] = {
-        'score_percentage': score_percentage,
-        'knowledge_level': knowledge_level,
-        'results': results
-    }
-    
-    return jsonify({
-        'score': correct_count,
-        'total': len(answers),
-        'percentage': score_percentage,
-        'knowledge_level': knowledge_level,
-        'results': results,
-        'profile': profile.model_dump()
-    })
 
 @app.route('/api/learning-path', methods=['GET'])
 def get_learning_path():

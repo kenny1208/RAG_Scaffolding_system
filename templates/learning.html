@@ -1,0 +1,181 @@
+{% extends "base.html" %} {% block content %}
+<div class="row">
+  <!-- Sidebar with progress -->
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body">
+        <h3 class="h5 mb-3">Learning Progress</h3>
+        <div class="progress mb-3">
+          <div
+            class="progress-bar"
+            role="progressbar"
+            data-progress="{{ (student_profile.current_module_index / student_profile.learning_path.modules|length * 100)|round(2) }}"
+          ></div>
+        </div>
+
+        <h4 class="h6 mb-2">Modules</h4>
+        <div class="list-group">
+          {% for module in student_profile.learning_path.modules %}
+          <div
+            class="list-group-item {% if loop.index0 == student_profile.current_module_index %}active{% endif %}"
+          >
+            <i
+              class="fas {% if loop.index0 < student_profile.current_module_index %}fa-check-circle text-success{% elif loop.index0 == student_profile.current_module_index %}fa-play-circle{% else %}fa-circle{% endif %} me-2"
+            ></i>
+            {{ module.title }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content area -->
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title mb-4">{{ current_module.title }}</h2>
+        <p class="lead mb-4">{{ current_module.description }}</p>
+
+        <div class="module-content mb-4">{{ current_module.content|safe }}</div>
+
+        <div class="d-flex justify-content-between">
+          <button class="btn btn-outline-primary" id="start-discussion">
+            <i class="fas fa-comments me-2"></i>
+            Start Discussion
+          </button>
+
+          <button class="btn btn-primary" id="take-test">
+            <i class="fas fa-tasks me-2"></i>
+            Take Module Test
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discussion Section (Hidden by default) -->
+    <div class="card mt-4" id="discussion-section" style="display: none">
+      <div class="card-body">
+        <h3 class="h5 mb-3">Discussion with AI Learning Partner</h3>
+        <div class="chat-container">
+          <div
+            id="chat-messages"
+            class="mb-3"
+            style="height: 300px; overflow-y: auto"
+          >
+            <div class="message bot-message">
+              Hi! I'm your learning partner. What would you like to discuss
+              about this topic?
+            </div>
+          </div>
+
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              id="message-input"
+              placeholder="Type your message..."
+            />
+            <button class="btn btn-primary" id="send-message">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Section (Hidden by default) -->
+    <div class="card mt-4" id="test-section" style="display: none">
+      <div class="card-body">
+        <h3 class="h5 mb-3">Module Test</h3>
+        <div id="test-questions"></div>
+
+        <div class="d-grid gap-2">
+          <button class="btn btn-primary" id="submit-test">
+            Submit Answers
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const startDiscussionBtn = document.getElementById("start-discussion");
+    const takeTestBtn = document.getElementById("take-test");
+    const discussionSection = document.getElementById("discussion-section");
+    const testSection = document.getElementById("test-section");
+    const messageInput = document.getElementById("message-input");
+    const sendMessageBtn = document.getElementById("send-message");
+    const chatMessages = document.getElementById("chat-messages");
+
+    // Toggle discussion section
+    startDiscussionBtn.addEventListener("click", function () {
+      discussionSection.style.display =
+        discussionSection.style.display === "none" ? "block" : "none";
+      testSection.style.display = "none";
+    });
+
+    // Toggle test section
+    takeTestBtn.addEventListener("click", function () {
+      testSection.style.display =
+        testSection.style.display === "none" ? "block" : "none";
+      discussionSection.style.display = "none";
+    });
+
+    // Handle sending messages
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message) {
+        // Add user message to chat
+        const userMessage = document.createElement("div");
+        userMessage.className = "message user-message";
+        userMessage.textContent = message;
+        chatMessages.appendChild(userMessage);
+
+        // Clear input
+        messageInput.value = "";
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // TODO: Send message to backend and handle response
+      }
+    }
+
+    sendMessageBtn.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  });
+</script>
+
+<style>
+  .message {
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    max-width: 80%;
+  }
+
+  .bot-message {
+    background-color: #f0f0f0;
+    margin-right: auto;
+  }
+
+  .user-message {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
+  }
+
+  .chat-container {
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+  }
+</style>
+{% endblock %}

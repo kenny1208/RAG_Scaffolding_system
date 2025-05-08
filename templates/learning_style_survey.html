@@ -1,0 +1,337 @@
+{% extends "base.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title text-center mb-4">Learning Style Assessment</h2>
+        <p class="lead text-center mb-4">
+          This assessment will help identify your learning preferences based on
+          the Felder-Silverman Learning Style Model
+        </p>
+
+        <form id="survey-form">
+          <!-- Active/Reflective Dimension -->
+          <div class="mb-4">
+            <h3 class="h5 mb-3">
+              1. How do you prefer to process information?
+            </h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_1"
+                  value="active"
+                  required
+                />
+                I understand best by doing something with the information
+                (Active)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_1"
+                  value="reflective"
+                  required
+                />
+                I understand best by thinking about the information first
+                (Reflective)
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h3 class="h5 mb-3">
+              2. When working on a group project, I typically:
+            </h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_2"
+                  value="active"
+                  required
+                />
+                Jump in and contribute ideas immediately (Active)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_2"
+                  value="reflective"
+                  required
+                />
+                Listen and think before offering my contribution (Reflective)
+              </label>
+            </div>
+          </div>
+
+          <!-- Sensing/Intuitive Dimension -->
+          <div class="mb-4">
+            <h3 class="h5 mb-3">3. When learning new material, I prefer:</h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_3"
+                  value="sensing"
+                  required
+                />
+                Concrete facts and practical examples (Sensing)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_3"
+                  value="intuitive"
+                  required
+                />
+                Abstract concepts and theories (Intuitive)
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h3 class="h5 mb-3">4. I find it easier to learn:</h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_4"
+                  value="sensing"
+                  required
+                />
+                Step-by-step procedures with real-world applications (Sensing)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_4"
+                  value="intuitive"
+                  required
+                />
+                Concepts that connect to broader ideas and innovations
+                (Intuitive)
+              </label>
+            </div>
+          </div>
+
+          <!-- Visual/Verbal Dimension -->
+          <div class="mb-4">
+            <h3 class="h5 mb-3">
+              5. I remember information better when presented as:
+            </h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_5"
+                  value="visual"
+                  required
+                />
+                Pictures, diagrams, charts, or demonstrations (Visual)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_5"
+                  value="verbal"
+                  required
+                />
+                Written or spoken explanations (Verbal)
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h3 class="h5 mb-3">
+              6. When getting directions to a new location, I prefer:
+            </h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_6"
+                  value="visual"
+                  required
+                />
+                A map or visual guide (Visual)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_6"
+                  value="verbal"
+                  required
+                />
+                Verbal or written instructions (Verbal)
+              </label>
+            </div>
+          </div>
+
+          <!-- Sequential/Global Dimension -->
+          <div class="mb-4">
+            <h3 class="h5 mb-3">7. When solving problems, I tend to:</h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_7"
+                  value="sequential"
+                  required
+                />
+                Work through solutions step-by-step (Sequential)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_7"
+                  value="global"
+                  required
+                />
+                Jump to the solution after seeing the big picture (Global)
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h3 class="h5 mb-3">
+              8. When learning a new subject, I prefer to:
+            </h3>
+            <div class="list-group">
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_8"
+                  value="sequential"
+                  required
+                />
+                Focus on details and build toward understanding the whole
+                (Sequential)
+              </label>
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_8"
+                  value="global"
+                  required
+                />
+                Understand the overall concept first, then explore details
+                (Global)
+              </label>
+            </div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-check me-2"></i>
+              Submit Assessment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("survey-form");
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const dimensions = {
+        active: 0,
+        reflective: 0,
+        sensing: 0,
+        intuitive: 0,
+        visual: 0,
+        verbal: 0,
+        sequential: 0,
+        global: 0,
+      };
+
+      // Collect answers from all radio buttons
+      const questions = [
+        "question_1",
+        "question_2",
+        "question_3",
+        "question_4",
+        "question_5",
+        "question_6",
+        "question_7",
+        "question_8",
+      ];
+
+      // Check if all questions are answered
+      for (const questionName of questions) {
+        const selected = document.querySelector(
+          `input[name="${questionName}"]:checked`
+        );
+        if (!selected) {
+          const questionNumber = questionName.replace("question_", "");
+          alert(`Please answer question ${questionNumber}`);
+          return;
+        }
+
+        // Count the selections for each dimension
+        dimensions[selected.value]++;
+      }
+
+      // Determine dominant dimensions
+      const learningStyle = {
+        dimension1:
+          dimensions.active > dimensions.reflective ? "active" : "reflective",
+        dimension2:
+          dimensions.sensing > dimensions.intuitive ? "sensing" : "intuitive",
+        dimension3: dimensions.visual > dimensions.verbal ? "visual" : "verbal",
+        dimension4:
+          dimensions.sequential > dimensions.global ? "sequential" : "global",
+      };
+
+      try {
+        const response = await fetch("{{ url_for('learning_style_survey') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            felder_silverman_results: learningStyle,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.redirect) {
+            window.location.href = data.redirect;
+          } else {
+            window.location.href = "{{ url_for('pretest') }}";
+          }
+        } else {
+          const data = await response.json();
+          alert(data.error || "An error occurred");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while submitting the survey");
+      }
+    });
+  });
+</script>
+{% endblock %}

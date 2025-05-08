@@ -1,0 +1,133 @@
+{% extends "base.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title text-center mb-4">Upload Learning Materials</h2>
+
+        <form
+          method="POST"
+          action="{{ url_for('upload_pdf') }}"
+          enctype="multipart/form-data"
+          class="dropzone"
+          id="pdf-upload"
+        >
+          <div class="text-center mb-4">
+            <i class="fas fa-file-pdf fa-3x text-primary mb-3"></i>
+            <h3 class="h5">Drag & Drop PDF Files Here</h3>
+            <p class="text-muted">or</p>
+            <div class="d-grid gap-2 col-6 mx-auto">
+              <input
+                type="file"
+                name="pdfs"
+                id="pdf-input"
+                class="form-control"
+                accept=".pdf"
+                multiple
+                required
+              />
+            </div>
+          </div>
+
+          <div id="file-list" class="mb-3">
+            <!-- File list will be populated here -->
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-upload me-2"></i>
+              Upload and Start Learning
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const dropzone = document.getElementById("pdf-upload");
+    const fileInput = document.getElementById("pdf-input");
+    const fileList = document.getElementById("file-list");
+
+    // Prevent default drag behaviors
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, preventDefaults, false);
+      document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    // Highlight drop zone when item is dragged over it
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, highlight, false);
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, unhighlight, false);
+    });
+
+    // Handle dropped files
+    dropzone.addEventListener("drop", handleDrop, false);
+
+    // Handle file input change
+    fileInput.addEventListener("change", updateFileList);
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    function highlight(e) {
+      dropzone.classList.add("bg-light");
+    }
+
+    function unhighlight(e) {
+      dropzone.classList.remove("bg-light");
+    }
+
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      fileInput.files = files;
+      updateFileList();
+    }
+
+    function updateFileList() {
+      fileList.innerHTML = "";
+      const files = fileInput.files;
+
+      if (files.length > 0) {
+        const list = document.createElement("ul");
+        list.className = "list-group";
+
+        for (let i = 0; i < files.length; i++) {
+          const item = document.createElement("li");
+          item.className =
+            "list-group-item d-flex justify-content-between align-items-center";
+
+          const nameSpan = document.createElement("span");
+          nameSpan.textContent = files[i].name;
+
+          const sizeSpan = document.createElement("span");
+          sizeSpan.className = "badge bg-primary rounded-pill";
+          sizeSpan.textContent = formatFileSize(files[i].size);
+
+          item.appendChild(nameSpan);
+          item.appendChild(sizeSpan);
+          list.appendChild(item);
+        }
+
+        fileList.appendChild(list);
+      }
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+  });
+</script>
+{% endblock %}

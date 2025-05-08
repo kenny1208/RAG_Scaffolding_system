@@ -1,0 +1,98 @@
+{% extends "base.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title text-center mb-4">{{ pretest.title }}</h2>
+        <p class="lead text-center mb-4">{{ pretest.description }}</p>
+
+        <form id="pretest-form">
+          {% for question in pretest.questions %}
+          <div class="mb-4">
+            <h3 class="h5 mb-3">{{ loop.index }}. {{ question.question }}</h3>
+            <div class="list-group">
+              {% for choice in question.choices %}
+              <label class="list-group-item">
+                <input
+                  class="form-check-input me-2"
+                  type="radio"
+                  name="question_{{ loop.index0 }}"
+                  value="{{ choice[0] }}"
+                  required
+                />
+                {{ choice }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-check me-2"></i>
+              Submit Test
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("pretest-form");
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const answers = [];
+      // Get question count from the DOM
+      const questionElements = document.querySelectorAll(".mb-4 > h3.h5");
+      const questionCount = questionElements.length;
+
+      // Check each question for an answer
+      for (let i = 0; i < questionCount; i++) {
+        const questionName = `question_${i}`;
+        const selected = document.querySelector(
+          `input[name="${questionName}"]:checked`
+        );
+
+        if (!selected) {
+          alert(`Please answer question ${i + 1}`);
+          return;
+        }
+
+        answers.push(selected.value);
+      }
+
+      try {
+        const response = await fetch("{{ url_for('pretest') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            answers: answers,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.redirect) {
+            window.location.href = data.redirect;
+          } else {
+            window.location.href = "{{ url_for('learning') }}";
+          }
+        } else {
+          const data = await response.json();
+          alert(data.error || "An error occurred");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while submitting the test");
+      }
+    });
+  });
+</script>
+{% endblock %}
