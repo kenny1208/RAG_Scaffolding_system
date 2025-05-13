@@ -74,6 +74,8 @@ class StudentProfile(BaseModel):
     areas_for_improvement: List[str] = Field(description="Areas that need improvement")
     interests: List[str] = Field(description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
+    learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
+    current_module_index: Optional[int] = Field(default=0, description="Current module index")
 
 class LearningLog(BaseModel):
     id: str = Field(description="Unique log ID")
@@ -188,7 +190,7 @@ def create_or_get_student_profile(name=None):
     """Create a new student profile or retrieve an existing one"""
     if 'student_id' in session:
         # Try to load existing profile
-        profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{session['student_id']}.json")
+        profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
         if os.path.exists(profile_path):
             with open(profile_path, 'r') as f:
                 return StudentProfile.model_validate(json.load(f))
@@ -205,19 +207,22 @@ def create_or_get_student_profile(name=None):
         strengths=[],
         areas_for_improvement=[],
         interests=[],
-        learning_history=[]
+        learning_history=[],
+        learning_path=None,
+        current_module_index=0
     )
     
     # Save the profile
     session['student_id'] = student_id
-    with open(os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{student_id}.json"), 'w') as f:
+    session['session_id'] = str(uuid.uuid4())
+    with open(os.path.join('chinese/student_profiles', f"{student_id}.json"), 'w') as f:
         f.write(profile.model_dump_json(indent=4))
     
     return profile
 
 def save_student_profile(profile):
     """Save a student profile to disk"""
-    profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{profile.id}.json")
+    profile_path = os.path.join('chinese/student_profiles', f"{profile.id}.json")
     with open(profile_path, 'w') as f:
         f.write(profile.model_dump_json(indent=4))
 
@@ -373,7 +378,6 @@ def generate_learning_path(session_id, profile, test_results):
               "description": "Module description",
               "activities": [
                 {
-                  "type": "Reading",
                   "title": "Activity title",
                   "description": "Activity description",
                   "difficulty": "beginner"
@@ -761,7 +765,7 @@ def learning_style_survey():
         primary_style = felder_results.get('dimension3', 'visual')  # Default to visual if missing
         
         # Update student profile
-        profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{session['student_id']}.json")
+        profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
         
         if os.path.exists(profile_path):
             with open(profile_path, 'r') as f:
@@ -776,7 +780,9 @@ def learning_style_survey():
                 'strengths': [],
                 'areas_for_improvement': [],
                 'interests': [],
-                'learning_history': []
+                'learning_history': [],
+                'learning_path': None,
+                'current_module_index': 0
             }
         
         # Update the profile with both simplified and detailed learning style info
@@ -843,21 +849,16 @@ def pretest():
             'percentage': score_percentage,
             'knowledge_level': knowledge_level
         })
-        save_student_profile(profile)
-        
-        # Store results for learning path generation
-        session['pretest_results'] = {
+        profile.learning_path = generate_learning_path(session['session_id'], profile, {
             'score_percentage': score_percentage,
             'knowledge_level': knowledge_level,
             'results': results
-        }
+        })
+        profile.current_module_index = 0
+        save_student_profile(profile)
         
-        # Generate learning path
-        learning_path = generate_learning_path(session['session_id'], profile, session['pretest_results'])
-        session['learning_path'] = learning_path
-        
-        # Redirect to learning interface
-        return redirect(url_for('learning'))
+        # Redirect to learning interface (return JSON for fetch)
+        return jsonify({'redirect': url_for('learning')})
     
     # Generate pretest
     pretest_data = create_pretest(session['session_id'])
@@ -876,18 +877,10 @@ def learning():
     # Start the learning process
     if not student_profile['learning_style']:
         # Conduct learning style survey
-        student_profile = conduct_learning_style_survey(chat_model, student_profile)
+        return redirect(url_for('learning_style_survey'))
     
     if not student_profile.get('learning_path'):
-        # Administer pretest and generate learning path
-        pretest, pretest_results, knowledge_level = administer_pretest(chat_model, retriever, student_profile)
-        learning_path = generate_learning_path(chat_model, retriever, student_profile, pretest_results)
-        student_profile['learning_path'] = learning_path
-        student_profile['current_module_index'] = 0
-        
-        # Save updated profile
-        with open(f'chinese/student_profiles/{session["student_id"]}.json', 'w', encoding='utf-8') as f:
-            json.dump(student_profile, f, ensure_ascii=False, indent=4)
+        return redirect(url_for('pretest'))
     
     return render_template('learning.html', 
                          student_profile=student_profile,

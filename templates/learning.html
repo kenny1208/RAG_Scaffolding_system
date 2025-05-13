@@ -32,6 +32,18 @@
 
   <!-- Main content area -->
   <div class="col-md-9">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h2 class="card-title">{{ student_profile.learning_path.title }}</h2>
+        <p class="lead">{{ student_profile.learning_path.description }}</p>
+        <ul>
+          {% for obj in student_profile.learning_path.objectives %}
+          <li>{{ obj }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-body">
         <h2 class="card-title mb-4">{{ current_module.title }}</h2>
@@ -102,6 +114,11 @@
 {% endblock %} {% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // eslint-disable-next-line
+    const moduleIndex = parseInt(
+      document.getElementById("learning-page").dataset.moduleIndex,
+      10
+    );
     const startDiscussionBtn = document.getElementById("start-discussion");
     const takeTestBtn = document.getElementById("take-test");
     const discussionSection = document.getElementById("discussion-section");
@@ -122,7 +139,44 @@
       testSection.style.display =
         testSection.style.display === "none" ? "block" : "none";
       discussionSection.style.display = "none";
+
+      fetch(`/api/posttest/${moduleIndex}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.questions) {
+            renderTestQuestions(data);
+          } else {
+            document.getElementById("test-questions").innerHTML =
+              "<div class='alert alert-danger'>無法取得測驗題目</div>";
+          }
+        });
     });
+
+    // Place the function here, inside the event handler!
+    function renderTestQuestions(testData) {
+      const container = document.getElementById("test-questions");
+      container.innerHTML = "";
+      testData.questions.forEach((q, idx) => {
+        const qDiv = document.createElement("div");
+        qDiv.className = "mb-3";
+        qDiv.innerHTML = `
+          <div><strong>${idx + 1}. ${q.question}</strong></div>
+          ${q.choices
+            .map(
+              (choice, cidx) => `
+            <div>
+              <label>
+                <input type="radio" name="q${idx}" value="${choice[0]}" required>
+                ${choice}
+              </label>
+            </div>
+          `
+            )
+            .join("")}
+        `;
+        container.appendChild(qDiv);
+      });
+    }
 
     // Handle sending messages
     function sendMessage() {
@@ -140,7 +194,35 @@
         // Scroll to bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        // TODO: Send message to backend and handle response
+        // 取得目前 module 的 title 當作 topic
+        const topic = "{{ current_module.title }}";
+
+        // 發送到後端
+        fetch("{{ url_for('peer_discussion') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            topic: topic,
+            message: message,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.response) {
+              const botMessage = document.createElement("div");
+              botMessage.className = "message bot-message";
+              botMessage.textContent = data.response;
+              chatMessages.appendChild(botMessage);
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            } else {
+              alert(data.error || "AI 沒有回應");
+            }
+          })
+          .catch((error) => {
+            alert("AI 回應失敗");
+          });
       }
     }
 
