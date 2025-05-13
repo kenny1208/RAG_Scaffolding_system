@@ -1,0 +1,33 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-5">
+  <h2>學習總結</h2>
+  <p>學員：{{ student_profile.name }}</p>
+  <h4>學習歷程</h4>
+  <ul>
+    {% for log in logs %}
+    <li>
+      <strong>{{ log.topic }}</strong> ({{ log.timestamp }})<br />
+      <em>心得：</em> {{ log.content }}<br />
+      {% if log.next_steps %}
+      <em>建議：</em> {{ log.next_steps|join(', ') }}<br />
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <h4>學習成績</h4>
+  <ul>
+    {% for record in student_profile.learning_history %}
+    <li>
+      <strong>{{ record.activity_type }}</strong>
+      {% if record.module %} - {{ record.module }}{% endif %} ：{{ record.score
+      }} ({{ record.percentage }}%) {% if record.current_level %}，知識等級：{{
+      record.current_level }}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="mt-4">
+    <a href="{{ url_for('learning') }}" class="btn btn-primary">我要再學一次</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">結束學習</a>
+  </div>
+</div>
+{% endblock %}

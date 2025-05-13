@@ -13,7 +13,7 @@ from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplat
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing import List, Dict, Optional, Any
 import nltk
 from chinese.test import (
@@ -192,7 +192,7 @@ def create_or_get_student_profile(name=None):
         # Try to load existing profile
         profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
         if os.path.exists(profile_path):
-            with open(profile_path, 'r') as f:
+            with open(profile_path, 'r', encoding='utf-8') as f:
                 return StudentProfile.model_validate(json.load(f))
     
     # Create new profile
@@ -215,7 +215,7 @@ def create_or_get_student_profile(name=None):
     # Save the profile
     session['student_id'] = student_id
     session['session_id'] = str(uuid.uuid4())
-    with open(os.path.join('chinese/student_profiles', f"{student_id}.json"), 'w') as f:
+    with open(os.path.join('chinese/student_profiles', f"{student_id}.json"), 'w', encoding='utf-8') as f:
         f.write(profile.model_dump_json(indent=4))
     
     return profile
@@ -223,7 +223,7 @@ def create_or_get_student_profile(name=None):
 def save_student_profile(profile):
     """Save a student profile to disk"""
     profile_path = os.path.join('chinese/student_profiles', f"{profile.id}.json")
-    with open(profile_path, 'w') as f:
+    with open(profile_path, 'w', encoding='utf-8') as f:
         f.write(profile.model_dump_json(indent=4))
 
 def create_learning_style_survey():
@@ -283,7 +283,7 @@ def process_learning_style_answers(survey, answers):
     return dominant_style
 
 def create_pretest(session_id, topic=""):
-    """Generate a pretest based on the uploaded documents"""
+    """Generate a pretest based on the uploaded documents，並且嚴格遵守4選1單選的題型"""
     vectorstore = get_vectorstore(session_id)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
     
@@ -545,6 +545,9 @@ def create_posttest(session_id, module, profile):
     # Get module topic
     module_topic = module["title"].split(": ", 1)[1] if ": " in module["title"] else module["title"]
     
+    # Get knowledge level from profile dictionary
+    knowledge_level = profile.get('current_knowledge_level', 'beginner')
+    
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""You are a professional educational assessment designer.
         Based on the module content and the student's current knowledge level, design a post-test with multiple-choice questions to assess the student's learning outcomes.
@@ -592,7 +595,7 @@ def create_posttest(session_id, module, profile):
         RunnablePassthrough()
         | retriever
         | (lambda docs: {
-            "knowledge_level": profile.current_knowledge_level,
+            "knowledge_level": knowledge_level,
             "context": "\n\n".join([d.page_content for d in docs])
         })
         | prompt
@@ -790,7 +793,7 @@ def learning_style_survey():
         profile['felder_silverman_profile'] = felder_results
         
         # Save the updated profile
-        with open(profile_path, 'w') as f:
+        with open(profile_path, 'w', encoding='utf-8') as f:
             json.dump(profile, f, ensure_ascii=False, indent=4)
         
         # Redirect to pretest
@@ -882,9 +885,26 @@ def learning():
     if not student_profile.get('learning_path'):
         return redirect(url_for('pretest'))
     
+    # Get current module
+    current_module_index = student_profile['current_module_index']
+    current_module = student_profile['learning_path']['modules'][current_module_index]
+    
+    # Generate module content if not already present
+    if 'content' not in current_module:
+        try:
+            # 轉成 StudentProfile 物件
+            profile_obj = StudentProfile.model_validate(student_profile)
+            content = generate_module_content(session['session_id'], current_module, profile_obj)
+            current_module['content'] = content
+            # Save the updated profile with content
+            with open(f'chinese/student_profiles/{session["student_id"]}.json', 'w', encoding='utf-8') as f:
+                json.dump(student_profile, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            current_module['content'] = f"Error generating content: {str(e)}"
+    
     return render_template('learning.html', 
                          student_profile=student_profile,
-                         current_module=student_profile['learning_path']['modules'][student_profile['current_module_index']])
+                         current_module=current_module)
 
 @app.route('/api/profile', methods=['GET', 'POST'])
 def profile():
@@ -993,7 +1013,15 @@ def get_posttest(module_index):
     if not session_id:
         return jsonify({'error': 'No documents have been uploaded yet'}), 400
     
-    learning_path = session.get('learning_path')
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    learning_path = student_profile.get('learning_path')
     if not learning_path:
         return jsonify({'error': 'No learning path available'}), 400
     
@@ -1001,11 +1029,18 @@ def get_posttest(module_index):
         return jsonify({'error': 'Invalid module index'}), 400
     
     module = learning_path['modules'][module_index]
-    profile = create_or_get_student_profile()
     
     try:
-        posttest_data = create_posttest(session_id, module, profile)
-        session[f'posttest_{module_index}'] = posttest_data  # Store for later evaluation
+        posttest_data = create_posttest(session_id, module, student_profile)
+        
+        # Store posttest data in file instead of session
+        posttest_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id, 'posttests')
+        os.makedirs(posttest_dir, exist_ok=True)
+        posttest_path = os.path.join(posttest_dir, f'posttest_{module_index}.json')
+        
+        with open(posttest_path, 'w', encoding='utf-8') as f:
+            json.dump(posttest_data, f, ensure_ascii=False, indent=4)
+        
         return jsonify(posttest_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1019,11 +1054,23 @@ def evaluate_posttest(module_index):
     data = request.json
     answers = data.get('answers', [])
     
-    posttest_data = session.get(f'posttest_{module_index}')
-    if not posttest_data:
+    # Load posttest data from file
+    posttest_path = os.path.join(app.config['UPLOAD_FOLDER'], session_id, 'posttests', f'posttest_{module_index}.json')
+    if not os.path.exists(posttest_path):
         return jsonify({'error': 'No posttest available for this module'}), 400
     
-    learning_path = session.get('learning_path')
+    with open(posttest_path, 'r', encoding='utf-8') as f:
+        posttest_data = json.load(f)
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    learning_path = student_profile.get('learning_path')
     if not learning_path or module_index >= len(learning_path['modules']):
         return jsonify({'error': 'Invalid module index'}), 400
     
@@ -1056,8 +1103,7 @@ def evaluate_posttest(module_index):
     score_percentage = (correct_count / len(answers)) * 100
     
     # Update student profile
-    profile = create_or_get_student_profile()
-    previous_level = profile.current_knowledge_level
+    previous_level = student_profile['current_knowledge_level']
     
     # Potentially adjust knowledge level based on score
     if score_percentage >= 80 and previous_level != "advanced":
@@ -1065,18 +1111,18 @@ def evaluate_posttest(module_index):
             new_level = "intermediate"
         else:
             new_level = "advanced"
-        profile.current_knowledge_level = new_level
+        student_profile['current_knowledge_level'] = new_level
     elif score_percentage < 50 and previous_level != "beginner":
         if previous_level == "advanced":
             new_level = "intermediate"
         else:
             new_level = "beginner"
-        profile.current_knowledge_level = new_level
+        student_profile['current_knowledge_level'] = new_level
     else:
         new_level = previous_level
     
     # Add to learning history
-    profile.learning_history.append({
+    student_profile['learning_history'].append({
         'activity_type': 'posttest',
         'module': module['title'],
         'timestamp': datetime.datetime.now().isoformat(),
@@ -1085,15 +1131,20 @@ def evaluate_posttest(module_index):
         'previous_level': previous_level,
         'current_level': new_level
     })
-    save_student_profile(profile)
     
-    # Store results for learning log
-    session[f'posttest_results_{module_index}'] = {
-        'score': correct_count,
-        'total': len(answers),
-        'percentage': score_percentage,
-        'results': results
-    }
+    # Save updated profile
+    with open(profile_path, 'w', encoding='utf-8') as f:
+        json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    
+    # Store results in file
+    results_path = os.path.join(app.config['UPLOAD_FOLDER'], session_id, 'posttests', f'results_{module_index}.json')
+    with open(results_path, 'w', encoding='utf-8') as f:
+        json.dump({
+            'score': correct_count,
+            'total': len(answers),
+            'percentage': score_percentage,
+            'results': results
+        }, f, ensure_ascii=False, indent=4)
     
     return jsonify({
         'score': correct_count,
@@ -1102,7 +1153,7 @@ def evaluate_posttest(module_index):
         'previous_level': previous_level,
         'new_level': new_level,
         'results': results,
-        'profile': profile.model_dump()
+        'profile': student_profile
     })
 
 @app.route('/api/learning-log/<int:module_index>', methods=['POST'])
@@ -1110,11 +1161,13 @@ def create_learning_log(module_index):
     session_id = session.get('session_id')
     if not session_id:
         return jsonify({'error': 'No documents have been uploaded yet'}), 400
-    
-    learning_path = session.get('learning_path')
+
+    # 這裡改成從 student_profile 讀取
+    profile = create_or_get_student_profile()
+    learning_path = profile.learning_path
     if not learning_path or module_index >= len(learning_path['modules']):
         return jsonify({'error': 'Invalid module index'}), 400
-    
+
     module = learning_path['modules'][module_index]
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     
@@ -1123,8 +1176,6 @@ def create_learning_log(module_index):
     
     if not log_content:
         return jsonify({'error': 'No log content provided'}), 400
-    
-    profile = create_or_get_student_profile()
     
     # Create learning log
     log_id = str(uuid.uuid4())[:8]
@@ -1192,6 +1243,81 @@ def ask_question():
         return jsonify({'answer': answer})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/update-module-index', methods=['POST'])
+def update_module_index():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    
+    data = request.json
+    new_module_index = data.get('module_index')
+    
+    if new_module_index is None:
+        return jsonify({'error': 'No module index provided'}), 400
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    # Check if learning path exists and get total number of modules
+    if not student_profile.get('learning_path'):
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    total_modules = len(student_profile['learning_path']['modules'])
+    
+    # Check if the student has completed all modules
+    if new_module_index >= total_modules:
+        return jsonify({
+            'success': True,
+            'new_index': new_module_index,
+            'total_modules': total_modules,
+            'finished': True
+        })
+    
+    # Validate the new module index
+    if not isinstance(new_module_index, int) or new_module_index < 0:
+        return jsonify({
+            'error': f'Invalid module index. Must be between 0 and {total_modules-1}',
+            'current_index': student_profile.get('current_module_index', 0),
+            'total_modules': total_modules
+        }), 400
+    
+    # Update the module index
+    student_profile['current_module_index'] = new_module_index
+    
+    # Save the updated profile
+    with open(profile_path, 'w', encoding='utf-8') as f:
+        json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    
+    return jsonify({
+        'success': True,
+        'new_index': new_module_index,
+        'total_modules': total_modules,
+        'finished': False
+    })
+
+@app.route('/summary')
+def summary():
+    if 'student_id' not in session:
+        return redirect(url_for('select_user'))
+    # 讀取學生檔案
+    with open(f'chinese/student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    # 讀取所有學習日誌
+    logs = []
+    for log_file in os.listdir('learning_logs'):
+        if log_file.endswith('.json'):
+            with open(os.path.join('learning_logs', log_file), 'r', encoding='utf-8') as lf:
+                log = json.load(lf)
+                if log['student_id'] == student_profile['id']:
+                    logs.append(log)
+    # 按時間排序
+    logs.sort(key=lambda x: x['timestamp'])
+    return render_template('summary.html', student_profile=student_profile, logs=logs)
 
 if __name__ == '__main__':
     app.run(debug=True)

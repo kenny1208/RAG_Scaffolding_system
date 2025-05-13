@@ -1,5 +1,9 @@
 {% extends "base.html" %} {% block content %}
-<div class="row">
+<div
+  class="row"
+  id="learning-page"
+  data-module-index="{{ student_profile.current_module_index }}"
+>
   <!-- Sidebar with progress -->
   <div class="col-md-3">
     <div class="card">
@@ -9,13 +13,13 @@
           <div
             class="progress-bar"
             role="progressbar"
-            data-progress="{{ (student_profile.current_module_index / student_profile.learning_path.modules|length * 100)|round(2) }}"
+            data-progress="{{ (student_profile.current_module_index / student_profile.learning_path['modules']|length * 100)|round(2) }}"
           ></div>
         </div>
 
         <h4 class="h6 mb-2">Modules</h4>
         <div class="list-group">
-          {% for module in student_profile.learning_path.modules %}
+          {% for module in student_profile.learning_path['modules'] %}
           <div
             class="list-group-item {% if loop.index0 == student_profile.current_module_index %}active{% endif %}"
           >
@@ -34,10 +38,10 @@
   <div class="col-md-9">
     <div class="card mb-4">
       <div class="card-body">
-        <h2 class="card-title">{{ student_profile.learning_path.title }}</h2>
-        <p class="lead">{{ student_profile.learning_path.description }}</p>
+        <h2 class="card-title">{{ student_profile.learning_path['title'] }}</h2>
+        <p class="lead">{{ student_profile.learning_path['description'] }}</p>
         <ul>
-          {% for obj in student_profile.learning_path.objectives %}
+          {% for obj in student_profile.learning_path['objectives'] %}
           <li>{{ obj }}</li>
           {% endfor %}
         </ul>
@@ -126,6 +130,7 @@
     const messageInput = document.getElementById("message-input");
     const sendMessageBtn = document.getElementById("send-message");
     const chatMessages = document.getElementById("chat-messages");
+    const submitTestBtn = document.getElementById("submit-test");
 
     // Toggle discussion section
     startDiscussionBtn.addEventListener("click", function () {
@@ -149,6 +154,158 @@
             document.getElementById("test-questions").innerHTML =
               "<div class='alert alert-danger'>無法取得測驗題目</div>";
           }
+        });
+    });
+
+    // Handle test submission
+    submitTestBtn.addEventListener("click", function () {
+      const answers = [];
+      const questions = document.querySelectorAll("#test-questions > div");
+
+      // Check if all questions are answered
+      let allAnswered = true;
+      for (let i = 0; i < questions.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) {
+          allAnswered = false;
+          break;
+        }
+        answers.push(selected.value);
+      }
+
+      if (!allAnswered) {
+        alert("請回答所有問題");
+        return;
+      }
+
+      // Submit answers
+      fetch(`/api/evaluate-posttest/${moduleIndex}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          answers: answers,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            alert(data.error);
+            return;
+          }
+
+          // Display results
+          const resultsHtml = `
+          <div class="alert ${
+            data.percentage >= 80 ? "alert-success" : "alert-warning"
+          }">
+            <h4>測驗結果</h4>
+            <p>得分: ${data.score}/${data.total} (${data.percentage}%)</p>
+            <p>知識水平: ${data.new_level}</p>
+          </div>
+          <div class="mt-3">
+            <h5>詳細解答</h5>
+            ${data.results
+              .map(
+                (result, idx) => `
+              <div class="mb-3">
+                <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
+                <p>你的答案: ${result.student_answer} ${
+                  result.is_correct ? "✓" : "✗"
+                }</p>
+                <p>正確答案: ${result.correct_answer}</p>
+                <p>解釋: ${result.explanation}</p>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+          <div class="mt-4">
+            <h5>學習日誌</h5>
+            <p>請分享你對這個模組的學習心得：</p>
+            <div class="mb-3">
+              <textarea class="form-control" id="learning-log-content" rows="5" 
+                placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
+            </div>
+            <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
+          </div>
+        `;
+          document.getElementById("test-questions").innerHTML = resultsHtml;
+          submitTestBtn.style.display = "none";
+
+          // Add event listener for learning log submission
+          document
+            .getElementById("submit-learning-log")
+            .addEventListener("click", function () {
+              const logContent = document
+                .getElementById("learning-log-content")
+                .value.trim();
+
+              if (!logContent) {
+                alert("請填寫學習日誌內容");
+                return;
+              }
+
+              // Submit learning log
+              fetch(`/api/learning-log/${moduleIndex}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  content: logContent,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data.error) {
+                    alert(data.error);
+                    return;
+                  }
+
+                  // After successful log submission, proceed to next module
+                  fetch("/api/update-module-index", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      module_index: moduleIndex + 1,
+                    }),
+                  })
+                    .then((response) => response.json())
+                    .then((data) => {
+                      if (data.success) {
+                        // Check if we've reached the end of the modules
+                        if (data.finished) {
+                          alert("恭喜！你已經完成所有模組的學習！");
+                          window.location.href = "/summary";
+                        } else {
+                          // Reload the page to show the next module
+                          window.location.reload();
+                        }
+                      } else {
+                        // Show more detailed error message
+                        const errorMsg = data.error || "切換模組時發生錯誤";
+                        alert(errorMsg);
+                        console.error("Module update error:", data);
+                      }
+                    })
+                    .catch((error) => {
+                      console.error("Error:", error);
+                      alert("切換模組時發生錯誤，請重新整理頁面再試一次");
+                    });
+                })
+                .catch((error) => {
+                  console.error("Error:", error);
+                  alert("提交學習日誌時發生錯誤");
+                });
+            });
+        })
+        .catch((error) => {
+          alert("提交答案時發生錯誤");
+          console.error(error);
         });
     });
 
