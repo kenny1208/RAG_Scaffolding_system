@@ -13,7 +13,7 @@
           <div class="list-group">
             {% for profile in profiles %}
             <a
-              href="{{ url_for('upload_pdf') }}"
+              href="{{ url_for('select_profile', profile_id=profile.id) }}"
               class="list-group-item list-group-item-action"
             >
               <i class="fas fa-user me-2"></i>

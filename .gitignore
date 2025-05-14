@@ -11,3 +11,4 @@ chinese/vectorstore/
 chinese/__pycache__/
 chinese_learning_system/__pycache__/
 chinese_learning_system/server/utils/__pycache__/
+data/

@@ -671,6 +671,27 @@ def select_user():
                     })
     return render_template('select_user.html', profiles=profiles)
 
+@app.route('/select_profile/<profile_id>')
+def select_profile(profile_id):
+    # Set the student_id in session
+    session['student_id'] = profile_id
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{profile_id}.json")
+    if not os.path.exists(profile_path):
+        return redirect(url_for('select_user'))
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        profile = json.load(f)
+    
+    # Check if the profile has a learning path
+    if profile.get('learning_path'):
+        # If student has a learning path, redirect to learning page
+        return redirect(url_for('learning'))
+    else:
+        # If no learning path exists, redirect to upload PDF
+        return redirect(url_for('upload_pdf'))
+
 @app.route('/create_user', methods=['GET', 'POST'])
 def create_user():
     if request.method == 'POST':
@@ -870,34 +891,45 @@ def pretest():
 
 @app.route('/learning', methods=['GET', 'POST'])
 def learning():
-    if 'student_id' not in session or 'session_id' not in session:
+    if 'student_id' not in session:
         return redirect(url_for('select_user'))
     
     # Load student profile
-    with open(f'chinese/student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return redirect(url_for('select_user'))
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
         student_profile = json.load(f)
     
-    # Start the learning process
-    if not student_profile['learning_style']:
-        # Conduct learning style survey
+    # Check if student has completed learning style survey
+    if not student_profile.get('learning_style'):
         return redirect(url_for('learning_style_survey'))
     
+    # Check if student has a learning path
     if not student_profile.get('learning_path'):
         return redirect(url_for('pretest'))
     
+    # Get current module index
+    current_module_index = student_profile.get('current_module_index', 0)
+    
+    # Validate current module index
+    if current_module_index >= len(student_profile['learning_path']['modules']):
+        # If student has completed all modules, redirect to summary
+        return redirect(url_for('summary'))
+    
     # Get current module
-    current_module_index = student_profile['current_module_index']
     current_module = student_profile['learning_path']['modules'][current_module_index]
     
     # Generate module content if not already present
     if 'content' not in current_module:
         try:
-            # 轉成 StudentProfile 物件
+            # Convert to StudentProfile object
             profile_obj = StudentProfile.model_validate(student_profile)
             content = generate_module_content(session['session_id'], current_module, profile_obj)
             current_module['content'] = content
             # Save the updated profile with content
-            with open(f'chinese/student_profiles/{session["student_id"]}.json', 'w', encoding='utf-8') as f:
+            with open(profile_path, 'w', encoding='utf-8') as f:
                 json.dump(student_profile, f, ensure_ascii=False, indent=4)
         except Exception as e:
             current_module['content'] = f"Error generating content: {str(e)}"
@@ -1271,6 +1303,15 @@ def update_module_index():
     
     # Check if the student has completed all modules
     if new_module_index >= total_modules:
+        # Update the profile to mark completion
+        student_profile['current_module_index'] = total_modules - 1
+        student_profile['learning_completed'] = True
+        student_profile['completion_date'] = datetime.datetime.now().isoformat()
+        
+        # Save the updated profile
+        with open(profile_path, 'w', encoding='utf-8') as f:
+            json.dump(student_profile, f, ensure_ascii=False, indent=4)
+        
         return jsonify({
             'success': True,
             'new_index': new_module_index,
