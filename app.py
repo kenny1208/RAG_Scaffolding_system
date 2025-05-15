@@ -281,7 +281,7 @@ def create_or_get_student_profile(name=None):
     """Create a new student profile or retrieve an existing one"""
     if 'student_id' in session:
         # Try to load existing profile
-        profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+        profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
         if os.path.exists(profile_path):
             with open(profile_path, 'r', encoding='utf-8') as f:
                 return StudentProfile.model_validate(json.load(f))
@@ -307,14 +307,14 @@ def create_or_get_student_profile(name=None):
     # Save the profile
     session['student_id'] = student_id
     session['session_id'] = str(uuid.uuid4())
-    with open(os.path.join('chinese/student_profiles', f"{student_id}.json"), 'w', encoding='utf-8') as f:
+    with open(os.path.join('student_profiles', f"{student_id}.json"), 'w', encoding='utf-8') as f:
         f.write(profile.model_dump_json(indent=4))
     
     return profile
 
 def save_student_profile(profile):
     """Save a student profile to disk"""
-    profile_path = os.path.join('chinese/student_profiles', f"{profile.id}.json")
+    profile_path = os.path.join('student_profiles', f"{profile.id}.json")
     with open(profile_path, 'w', encoding='utf-8') as f:
         f.write(profile.model_dump_json(indent=4))
 
@@ -753,7 +753,7 @@ def index():
 def select_user():
     # Get list of existing profiles
     profiles = []
-    profile_dir = 'chinese/student_profiles'
+    profile_dir = 'student_profiles'
     if os.path.exists(profile_dir):
         for file in os.listdir(profile_dir):
             if file.endswith('.json'):
@@ -771,7 +771,7 @@ def select_profile(profile_id):
     session['student_id'] = profile_id
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{profile_id}.json")
+    profile_path = os.path.join('student_profiles', f"{profile_id}.json")
     if not os.path.exists(profile_path):
         return redirect(url_for('select_user'))
     
@@ -807,8 +807,8 @@ def create_user():
         }
         
         # Save profile
-        os.makedirs('chinese/student_profiles', exist_ok=True)
-        with open(f'chinese/student_profiles/{student_id}.json', 'w', encoding='utf-8') as f:
+        os.makedirs('student_profiles', exist_ok=True)
+        with open(f'student_profiles/{student_id}.json', 'w', encoding='utf-8') as f:
             json.dump(profile, f, ensure_ascii=False, indent=4)
         
         session['student_id'] = student_id
@@ -903,7 +903,7 @@ def learning_style_survey():
         primary_style = felder_results.get('dimension3', 'visual')  # Default to visual if missing
         
         # Update student profile
-        profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+        profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
         
         if os.path.exists(profile_path):
             with open(profile_path, 'r') as f:
@@ -1018,7 +1018,7 @@ def learning():
         return redirect(url_for('select_user'))
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return redirect(url_for('select_user'))
     
@@ -1166,7 +1166,7 @@ def get_posttest(module_index):
         return jsonify({'error': 'No documents have been uploaded yet'}), 400
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
@@ -1215,7 +1215,7 @@ def evaluate_posttest(module_index):
         posttest_data = json.load(f)
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
@@ -1408,7 +1408,7 @@ def update_module_index():
         return jsonify({'error': 'No module index provided'}), 400
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
@@ -1467,7 +1467,7 @@ def summary():
         return redirect(url_for('select_user'))
     
     # 讀取學生檔案
-    with open(f'chinese/student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
+    with open(f'student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
         student_profile = json.load(f)
     
     # 讀取所有學習日誌
@@ -1499,7 +1499,7 @@ def learning_path_discussion():
         return redirect(url_for('select_user'))
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return redirect(url_for('select_user'))
     
@@ -1529,7 +1529,7 @@ def discuss_learning_path():
         return jsonify({'error': 'No message provided'}), 400
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
@@ -1616,7 +1616,7 @@ def adjust_learning_path():
         return jsonify({'error': 'No student session found'}), 400
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
@@ -1651,7 +1651,7 @@ def confirm_learning_path():
         return jsonify({'error': 'No student session found'}), 400
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
@@ -1673,7 +1673,7 @@ def get_current_learning_path():
         return jsonify({'error': 'No student session found'}), 400
     
     # Load student profile
-    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
     if not os.path.exists(profile_path):
         return jsonify({'error': 'Student profile not found'}), 400
     
