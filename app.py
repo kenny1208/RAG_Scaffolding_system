@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, send_file
 from werkzeug.utils import secure_filename
 import os
 import uuid
@@ -22,6 +22,7 @@ from chinese.test import (
     deliver_module_content, engage_peer_discussion, administer_posttest,
     create_learning_log
 )
+import time
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -76,6 +77,7 @@ class StudentProfile(BaseModel):
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
     current_module_index: Optional[int] = Field(default=0, description="Current module index")
+    learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
 
 class LearningLog(BaseModel):
     id: str = Field(description="Unique log ID")
@@ -93,56 +95,144 @@ def allowed_file(filename):
 
 def process_pdfs(file_paths, session_id):
     """Process PDF files and return chunks and a summary"""
-    # Load PDFs
-    all_pages = []
-    for path in file_paths:
-        loader = PyPDFLoader(path)
-        pages = loader.load_and_split()
-        all_pages.extend(pages)
-    
-    # Split text into chunks
-    text_splitter = NLTKTextSplitter(chunk_size=700, chunk_overlap=100)
-    chunks = text_splitter.split_documents(all_pages)
-    
-    # Create embeddings and vectorstore
-    embedding = GoogleGenerativeAIEmbeddings(google_api_key=api_key, model="models/embedding-001")
-    
-    # Create a persistent Chroma DB with the session ID as the collection name
-    persist_directory = os.path.join(app.config['VECTOR_DB_DIR'], session_id)
-    vectorstore = Chroma.from_documents(
-        documents=chunks,
-        embedding=embedding,
-        persist_directory=persist_directory,
-        collection_name=session_id
-    )
-    vectorstore.persist()  # Save to disk
-    
-    # Create summary
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-1.5-flash"
-    )
-    
-    summary_prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="You are a helpful assistant that summarizes technical documents."),
-        HumanMessagePromptTemplate.from_template("""Summarize the following content into a bullet-point outline for review:
+    try:
+        # Ensure NLTK data is downloaded
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt')
+        
+        # Load PDFs
+        all_pages = []
+        for path in file_paths:
+            try:
+                if not os.path.exists(path):
+                    raise FileNotFoundError(f"PDF file not found: {path}")
+                
+                loader = PyPDFLoader(path)
+                pages = loader.load_and_split()
+                if not pages:
+                    raise ValueError(f"No content could be extracted from PDF: {path}")
+                
+                # Add metadata to each page
+                filename = os.path.basename(path)
+                for i, page in enumerate(pages):
+                    page.metadata.update({
+                        'source': filename,
+                        'page': i + 1  # Page numbers start from 1
+                    })
+                
+                all_pages.extend(pages)
+                app.logger.info(f"Successfully loaded PDF: {path}")
+            except Exception as e:
+                app.logger.error(f'Error loading PDF {path}: {str(e)}')
+                raise Exception(f'Error loading PDF {os.path.basename(path)}: {str(e)}')
+        
+        if not all_pages:
+            raise Exception('No content could be extracted from the PDFs')
+        
+        # Split text into chunks
+        try:
+            text_splitter = NLTKTextSplitter(chunk_size=1000, chunk_overlap=100)
+            chunks = text_splitter.split_documents(all_pages)
+            app.logger.info(f"Successfully split text into {len(chunks)} chunks")
+        except Exception as e:
+            app.logger.error(f'Error splitting text: {str(e)}')
+            raise Exception(f'Error processing text content: {str(e)}')
+        
+        # Create embeddings and vectorstore
+        try:
+            # Ensure vector DB directory exists
+            persist_directory = os.path.join(app.config['VECTOR_DB_DIR'], session_id)
+            if os.path.exists(persist_directory):
+                import shutil
+                shutil.rmtree(persist_directory)
+            os.makedirs(persist_directory, exist_ok=True)
+            
+            # Initialize embedding model with retry mechanism
+            max_retries = 3
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    embedding = GoogleGenerativeAIEmbeddings(
+                        google_api_key=api_key,
+                        model="models/embedding-001"
+                    )
+                    break
+                except Exception as e:
+                    retry_count += 1
+                    if retry_count == max_retries:
+                        raise Exception(f"Failed to initialize embedding model after {max_retries} attempts: {str(e)}")
+                    app.logger.warning(f"Retry {retry_count} initializing embedding model")
+                    time.sleep(1)
+            
+            # Create vector store with smaller batch size
+            batch_size = 50
+            total_chunks = len(chunks)
+            
+            for i in range(0, total_chunks, batch_size):
+                batch_chunks = chunks[i:i + batch_size]
+                try:
+                    if i == 0:
+                        # First batch - create new collection
+                        vectorstore = Chroma.from_documents(
+                            documents=batch_chunks,
+                            embedding=embedding,
+                            persist_directory=persist_directory,
+                            collection_name=session_id
+                        )
+                    else:
+                        # Subsequent batches - add to existing collection
+                        vectorstore.add_documents(batch_chunks)
+                    
+                    app.logger.info(f"Processed chunks {i+1} to {min(i+batch_size, total_chunks)} of {total_chunks}")
+                except Exception as e:
+                    app.logger.error(f"Error processing batch {i//batch_size + 1}: {str(e)}")
+                    raise Exception(f"Error creating vector store: {str(e)}")
+            
+            # Save to disk
+            vectorstore.persist()
+            app.logger.info(f"Successfully created vector store in {persist_directory}")
+            
+        except Exception as e:
+            app.logger.error(f'Error creating vector store: {str(e)}')
+            raise Exception(f'Error creating search index: {str(e)}')
+        
+        # Create summary
+        try:
+            chat_model = ChatGoogleGenerativeAI(
+                google_api_key=api_key,
+                model="gemini-1.5-flash"
+            )
+            
+            summary_prompt = ChatPromptTemplate.from_messages([
+                SystemMessage(content="You are a helpful assistant that summarizes technical documents."),
+                HumanMessagePromptTemplate.from_template("""Summarize the following content into a bullet-point outline for review:
 
 {context}
 
 Summary:""")
-    ])
+            ])
 
-    summary_chain = (
-        RunnablePassthrough()
-        | (lambda docs: {"context": "\n\n".join([d.page_content for d in docs])})
-        | summary_prompt
-        | chat_model
-        | StrOutputParser()
-    )
-    
-    summary = summary_chain.invoke(chunks)
-    
-    return chunks, summary
+            summary_chain = (
+                RunnablePassthrough()
+                | (lambda docs: {"context": "\n\n".join([d.page_content for d in docs])})
+                | summary_prompt
+                | chat_model
+                | StrOutputParser()
+            )
+            
+            summary = summary_chain.invoke(chunks)
+            app.logger.info("Successfully generated document summary")
+        except Exception as e:
+            app.logger.error(f'Error generating summary: {str(e)}')
+            raise Exception(f'Error generating document summary: {str(e)}')
+        
+        return chunks, summary
+        
+    except Exception as e:
+        app.logger.error(f'Error in process_pdfs: {str(e)}')
+        raise
 
 def get_vectorstore(session_id):
     """Retrieve the vectorstore for the given session ID"""
@@ -168,12 +258,13 @@ def get_answer(session_id, question):
     retriever = vectorstore.as_retriever()
     
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are a helpful assistant that answers questions based on the provided context.
-        You will be given a context and a question. Provide a concise answer based on the context."""),
-        HumanMessagePromptTemplate.from_template("""Answer the question based on the given context.
-        Context: {context}
-        Question: {question}
-        Answer: """)
+        SystemMessage(content="""您是一位專精於回答問題的專家。
+        您將被提供一份內容和一個問題。
+        請根據提供的內容回答問題。"""),
+        HumanMessagePromptTemplate.from_template("""根據給定的內容回答問題。
+        內容：{context}
+        問題：{question}
+        答案：""")
     ])
     
     chain = (
@@ -209,7 +300,8 @@ def create_or_get_student_profile(name=None):
         interests=[],
         learning_history=[],
         learning_path=None,
-        current_module_index=0
+        current_module_index=0,
+        learning_path_confirmed=False
     )
     
     # Save the profile
@@ -226,7 +318,6 @@ def save_student_profile(profile):
     with open(profile_path, 'w', encoding='utf-8') as f:
         f.write(profile.model_dump_json(indent=4))
 
-def create_learning_style_survey():
     """Generate a learning style assessment survey"""
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
@@ -293,35 +384,35 @@ def create_pretest(session_id, topic=""):
     )
     
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are an expert in educational assessment design.
-        Based on the provided content, design a pre-test to assess the student's existing knowledge level on the topic.
+        SystemMessage(content="""您是一位專精於教育評估設計的專家。
+        根據提供的內容，設計一份前測（Pre-Test），以評估學生在該主題上的現有知識水平。
         
-        Design questions covering different difficulty levels: easy, medium, and hard.
-        For each question, provide:
-        1. Question text
-        2. Four multiple-choice options (A, B, C, D)
-        3. Correct answer
-        4. Explanation of why it's correct
-        5. Difficulty level
+        請設計涵蓋不同難度級別的問題：簡單、中等和困難。
+        對於每個問題，請提供：
+        1. 問題文本
+        2. 四個多選選項（A, B, C, D）
+        3. 正確答案
+        4. 為什麼正確的解釋
+        5. 難度級別
         
-        You must follow this exact JSON format:
+        您必須遵循以下精確的 JSON 格式：
         {
-          "title": "Pre-test: [Topic]",
-          "description": "This test will assess your existing knowledge of [Topic]",
+          "title": "前測：[主題]",
+          "description": "此測驗將評估您對[主題]的現有知識",
           "questions": [
             {
-              "question": "Question text?",
-              "choices": ["A. Option A", "B. Option B", "C. Option C", "D. Option D"],
-              "correct_answer": "A. Option A",
-              "explanation": "Explanation of why A is correct",
-              "difficulty": "easy"
+              "question": "問題文本？",
+              "choices": ["A. 選項 A", "B. 選項 B", "C. 選項 C", "D. 選項 D"],
+              "correct_answer": "A. 選項 A",
+              "explanation": "為什麼 A 是正確答案的解釋",
+              "difficulty": "簡單"
             }
           ]
         }
 
-        Generate a total of 5 questions including different difficulty levels based on the provided content.
+        請根據提供的內容生成總共 5 個問題，並包含不同難度級別的問題。
         """),
-        HumanMessagePromptTemplate.from_template("""Generate a pre-test based on the following content:
+        HumanMessagePromptTemplate.from_template("""根據以下內容生成一份前測：
         
         {context}
         """)
@@ -358,45 +449,49 @@ def generate_learning_path(session_id, profile, test_results):
         model="gemini-1.5-flash"
     )
     
+    # Get student requirements if they exist
+    student_requirements = test_results.get('student_requirements', '')
+    requirements_prompt = f"\nStudent's specific requirements: {student_requirements}" if student_requirements else ""
+    
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are an expert in personalized learning path design.
-        Based on the provided student profile, test results, and content, create a learning path suitable for self-study.
+        SystemMessage(content=f"""您是一位專精於個人化學習路徑設計的教育課程設計專家。
+        根據提供的學生檔案、測驗結果和內容，創建一條適合他自學的學習路徑。
         
-        Your learning path should:
-        1. Be tailored to the student's learning style, knowledge level, and interests
-        2. Include clear learning objectives
-        3. Follow the scaffolding principle, gradually increasing difficulty while reducing support
+         您的學習路徑應該：
+        1. 針對學生的學習風格、知識水平進行量身定制
+        3. 完整的學習路徑應該包含學習目標、學習章節
+        3. 遵循鷹架原則，逐步增加難度並減少支持
+        4. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
         
         Your response must follow this exact JSON format:
-        {
-          "title": "Personalized Learning Path for [Topic]",
-          "description": "This learning path is tailored to [name]'s learning style and current knowledge level",
-          "objectives": ["Objective 1", "Objective 2", "Objective 3"],
+        {{
+          "title": "針對[主題]的個人化學習路徑",
+          "description": "此學習路徑針對[name]的學習風格和當前知識水平進行量身定制",
+          "objectives": ["目標 1", "目標 2", "目標 3"],
           "modules": [
-            {
-              "title": "Module 1: [Title]",
-              "description": "Module description",
+            {{
+              "title": "章節 1: [標題]",
+              "description": "章節描述",
               "activities": [
-                {
-                  "title": "Activity title",
-                  "description": "Activity description",
-                  "difficulty": "beginner"
-                }
+                {{
+                  "content": "列出該章節要學會的內容",
+                  "source": "資料來源"
+                }}
               ],
-              "resources": ["Handout 1-1", "Handout 1-2"]
-            }
+              
+            }}
           ]
-        }
+        }}
         """),
-        HumanMessagePromptTemplate.from_template("""Generate a personalized learning path based on:
+        HumanMessagePromptTemplate.from_template("""根據以下內容生成個人化學習路徑：
         
-        Student Profile:
+        學生檔案：
         {profile}
         
-        Test Results:
+        測驗結果：
         {test_results}
         
-        Content:
+        內容：
         {context}
         """)
     ])
@@ -436,28 +531,28 @@ def generate_module_content(session_id, module, profile):
     )
     
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are a professional educational content creator.
-        Based on the module topic and the student's learning style and knowledge level, create engaging educational content.
+        SystemMessage(content="""您是一位專業的教育內容創作者。
+        根據模組主題和學生的學習風格和知識水平，創造引人入勝的教育內容。
         
-        Your content should:
-        1. Be tailored to the student's learning style (visual, auditory, or kinesthetic)
-        2. Be appropriate for the student's knowledge level
-        3. Include clear explanations of key concepts
-        4. Use examples and analogies to illustrate points
-        5. Include scaffolding elements appropriate to the knowledge level
-        6. Be well-structured with clear sections and headings
-        7. End with a brief summary of key points
-        
-        Format your content using markdown for readability.
+        您的內容應該：
+        1. 針對學生的學習風格進行量身定制(但是不要放入圖片，如果需要圖片，請使用markdown格式化)
+        2. 適合學生的知識水平
+        3. 包含清晰的關鍵概念解釋
+        4. 使用例子和比喻來闡明觀點
+        5. 包含適合知識水平的應架元素
+        6. 結構清晰，有明確的章節和標題
+        7. 結尾時有簡要的關鍵點總結
+        8. 每個章節都要根據context的內容標註來源(source)，格式為：
+           [來源: 檔名.pdf, 頁碼: X]
+           如果有多個來源，請分別列出。
+        使用markdown格式化您的內容，以提高可讀性。
         """),
-        HumanMessagePromptTemplate.from_template("""Create educational content for:
+        HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
-        Module Topic: {module_topic}
-        Student Learning Style: {learning_style}
-        Student Knowledge Level: {knowledge_level}
-        
-        Relevant Source Material:
-        {context}
+        模組主題：{module_topic}
+        學生學習風格：{learning_style}
+        學生知識水平：{knowledge_level}
+        資料來源：{context}
         """)
     ])
     
@@ -472,7 +567,7 @@ def generate_module_content(session_id, module, profile):
             "module_topic": module_topic,
             "learning_style": profile.learning_style,
             "knowledge_level": profile.current_knowledge_level,
-            "context": "\n\n".join([d.page_content for d in docs])
+            "context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in docs])
         })
         | prompt
         | chat_model
@@ -492,26 +587,25 @@ def simulate_peer_discussion(session_id, topic, message):
     )
     
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are a 'Learning Partner', a friendly and helpful AI peer who engages in constructive discussions with students.
-        Your role is to:
-        1. Simulate a peer who is also studying the topic but has some insights
-        2. Ask thoughtful questions that promote critical thinking
-        3. Provide gentle guidance rather than direct answers
-        4. Express ideas conversationally, as one student to another
-        5. Use Socratic questioning to help students discover answers
-        6. Be encouraging and positive
+        SystemMessage(content="""您是「學習夥伴」，一個友善且有幫助的 AI 同儕，與學生進行有建設性的討論。
+        您的角色是：
+        1. 模擬一位也在學習該主題但有一定見解的同儕
+        2. 提出有助於促進批判性思考的問題
+        3. 提供溫和的指導，而不是直接給出答案
+        4. 以對話的方式表達想法，像是學生之間的交流
+        5. 鼓勵並保持積極的態度
         
-        Respond based on the provided relevant content, but don't simply recite information.
-        Instead, engage in a natural back-and-forth as if learning together.
+        根據提供的相關內容回應，但不要只是簡單地背誦資訊。
+        而是以自然的方式進行來回討論，就像一起學習一樣，但是還是要能回答同學的問題而不是一直反問。
         """),
-        HumanMessagePromptTemplate.from_template("""The student wants to discuss this topic:
+        HumanMessagePromptTemplate.from_template("""學生想要討論這個主題：
         
-        Topic: {topic}
+        主題：{topic}
         
-        Relevant content:
+        相關內容：
         {context}
         
-        Student message:
+        學生訊息：
         {message}
         """)
     ])
@@ -549,44 +643,44 @@ def create_posttest(session_id, module, profile):
     knowledge_level = profile.get('current_knowledge_level', 'beginner')
     
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are a professional educational assessment designer.
-        Based on the module content and the student's current knowledge level, design a post-test with multiple-choice questions to assess the student's learning outcomes.
+        SystemMessage(content="""您是一位專業的教育評估設計師。
+        根據模組內容和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
         
-        The difficulty should match the student's current level:
-        - Beginner: More easy questions (70%), some medium questions (30%)
-        - Intermediate: Some easy questions (30%), mostly medium questions (50%), some hard questions (20%)
-        - Advanced: Some medium questions (40%), mostly hard questions (60%)
+        難度應該符合學生的當前水平：
+        - 初學者：更多容易的問題 (70%)，一些中等難度 (30%)
+        - 中級者：一些容易的問題 (30%)，大多數是中等難度 (50%)，一些難題 (20%)
+        - 進階者：大多數是中等難度 (40%)，大多數是難題 (60%)
         
-        The questions should test the student's understanding, application, and analysis of the content.
+        題目應該測試學生的理解、應用和分析能力。
         
-        For each question, provide:
-        1. Question text
-        2. Four multiple-choice options (A, B, C, D)
-        3. Correct answer
-        4. Explanation of why it's correct
-        5. Difficulty level
+        每個問題應該包含：
+        1. 問題文字
+        2. 四個多選題選項 (A, B, C, D)
+        3. 正確答案
+        4. 為什麼它是正確的解釋
+        5. 難度等級
         
-        You must follow this exact JSON format:
+        您必須遵循這個精確的 JSON 格式：
         {
-          "title": "Post-test: [Topic]",
-          "description": "This test will assess your learning outcomes for [Topic]",
+          "title": "後測: [主題]",
+          "description": "這個測驗將評估您對 [主題] 的學習成果",
           "questions": [
             {
-              "question": "Question text?",
-              "choices": ["A. Option A", "B. Option B", "C. Option C", "D. Option D"],
-              "correct_answer": "A. Option A",
-              "explanation": "Explanation of why A is correct",
+              "question": "問題文字?",
+              "choices": ["A. 選項 A", "B. 選項 B", "C. 選項 C", "D. 選項 D"],
+              "correct_answer": "A. 選項 A",
+              "explanation": "為什麼 A 是正確的解釋",
               "difficulty": "easy"
             }
           ]
         }
 
-        Generate a total of 5 questions with appropriate difficulty distribution based on the student's level.
+        根據學生的水平生成總共 5 個問題，並且適當的難度分布。
         """),
         HumanMessagePromptTemplate.from_template("""Generate a post-test based on:
         
-        Student's Current Knowledge Level: {knowledge_level}
-        Module Content: {context}
+        學生的當前知識水平：{knowledge_level}
+        章節內容：{context}
         """)
     ])
     
@@ -613,31 +707,31 @@ def analyze_learning_log(student_name, topic, log_content):
     )
     
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are a professional educational analyst specializing in analyzing student learning logs.
-        Based on the student's learning log, assess:
+        SystemMessage(content="""您是一位專業的教育分析師，專精於分析學生的學習日誌。
+        根據學生的學習日誌，評估：
         
-        1. Level of understanding of key concepts
-        2. Areas of strength and confidence
-        3. Areas of confusion or misconception
-        4. Emotional response to the material
-        5. Indicators of learning style
+        1. 對於關鍵概念的理解程度
+        2. 學生的強項和信心
+        3. 學生可能的困惑或錯誤理解
+        4. 學生對材料的情感反應
+        5. 學習風格的指標
         
-        Format your response as the following exact JSON structure:
+        您的回應必須遵循以下精確的 JSON 結構：
         {
           "understanding_level": "high/medium/low",
-          "strengths": ["Strength 1", "Strength 2"],
-          "areas_for_improvement": ["Area 1", "Area 2"],
-          "emotional_response": "Description of emotional response",
-          "learning_style_indicators": ["Indicator 1", "Indicator 2"],
-          "recommended_next_steps": ["Suggested step 1", "Suggested step 2"],
-          "suggested_resources": ["Resource 1", "Resource 2"]
+          "strengths": ["強項 1", "強項 2"],
+          "areas_for_improvement": ["需要改進的領域 1", "需要改進的領域 2"],
+          "emotional_response": "學生對材料的情感反應",
+          "learning_style_indicators": ["學習風格指標 1", "學習風格指標 2"],
+          "recommended_next_steps": ["建議的下一步 1", "建議的下一步 2"],
+          "suggested_resources": ["資源 1", "資源 2"]
         }
         """),
-        HumanMessagePromptTemplate.from_template("""Analyze the following learning log:
+        HumanMessagePromptTemplate.from_template("""分析以下學習日誌：
         
-        Student: {student_name}
-        Topic: {topic}
-        Learning Log Content:
+        學生：{student_name}
+        主題：{topic}
+        學習日誌內容：
         {log_content}
         """)
     ])
@@ -708,7 +802,8 @@ def create_user():
             'areas_for_improvement': [],
             'interests': [],
             'learning_history': [],
-            'current_module_index': 0
+            'current_module_index': 0,
+            'learning_path_confirmed': False
         }
         
         # Save profile
@@ -727,47 +822,66 @@ def upload_pdf():
         return redirect(url_for('select_user'))
     
     if request.method == 'POST':
-        if 'pdfs' not in request.files:
-            flash('No files selected')
-            return redirect(request.url)
-        
-        files = request.files.getlist('pdfs')
-        if not files or files[0].filename == '':
-            flash('No files selected')
-            return redirect(request.url)
-        
-        # Generate a unique session ID for this upload
-        session_id = str(uuid.uuid4())
-        session['session_id'] = session_id
-        
-        # Create session directory
-        session_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id)
-        os.makedirs(session_dir, exist_ok=True)
-        
-        file_paths = []
-        for file in files:
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file_path = os.path.join(session_dir, filename)
-                file.save(file_path)
-                file_paths.append(file_path)
-        
-        if not file_paths:
-            flash('No valid PDF files uploaded')
-            return redirect(request.url)
-        
         try:
-            # Process all PDFs and create vector store
-            chunks, summary = process_pdfs(file_paths, session_id)
+            if 'pdfs' not in request.files:
+                app.logger.error('No files part in request')
+                flash('No files selected')
+                return redirect(request.url)
             
-            # Store file paths in session
-            session['pdf_files'] = [os.path.basename(path) for path in file_paths]
+            files = request.files.getlist('pdfs')
+            if not files or files[0].filename == '':
+                app.logger.error('No files selected')
+                flash('No files selected')
+                return redirect(request.url)
             
-            # Redirect to learning style survey
-            return redirect(url_for('learning_style_survey'))
+            # Generate a unique session ID for this upload
+            session_id = str(uuid.uuid4())
+            session['session_id'] = session_id
             
+            # Create session directory
+            session_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id)
+            os.makedirs(session_dir, exist_ok=True)
+            app.logger.info(f"Created session directory: {session_dir}")
+            
+            file_paths = []
+            for file in files:
+                if file and allowed_file(file.filename):
+                    try:
+                        filename = secure_filename(file.filename)
+                        file_path = os.path.join(session_dir, filename)
+                        file.save(file_path)
+                        file_paths.append(file_path)
+                        app.logger.info(f"Successfully saved file: {filename}")
+                    except Exception as e:
+                        app.logger.error(f"Error saving file {file.filename}: {str(e)}")
+                        flash(f"Error saving file {file.filename}: {str(e)}")
+                        continue
+            
+            if not file_paths:
+                app.logger.error('No valid PDF files uploaded')
+                flash('No valid PDF files uploaded')
+                return redirect(request.url)
+            
+            try:
+                # Process all PDFs and create vector store
+                app.logger.info("Starting PDF processing")
+                chunks, summary = process_pdfs(file_paths, session_id)
+                
+                # Store file paths in session
+                session['pdf_files'] = [os.path.basename(path) for path in file_paths]
+                
+                # Redirect to learning style survey
+                app.logger.info("PDF processing completed successfully")
+                return redirect(url_for('learning_style_survey'))
+                
+            except Exception as e:
+                app.logger.error(f'Error processing PDFs: {str(e)}')
+                flash(f'Error processing files: {str(e)}')
+                return redirect(request.url)
+                
         except Exception as e:
-            flash(f'Error processing files: {str(e)}')
+            app.logger.error(f'Error in upload_pdf: {str(e)}')
+            flash(f'An unexpected error occurred: {str(e)}')
             return redirect(request.url)
     
     return render_template('upload_pdf.html')
@@ -806,7 +920,8 @@ def learning_style_survey():
                 'interests': [],
                 'learning_history': [],
                 'learning_path': None,
-                'current_module_index': 0
+                'current_module_index': 0,
+                'learning_path_confirmed': False
             }
         
         # Update the profile with both simplified and detailed learning style info
@@ -879,10 +994,18 @@ def pretest():
             'results': results
         })
         profile.current_module_index = 0
+        profile.learning_path_confirmed = False  # Reset confirmation status
         save_student_profile(profile)
         
-        # Redirect to learning interface (return JSON for fetch)
-        return jsonify({'redirect': url_for('learning')})
+        # Return detailed results
+        return jsonify({
+            'score': correct_count,
+            'total': len(answers),
+            'percentage': score_percentage,
+            'knowledge_level': knowledge_level,
+            'results': results,
+            'redirect': url_for('learning_path_discussion')
+        })
     
     # Generate pretest
     pretest_data = create_pretest(session['session_id'])
@@ -900,42 +1023,40 @@ def learning():
         return redirect(url_for('select_user'))
     
     with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+        student_profile = StudentProfile.model_validate(json.load(f))
     
     # Check if student has completed learning style survey
-    if not student_profile.get('learning_style'):
+    if not student_profile.learning_style:
         return redirect(url_for('learning_style_survey'))
     
     # Check if student has a learning path
-    if not student_profile.get('learning_path'):
+    if not student_profile.learning_path:
         return redirect(url_for('pretest'))
     
     # Get current module index
-    current_module_index = student_profile.get('current_module_index', 0)
+    current_module_index = student_profile.current_module_index or 0
     
     # Validate current module index
-    if current_module_index >= len(student_profile['learning_path']['modules']):
+    if current_module_index >= len(student_profile.learning_path['modules']):
         # If student has completed all modules, redirect to summary
         return redirect(url_for('summary'))
     
     # Get current module
-    current_module = student_profile['learning_path']['modules'][current_module_index]
+    current_module = student_profile.learning_path['modules'][current_module_index]
     
     # Generate module content if not already present
     if 'content' not in current_module:
         try:
-            # Convert to StudentProfile object
-            profile_obj = StudentProfile.model_validate(student_profile)
-            content = generate_module_content(session['session_id'], current_module, profile_obj)
+            content = generate_module_content(session['session_id'], current_module, student_profile)
             current_module['content'] = content
             # Save the updated profile with content
             with open(profile_path, 'w', encoding='utf-8') as f:
-                json.dump(student_profile, f, ensure_ascii=False, indent=4)
+                json.dump(student_profile.model_dump(), f, ensure_ascii=False, indent=4)
         except Exception as e:
             current_module['content'] = f"Error generating content: {str(e)}"
     
     return render_template('learning.html', 
-                         student_profile=student_profile,
+                         student_profile=student_profile.model_dump(),
                          current_module=current_module)
 
 @app.route('/api/profile', methods=['GET', 'POST'])
@@ -971,7 +1092,6 @@ def learning_style():
             'profile': profile.model_dump()
         })
     else:
-        survey = create_learning_style_survey()
         return jsonify(survey)
 
 @app.route('/api/learning-path', methods=['GET'])
@@ -1245,7 +1365,7 @@ def create_learning_log(module_index):
         save_student_profile(profile)
         
         # Save the learning log
-        with open(os.path.join(app.config['LEARNING_LOGS_DIR'], f"{log_id}.json"), 'w') as f:
+        with open(os.path.join(app.config['LEARNING_LOGS_DIR'], f"{log_id}.json"), 'w', encoding='utf-8') as f:
             f.write(log.model_dump_json(indent=4))
         
         return jsonify({
@@ -1345,20 +1465,242 @@ def update_module_index():
 def summary():
     if 'student_id' not in session:
         return redirect(url_for('select_user'))
+    
     # 讀取學生檔案
     with open(f'chinese/student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
         student_profile = json.load(f)
+    
     # 讀取所有學習日誌
     logs = []
     for log_file in os.listdir('learning_logs'):
         if log_file.endswith('.json'):
-            with open(os.path.join('learning_logs', log_file), 'r', encoding='utf-8') as lf:
-                log = json.load(lf)
+            try:
+                # 嘗試使用不同的編碼方式讀取文件
+                try:
+                    with open(os.path.join('learning_logs', log_file), 'r', encoding='utf-8') as lf:
+                        log = json.load(lf)
+                except UnicodeDecodeError:
+                    with open(os.path.join('learning_logs', log_file), 'r', encoding='big5') as lf:
+                        log = json.load(lf)
+                
                 if log['student_id'] == student_profile['id']:
                     logs.append(log)
+            except Exception as e:
+                app.logger.error(f"Error reading log file {log_file}: {str(e)}")
+                continue
+    
     # 按時間排序
     logs.sort(key=lambda x: x['timestamp'])
     return render_template('summary.html', student_profile=student_profile, logs=logs)
+
+@app.route('/learning_path_discussion')
+def learning_path_discussion():
+    if 'student_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return redirect(url_for('select_user'))
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    # Check if learning path exists
+    if not student_profile.get('learning_path'):
+        return redirect(url_for('pretest'))
+    
+    # Check if learning path has already been confirmed
+    if student_profile.get('learning_path_confirmed'):
+        return redirect(url_for('learning'))
+    
+    return render_template('learning_path_discussion.html', 
+                         learning_path=student_profile['learning_path'])
+
+@app.route('/api/discuss-learning-path', methods=['POST'])
+def discuss_learning_path():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    
+    data = request.json
+    message = data.get('message')
+    
+    if not message:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    # Get learning path
+    learning_path = student_profile.get('learning_path')
+    if not learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    # Create chat model
+    chat_model = ChatGoogleGenerativeAI(
+        google_api_key=api_key,
+        model="gemini-1.5-flash"
+    )
+    
+    # Create prompt for discussion
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content="""
+            你是一位專業的學習路徑設計師，正在與學生討論他們的個人化學習路徑。
+            你已經擁有學生的學習路徑（{learning_path}）和個人檔案（{profile}）。
+            當學生提出修改需求時，請直接根據這些資訊自動修改學習路徑，只需用簡短的中文回覆說明修改了什麼，並在需要時加上 [ADJUST_PATH] 標記。
+            禁止要求學生再提供任何資訊，也不要詢問學生「請提供 learning_path 或 profile」。
+            """),
+        HumanMessagePromptTemplate.from_template("學生訊息：{message}")
+    ])
+    
+    # Create the chain
+    discussion_chain = (
+        RunnablePassthrough()
+        | prompt
+        | chat_model
+        | StrOutputParser()
+    )
+    
+    try:
+        response = discussion_chain.invoke({
+            "learning_path": json.dumps(learning_path, ensure_ascii=False),
+            "profile": json.dumps({
+                "name": student_profile['name'],
+                "learning_style": student_profile['learning_style'],
+                "current_knowledge_level": student_profile['current_knowledge_level']
+            }, ensure_ascii=False),
+            "message": message
+        })
+        
+        # Check if the response indicates path adjustment is needed
+        path_adjusted = False
+        if "[ADJUST_PATH]" in response:
+            # Remove the adjustment marker from the response
+            response = response.replace("[ADJUST_PATH]", "").strip()
+            
+            # Generate new learning path with student's requirements
+            new_learning_path = generate_learning_path(
+                session['session_id'],
+                StudentProfile.model_validate(student_profile),
+                {
+                    'score_percentage': student_profile.get('pretest_score', 0),
+                    'knowledge_level': student_profile['current_knowledge_level'],
+                    'student_requirements': message  # Add student's requirements to the test results
+                }
+            )
+            
+            # Update student profile with new learning path
+            student_profile['learning_path'] = new_learning_path
+            
+            # Save updated profile
+            with open(profile_path, 'w', encoding='utf-8') as f:
+                json.dump(student_profile, f, ensure_ascii=False, indent=4)
+            
+            path_adjusted = True
+        
+        return jsonify({
+            'response': response,
+            'path_adjusted': path_adjusted
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/adjust-learning-path', methods=['POST'])
+def adjust_learning_path():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    try:
+        # Generate new learning path
+        new_learning_path = generate_learning_path(
+            session['session_id'],
+            StudentProfile.model_validate(student_profile),
+            {
+                'score_percentage': student_profile.get('pretest_score', 0),
+                'knowledge_level': student_profile['current_knowledge_level']
+            }
+        )
+        
+        # Update student profile with new learning path
+        student_profile['learning_path'] = new_learning_path
+        
+        # Save updated profile
+        with open(profile_path, 'w', encoding='utf-8') as f:
+            json.dump(student_profile, f, ensure_ascii=False, indent=4)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/confirm-learning-path', methods=['POST'])
+def confirm_learning_path():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    # Mark learning path as confirmed
+    student_profile['learning_path_confirmed'] = True
+    
+    # Save updated profile
+    with open(profile_path, 'w', encoding='utf-8') as f:
+        json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    
+    return jsonify({'success': True})
+
+@app.route('/api/get-current-learning-path', methods=['GET'])
+def get_current_learning_path():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    
+    # Load student profile
+    profile_path = os.path.join('chinese/student_profiles', f"{session['student_id']}.json")
+    if not os.path.exists(profile_path):
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    with open(profile_path, 'r', encoding='utf-8') as f:
+        student_profile = json.load(f)
+    
+    # Check if learning path exists
+    if not student_profile.get('learning_path'):
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    return jsonify({
+        'learning_path': student_profile['learning_path']
+    })
+
+@app.route('/view_pdf/<path:filename>')
+def view_pdf(filename):
+    """Serve PDF files for viewing"""
+    if 'session_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    # Get the PDF file path
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], session['session_id'], filename)
+    
+    if not os.path.exists(pdf_path):
+        return "PDF file not found", 404
+    
+    return send_file(pdf_path, mimetype='application/pdf')
 
 if __name__ == '__main__':
     app.run(debug=True)

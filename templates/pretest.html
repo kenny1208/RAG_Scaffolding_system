@@ -35,6 +35,41 @@
             </button>
           </div>
         </form>
+
+        <!-- Results Modal -->
+        <div
+          class="modal fade"
+          id="resultsModal"
+          tabindex="-1"
+          aria-labelledby="resultsModalLabel"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="resultsModalLabel">測驗結果</h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <div id="results-content"></div>
+                <div class="text-center mt-4">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="continue-btn"
+                  >
+                    繼續學習
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -43,6 +78,11 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("pretest-form");
+    const resultsModal = new bootstrap.Modal(
+      document.getElementById("resultsModal")
+    );
+    const resultsContent = document.getElementById("results-content");
+    const continueBtn = document.getElementById("continue-btn");
 
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -80,11 +120,52 @@
 
         if (response.ok) {
           const data = await response.json();
-          if (data.redirect) {
-            window.location.href = data.redirect;
-          } else {
-            window.location.href = "{{ url_for('learning') }}";
-          }
+
+          // Display results
+          let resultsHtml = "";
+          data.results.forEach((result, index) => {
+            const isCorrect = result.is_correct;
+            const icon = isCorrect ? "✅" : "❌";
+            const bgClass = isCorrect
+              ? "bg-success-subtle"
+              : "bg-danger-subtle";
+
+            resultsHtml += `
+              <div class="card mb-3 ${bgClass}">
+                <div class="card-body">
+                  <h5 class="card-title">第 ${index + 1} 題 ${icon}</h5>
+                  <p class="card-text">${result.question}</p>
+                  <p class="card-text">
+                    <strong>你的答案：</strong> ${result.student_answer}<br>
+                    <strong>正確答案：</strong> ${result.correct_answer}<br>
+                    <strong>解釋：</strong> ${result.explanation}
+                  </p>
+                </div>
+              </div>
+            `;
+          });
+
+          // Add score summary
+          resultsHtml = `
+            <div class="alert alert-info mb-4">
+              <h4 class="alert-heading">測驗總結</h4>
+              <p>得分：${data.score}/${data.total} (${data.percentage}%)</p>
+              <p>知識水平：${data.knowledge_level}</p>
+            </div>
+            ${resultsHtml}
+          `;
+
+          resultsContent.innerHTML = resultsHtml;
+          resultsModal.show();
+
+          // Handle continue button click
+          continueBtn.onclick = function () {
+            if (data.redirect) {
+              window.location.href = data.redirect;
+            } else {
+              window.location.href = "{{ url_for('learning') }}";
+            }
+          };
         } else {
           const data = await response.json();
           alert(data.error || "An error occurred");

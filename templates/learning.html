@@ -53,7 +53,9 @@
         <h2 class="card-title mb-4">{{ current_module.title }}</h2>
         <p class="lead mb-4">{{ current_module.description }}</p>
 
-        <div class="module-content mb-4">{{ current_module.content|safe }}</div>
+        <div class="module-content markdown-body mb-4">
+          {{ current_module.content|safe }}
+        </div>
 
         <div class="d-flex justify-content-between">
           <button class="btn btn-outline-primary" id="start-discussion">
@@ -115,6 +117,36 @@
     </div>
   </div>
 </div>
+
+<!-- PDF Viewer Modal -->
+<div
+  class="modal fade"
+  id="pdfViewerModal"
+  tabindex="-1"
+  aria-labelledby="pdfViewerModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pdfViewerModalLabel">PDF 文件</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <iframe
+          id="pdfViewer"
+          style="width: 100%; height: 80vh"
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
@@ -124,6 +156,35 @@
     if (moduleContent) {
       const markdownContent = moduleContent.textContent;
       moduleContent.innerHTML = marked.parse(markdownContent);
+
+      // Process markdown content to add PDF links
+      const content = moduleContent.innerHTML;
+      // Replace source citations with clickable links
+      const processedContent = content.replace(
+        /\[來源: ([^,]+), 頁碼: (\d+)\]/g,
+        '<a href="#" data-pdf="$1" data-page="$2" class="pdf-link">[來源: $1, 頁碼: $2]</a>'
+      );
+      moduleContent.innerHTML = processedContent;
+
+      // Add click handlers for the newly created PDF links
+      document.querySelectorAll(".pdf-link").forEach((link) => {
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          const pdfPath = this.getAttribute("data-pdf");
+          const page = this.getAttribute("data-page");
+
+          // Reset iframe src to force reload
+          pdfViewer.src = "";
+
+          // Set new PDF viewer source with page parameter
+          setTimeout(() => {
+            pdfViewer.src = `/view_pdf/${pdfPath}#page=${page}`;
+          }, 100);
+
+          // Show modal
+          pdfViewerModal.show();
+        });
+      });
     }
 
     // eslint-disable-next-line
@@ -396,6 +457,32 @@
       if (e.key === "Enter") {
         sendMessage();
       }
+    });
+
+    // Initialize PDF viewer modal
+    const pdfViewerModal = new bootstrap.Modal(
+      document.getElementById("pdfViewerModal")
+    );
+    const pdfViewer = document.getElementById("pdfViewer");
+
+    // Add click handlers for PDF links
+    document.querySelectorAll(".module-content a[data-pdf]").forEach((link) => {
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        const pdfPath = this.getAttribute("data-pdf");
+        const page = this.getAttribute("data-page");
+
+        // Reset iframe src to force reload
+        pdfViewer.src = "";
+
+        // Set new PDF viewer source with page parameter
+        setTimeout(() => {
+          pdfViewer.src = `/view_pdf/${pdfPath}#page=${page}`;
+        }, 100);
+
+        // Show modal
+        pdfViewerModal.show();
+      });
     });
   });
 </script>

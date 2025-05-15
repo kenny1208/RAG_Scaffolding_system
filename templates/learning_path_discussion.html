@@ -1,0 +1,241 @@
+{% extends "base.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h2 class="card-title text-center mb-4">學習路徑討論</h2>
+        <p class="lead text-center mb-4">
+          讓我們一起討論並確認您的個人化學習路徑
+        </p>
+
+        <!-- Learning Path Overview -->
+        <div id="learning-path-container" class="learning-path-overview mb-4">
+          <h3 class="h5 mb-3">建議的學習路徑</h3>
+          <div class="card">
+            <div class="card-body">
+              <h4 class="h6">{{ learning_path.title }}</h4>
+              <p>{{ learning_path.description }}</p>
+
+              <h5 class="mt-3">學習目標：</h5>
+              <ul>
+                {% for objective in learning_path.objectives %}
+                <li>{{ objective }}</li>
+                {% endfor %}
+              </ul>
+
+              <h5 class="mt-3">學習模組：</h5>
+              <div class="list-group">
+                {% for module in learning_path.modules %}
+                <div class="list-group-item">
+                  <h6 class="mb-1">{{ module.title }}</h6>
+                  <p class="mb-1">{{ module.description }}</p>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Discussion Section -->
+        <div class="discussion-section">
+          <h3 class="h5 mb-3">與 AI 學習顧問討論</h3>
+          <div class="chat-container">
+            <div
+              id="chat-messages"
+              class="mb-3"
+              style="height: 300px; overflow-y: auto"
+            >
+              <div class="message bot-message">
+                您好！我是您的學習顧問。我已經根據您的學習風格和知識水平設計了這個學習路徑。
+                您對這個學習路徑有什麼想法或問題嗎？我們可以一起討論並根據您的需求進行調整。
+              </div>
+            </div>
+
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="message-input"
+                placeholder="請輸入您的問題或想法..."
+              />
+              <button class="btn btn-primary" id="send-message">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirmation Button -->
+        <div class="text-center mt-4">
+          <button class="btn btn-success" id="confirm-path">
+            <i class="fas fa-check me-2"></i>
+            確認並開始學習
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const messageInput = document.getElementById("message-input");
+    const sendMessageBtn = document.getElementById("send-message");
+    const chatMessages = document.getElementById("chat-messages");
+    const confirmPathBtn = document.getElementById("confirm-path");
+    const learningPathContainer = document.getElementById(
+      "learning-path-container"
+    );
+
+    // Function to update learning path section
+    function updateLearningPath() {
+      fetch("/api/get-current-learning-path")
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.learning_path) {
+            const learningPath = data.learning_path;
+            let html = `
+              <h3 class="h5 mb-3">建議的學習路徑</h3>
+              <div class="card">
+                <div class="card-body">
+                  <h4 class="h6">${learningPath.title}</h4>
+                  <p>${learningPath.description}</p>
+
+                  <h5 class="mt-3">學習目標：</h5>
+                  <ul>
+                    ${learningPath.objectives
+                      .map((obj) => `<li>${obj}</li>`)
+                      .join("")}
+                  </ul>
+
+                  <h5 class="mt-3">學習模組：</h5>
+                  <div class="list-group">
+                    ${learningPath.modules
+                      .map(
+                        (module) => `
+                      <div class="list-group-item">
+                        <h6 class="mb-1">${module.title}</h6>
+                        <p class="mb-1">${module.description}</p>
+                      </div>
+                    `
+                      )
+                      .join("")}
+                  </div>
+                </div>
+              </div>
+            `;
+            learningPathContainer.innerHTML = html;
+          }
+        })
+        .catch((error) => {
+          console.error("Error updating learning path:", error);
+        });
+    }
+
+    // Handle sending messages
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message) {
+        // Add user message to chat
+        const userMessage = document.createElement("div");
+        userMessage.className = "message user-message";
+        userMessage.textContent = message;
+        chatMessages.appendChild(userMessage);
+
+        // Clear input
+        messageInput.value = "";
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Send to backend
+        fetch("/api/discuss-learning-path", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: message,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.response) {
+              const botMessage = document.createElement("div");
+              botMessage.className = "message bot-message";
+              botMessage.textContent = data.response;
+              chatMessages.appendChild(botMessage);
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+
+              // If the learning path was adjusted, update only the learning path section
+              if (data.path_adjusted) {
+                updateLearningPath();
+              }
+            } else {
+              alert(data.error || "AI 沒有回應");
+            }
+          })
+          .catch((error) => {
+            alert("AI 回應失敗");
+            console.error("錯誤：", error);
+          });
+      }
+    }
+
+    sendMessageBtn.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+
+    // Handle path confirmation
+    confirmPathBtn.addEventListener("click", function () {
+      fetch("/api/confirm-learning-path", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            window.location.href = "/learning";
+          } else {
+            alert(data.error || "確認學習路徑失敗");
+          }
+        })
+        .catch((error) => {
+          alert("請求失敗");
+          console.error("錯誤：", error);
+        });
+    });
+  });
+</script>
+
+<style>
+  .message {
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    max-width: 80%;
+  }
+
+  .bot-message {
+    background-color: #f0f0f0;
+    margin-right: auto;
+  }
+
+  .user-message {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
+  }
+
+  .chat-container {
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+  }
+</style>
+{% endblock %}
