@@ -539,17 +539,28 @@ def generate_module_content(session_id, module, profile):
     is_retry = module.get('retry_count', 0) > 0
     retry_count = module.get('retry_count', 0)
     
-    # Determine scaffolding level based on knowledge level and retry count
+    # Determine scaffolding level based on multiple factors
     knowledge_level = profile.current_knowledge_level
-    scaffolding_level = "high"  # Default to high scaffolding
+    emotional_state = module.get('emotional_analysis', {})
+    base_scaffolding_level = module.get('scaffolding_level', 'medium')
     
-    if knowledge_level == "advanced":
+    # Adjust scaffolding level based on emotional state
+    if emotional_state:
+        if emotional_state.get('frustration_level') == 'high' or emotional_state.get('confidence_level') == 'low':
+            base_scaffolding_level = 'high'
+        elif emotional_state.get('engagement_level') == 'high' and emotional_state.get('confidence_level') == 'high':
+            base_scaffolding_level = 'low'
+    
+    # Further adjust based on knowledge level and retry count
+    if knowledge_level == "advanced" and base_scaffolding_level != 'high':
         scaffolding_level = "low"
     elif knowledge_level == "intermediate":
-        if retry_count == 0:
+        if retry_count == 0 and base_scaffolding_level != 'high':
             scaffolding_level = "medium"
         else:
             scaffolding_level = "high"
+    else:
+        scaffolding_level = "high"
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
@@ -779,18 +790,25 @@ def analyze_learning_log(student_name, topic, log_content):
         1. 對於關鍵概念的理解程度
         2. 學生的強項和信心
         3. 學生可能的困惑或錯誤理解
-        4. 學生對材料的情感反應
+        4. 學生對材料的情感反應和情緒狀態
         5. 學習風格的指標
+        6. 建議的鷹架支持等級（高/中/低）
         
         您的回應必須遵循以下精確的 JSON 結構：
         {
           "understanding_level": "high/medium/low",
           "strengths": ["強項 1", "強項 2"],
           "areas_for_improvement": ["需要改進的領域 1", "需要改進的領域 2"],
-          "emotional_response": "學生對材料的情感反應",
+          "emotional_state": {
+            "primary_emotion": "主要情緒",
+            "confidence_level": "high/medium/low",
+            "frustration_level": "high/medium/low",
+            "engagement_level": "high/medium/low"
+          },
           "learning_style_indicators": ["學習風格指標 1", "學習風格指標 2"],
           "recommended_next_steps": ["建議的下一步 1", "建議的下一步 2"],
-          "suggested_resources": ["資源 1", "資源 2"]
+          "suggested_resources": ["資源 1", "資源 2"],
+          "recommended_scaffolding_level": "high/medium/low"
         }
         """),
         HumanMessagePromptTemplate.from_template("""分析以下學習日誌：
@@ -1433,10 +1451,27 @@ def create_learning_log(module_index):
                 if area not in profile.areas_for_improvement:
                     profile.areas_for_improvement.append(area)
         
+        # Update module's scaffolding level based on emotional analysis
+        if "emotional_state" in analysis and "recommended_scaffolding_level" in analysis:
+            emotional_state = analysis["emotional_state"]
+            recommended_level = analysis["recommended_scaffolding_level"]
+            
+            # Store emotional analysis in module
+            module['emotional_analysis'] = emotional_state
+            module['scaffolding_level'] = recommended_level
+            
+            # If frustration is high or confidence is low, increase scaffolding
+            if emotional_state['frustration_level'] == 'high' or emotional_state['confidence_level'] == 'low':
+                module['scaffolding_level'] = 'high'
+            # If engagement is high and confidence is high, decrease scaffolding
+            elif emotional_state['engagement_level'] == 'high' and emotional_state['confidence_level'] == 'high':
+                module['scaffolding_level'] = 'low'
+        
         # If this is a retry, mark the module for easier test
         if is_retry:
             module['retry_count'] = module.get('retry_count', 0) + 1
             module['easier_test'] = True
+            module['scaffolding_level'] = 'high'  # Increase scaffolding for retry
         
         # Save the profile
         save_student_profile(profile)
@@ -1447,7 +1482,8 @@ def create_learning_log(module_index):
         
         return jsonify({
             'log': log.model_dump(),
-            'analysis': analysis
+            'analysis': analysis,
+            'scaffolding_level': module.get('scaffolding_level', 'medium')
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
