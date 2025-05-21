@@ -405,7 +405,14 @@ def create_pretest(session_id, topic=""):
           ]
         }
 
-        請根據提供的內容生成總共 5 個問題，並包含不同難度級別的問題。
+        請根據提供的內容生成總共 10 個問題，並確保：
+        1. 問題要涵蓋教材中的所有重要概念和主題
+        2. 包含不同難度級別的問題：
+           - 4 題簡單題目（基礎概念理解）
+           - 4 題中等難度（概念應用）
+           - 2 題困難題目（進階分析和整合）
+        3. 每個問題都要有明確的學習目標
+        4. 確保問題的選項都是合理的，且只有一個正確答案
         """),
         HumanMessagePromptTemplate.from_template("""根據以下內容生成一份前測：
         
@@ -452,13 +459,13 @@ def generate_learning_path(session_id, profile, test_results):
         SystemMessage(content=f"""您是一位專精於個人化學習路徑設計的教育課程設計專家。
         根據提供的學生檔案、測驗結果和內容，創建一條適合他自學的學習路徑。
         
-         您的學習路徑應該：
-        1. 針對學生的學習風格、知識水平進行量身定制
-        3. 完整的學習路徑應該包含學習目標、學習章節
+        您的學習路徑必須：
+        1. 完整涵蓋教材中的所有重要內容和概念
+        2. 針對學生的學習風格、知識水平進行量身調整
         3. 遵循鷹架原則，逐步增加難度並減少支持
         4. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
         
-        Your response must follow this exact JSON format:
+        您的回應必須遵循這個精確的 JSON 格式：
         {{
           "title": "針對[主題]的個人化學習路徑",
           "description": "此學習路徑針對[name]的學習風格和當前知識水平進行量身定制",
@@ -637,14 +644,19 @@ def create_posttest(session_id, module, profile):
     # Get knowledge level from profile dictionary
     knowledge_level = profile.get('current_knowledge_level', 'beginner')
     
+    # Check if this is a retry with easier test
+    is_easier_test = module.get('easier_test', False)
+    
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""您是一位專業的教育評估設計師。
+        SystemMessage(content=f"""您是一位專業的教育評估設計師。
         根據模組內容和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
         
         難度應該符合學生的當前水平：
         - 初學者：更多容易的問題 (70%)，一些中等難度 (30%)
         - 中級者：一些容易的問題 (30%)，大多數是中等難度 (50%)，一些難題 (20%)
         - 進階者：大多數是中等難度 (40%)，大多數是難題 (60%)
+        
+        {'如果這是重新學習的測驗，請將所有問題的難度降低一級，並增加更多基礎概念的問題。' if is_easier_test else ''}
         
         題目應該測試學生的理解、應用和分析能力。
         
@@ -656,19 +668,19 @@ def create_posttest(session_id, module, profile):
         5. 難度等級
         
         您必須遵循這個精確的 JSON 格式：
-        {
+        {{
           "title": "後測: [主題]",
           "description": "這個測驗將評估您對 [主題] 的學習成果",
           "questions": [
-            {
+            {{
               "question": "問題文字?",
               "choices": ["A. 選項 A", "B. 選項 B", "C. 選項 C", "D. 選項 D"],
               "correct_answer": "A. 選項 A",
               "explanation": "為什麼 A 是正確的解釋",
               "difficulty": "easy"
-            }
+            }}
           ]
-        }
+        }}
 
         根據學生的水平生成總共 5 個問題，並且適當的難度分布。
         """),
@@ -1325,6 +1337,7 @@ def create_learning_log(module_index):
     
     data = request.json
     log_content = data.get('content', '')
+    is_retry = data.get('retry', False)
     
     if not log_content:
         return jsonify({'error': 'No log content provided'}), 400
@@ -1360,6 +1373,11 @@ def create_learning_log(module_index):
             for area in analysis["areas_for_improvement"]:
                 if area not in profile.areas_for_improvement:
                     profile.areas_for_improvement.append(area)
+        
+        # If this is a retry, mark the module for easier test
+        if is_retry:
+            module['retry_count'] = module.get('retry_count', 0) + 1
+            module['easier_test'] = True
         
         # Save the profile
         save_student_profile(profile)

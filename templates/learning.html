@@ -297,11 +297,65 @@
               <textarea class="form-control" id="learning-log-content" rows="5" 
                 placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
             </div>
-            <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
+            ${
+              data.percentage < 60
+                ? `
+              <div class="alert alert-info mb-3">
+                <p>你的測驗分數顯示你可能需要更多時間來掌握這個主題。你想要：</p>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-warning" id="retry-module">重新學習這個章節</button>
+                  <button class="btn btn-primary" id="submit-learning-log">繼續下一個章節</button>
+                </div>
+              </div>
+            `
+                : `
+              <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
+            `
+            }
           </div>
         `;
           document.getElementById("test-questions").innerHTML = resultsHtml;
           submitTestBtn.style.display = "none";
+
+          // Add event listener for retry button if it exists
+          const retryButton = document.getElementById("retry-module");
+          if (retryButton) {
+            retryButton.addEventListener("click", function () {
+              // Submit learning log first
+              const logContent = document
+                .getElementById("learning-log-content")
+                .value.trim();
+              if (!logContent) {
+                alert("請填寫學習日誌內容");
+                return;
+              }
+
+              // Submit learning log with retry flag
+              fetch(`/api/learning-log/${moduleIndex}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  content: logContent,
+                  retry: true,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data.error) {
+                    alert(data.error);
+                    return;
+                  }
+                  // Reload the page to retry the module
+                  window.location.reload();
+                })
+                .catch((error) => {
+                  console.error("Error:", error);
+                  alert("提交學習日誌時發生錯誤");
+                });
+            });
+          }
 
           // Add event listener for learning log submission
           document
