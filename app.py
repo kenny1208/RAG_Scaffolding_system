@@ -906,8 +906,13 @@ def learning_style_survey():
         profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
         
         if os.path.exists(profile_path):
-            with open(profile_path, 'r') as f:
-                profile = json.load(f)
+            try:
+                with open(profile_path, 'r', encoding='utf-8') as f:
+                    profile = json.load(f)
+            except UnicodeDecodeError:
+                # If UTF-8 fails, try with a different encoding
+                with open(profile_path, 'r', encoding='big5') as f:
+                    profile = json.load(f)
         else:
             # Create a new profile if it doesn't exist
             profile = {
