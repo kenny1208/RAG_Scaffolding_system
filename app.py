@@ -16,12 +16,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Dict, Optional, Any
 import nltk
-from chinese.test import (
-    initialize_models, initialize_rag_system, manage_student_profile,
-    conduct_learning_style_survey, administer_pretest, generate_learning_path,
-    deliver_module_content, engage_peer_discussion, administer_posttest,
-    create_learning_log
-)
+
 import time
 
 # Initialize Flask app
