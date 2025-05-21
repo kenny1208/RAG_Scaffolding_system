@@ -57,6 +57,45 @@
           {{ current_module.content|safe }}
         </div>
 
+        <!-- Interactive Learning Elements -->
+        <div class="interactive-elements mb-4">
+          <!-- Self-Check Questions -->
+          <div class="card mb-3" id="self-check-section">
+            <div class="card-body">
+              <h4 class="h5 mb-3">自我檢查</h4>
+              <div id="self-check-questions"></div>
+              <button class="btn btn-outline-primary mt-3" id="check-answers">
+                檢查答案
+              </button>
+            </div>
+          </div>
+
+          <!-- Practice Exercises -->
+          <div class="card mb-3" id="practice-section">
+            <div class="card-body">
+              <h4 class="h5 mb-3">實踐練習</h4>
+              <div id="practice-exercises"></div>
+            </div>
+          </div>
+
+          <!-- Reflection Prompts -->
+          <div class="card mb-3" id="reflection-section">
+            <div class="card-body">
+              <h4 class="h5 mb-3">反思提示</h4>
+              <div id="reflection-prompts"></div>
+              <textarea
+                class="form-control mt-3"
+                id="reflection-input"
+                rows="3"
+                placeholder="請分享你的想法..."
+              ></textarea>
+              <button class="btn btn-outline-primary mt-3" id="save-reflection">
+                保存反思
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="d-flex justify-content-between">
           <button class="btn btn-outline-primary" id="start-discussion">
             <i class="fas fa-comments me-2"></i>
@@ -149,43 +188,78 @@
 </div>
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // Convert markdown content to HTML
-    const moduleContent = document.querySelector(".module-content");
-    if (moduleContent) {
-      const markdownContent = moduleContent.textContent;
-      moduleContent.innerHTML = marked.parse(markdownContent);
+    // Initialize Mermaid
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+      },
+    });
 
-      // Process markdown content to add PDF links
-      const content = moduleContent.innerHTML;
-      // Replace source citations with clickable links
-      const processedContent = content.replace(
-        /\[來源: ([^,]+), 頁碼: (\d+)\]/g,
-        '<a href="#" data-pdf="$1" data-page="$2" class="pdf-link">[來源: $1, 頁碼: $2]</a>'
-      );
-      moduleContent.innerHTML = processedContent;
+    // Initialize module content
+    function initializeModuleContent() {
+      const moduleContentElement = document.querySelector(".module-content");
+      if (moduleContentElement) {
+        const markdownContent = moduleContentElement.textContent;
+        moduleContentElement.innerHTML = marked.parse(markdownContent);
 
-      // Add click handlers for the newly created PDF links
-      document.querySelectorAll(".pdf-link").forEach((link) => {
-        link.addEventListener("click", function (e) {
-          e.preventDefault();
-          const pdfPath = this.getAttribute("data-pdf");
-          const page = this.getAttribute("data-page");
+        // 1. 先把 mermaid code block 轉成 <div class="mermaid">...</div>
+        moduleContentElement.innerHTML = moduleContentElement.innerHTML.replace(
+          /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+          function (match, p1) {
+            // 還原 HTML 實體
+            const code = p1
+              .replace(/&amp;/g, "&")
+              .replace(/&lt;/g, "<")
+              .replace(/&gt;/g, ">")
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'");
+            return `<div class="mermaid">${code.trim()}</div>`;
+          }
+        );
 
-          // Reset iframe src to force reload
-          pdfViewer.src = "";
+        // 2. 再把 [來源: xxx.pdf, 頁碼: X] 轉成超連結
+        moduleContentElement.innerHTML = moduleContentElement.innerHTML.replace(
+          /\[來源: ([^,]+), 頁碼: (\d+)\]/g,
+          '<a href="#" data-pdf="$1" data-page="$2" class="pdf-link">[來源: $1, 頁碼: $2]</a>'
+        );
 
-          // Set new PDF viewer source with page parameter
-          setTimeout(() => {
-            pdfViewer.src = `/view_pdf/${pdfPath}#page=${page}`;
-          }, 100);
+        // 3. 初始化 Mermaid
+        mermaid.init(undefined, document.querySelectorAll(".mermaid"));
 
-          // Show modal
-          pdfViewerModal.show();
+        // Process interactive elements
+        processInteractiveElements();
+
+        // Add click handlers for the newly created PDF links
+        document.querySelectorAll(".pdf-link").forEach((link) => {
+          link.addEventListener("click", function (e) {
+            e.preventDefault();
+            const pdfPath = this.getAttribute("data-pdf");
+            const page = this.getAttribute("data-page");
+
+            // Reset iframe src to force reload
+            pdfViewer.src = "";
+
+            // Set new PDF viewer source with page parameter
+            setTimeout(() => {
+              pdfViewer.src = `/view_pdf/${pdfPath}#page=${page}`;
+            }, 100);
+
+            // Show modal
+            pdfViewerModal.show();
+          });
         });
-      });
+      }
     }
+
+    // Initialize the module content
+    initializeModuleContent();
 
     // eslint-disable-next-line
     const moduleIndex = parseInt(
@@ -519,25 +593,134 @@
     );
     const pdfViewer = document.getElementById("pdfViewer");
 
-    // Add click handlers for PDF links
-    document.querySelectorAll(".module-content a[data-pdf]").forEach((link) => {
-      link.addEventListener("click", function (e) {
-        e.preventDefault();
-        const pdfPath = this.getAttribute("data-pdf");
-        const page = this.getAttribute("data-page");
+    // Process interactive elements from markdown content
+    function processInteractiveElements() {
+      const content = document.querySelector(".module-content");
+      if (!content) return;
 
-        // Reset iframe src to force reload
-        pdfViewer.src = "";
+      // Extract self-check questions
+      const selfCheckSection = document.getElementById("self-check-questions");
+      const selfCheckQuestions = content.querySelectorAll(".self-check");
+      if (selfCheckQuestions.length > 0) {
+        selfCheckQuestions.forEach((q, idx) => {
+          const questionDiv = document.createElement("div");
+          questionDiv.className = "mb-3";
+          questionDiv.innerHTML = `
+            <p><strong>問題 ${idx + 1}:</strong> ${q.textContent}</p>
+            <textarea class="form-control" rows="2" placeholder="你的答案..."></textarea>
+          `;
+          selfCheckSection.appendChild(questionDiv);
+        });
+      } else {
+        document.getElementById("self-check-section").style.display = "none";
+      }
 
-        // Set new PDF viewer source with page parameter
-        setTimeout(() => {
-          pdfViewer.src = `/view_pdf/${pdfPath}#page=${page}`;
-        }, 100);
+      // Extract practice exercises
+      const practiceSection = document.getElementById("practice-exercises");
+      const exercises = content.querySelectorAll(".practice-exercise");
+      if (exercises.length > 0) {
+        exercises.forEach((ex, idx) => {
+          const exerciseDiv = document.createElement("div");
+          exerciseDiv.className = "mb-3";
+          exerciseDiv.innerHTML = `
+            <p><strong>練習 ${idx + 1}:</strong> ${ex.textContent}</p>
+            <div class="exercise-content"></div>
+          `;
+          practiceSection.appendChild(exerciseDiv);
+        });
+      } else {
+        document.getElementById("practice-section").style.display = "none";
+      }
 
-        // Show modal
-        pdfViewerModal.show();
+      // Extract reflection prompts
+      const reflectionSection = document.getElementById("reflection-prompts");
+      const prompts = content.querySelectorAll(".reflection-prompt");
+      if (prompts.length > 0) {
+        prompts.forEach((p, idx) => {
+          const promptDiv = document.createElement("div");
+          promptDiv.className = "mb-3";
+          promptDiv.innerHTML = `
+            <p><strong>反思 ${idx + 1}:</strong> ${p.textContent}</p>
+          `;
+          reflectionSection.appendChild(promptDiv);
+        });
+      } else {
+        document.getElementById("reflection-section").style.display = "none";
+      }
+    }
+
+    // Handle self-check answers
+    document
+      .getElementById("check-answers")
+      ?.addEventListener("click", function () {
+        const answers = document.querySelectorAll(
+          "#self-check-questions textarea"
+        );
+        const feedback = [];
+
+        answers.forEach((answer, idx) => {
+          if (answer.value.trim()) {
+            feedback.push({
+              question: idx + 1,
+              answer: answer.value.trim(),
+            });
+          }
+        });
+
+        if (feedback.length > 0) {
+          // Send feedback to server for analysis
+          fetch("/api/analyze-self-check", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              module_index: moduleIndex,
+              answers: feedback,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.feedback) {
+                // Display feedback
+                const feedbackDiv = document.createElement("div");
+                feedbackDiv.className = "alert alert-info mt-3";
+                feedbackDiv.innerHTML = data.feedback;
+                document
+                  .getElementById("self-check-questions")
+                  .appendChild(feedbackDiv);
+              }
+            });
+        }
       });
-    });
+
+    // Handle reflection saving
+    document
+      .getElementById("save-reflection")
+      ?.addEventListener("click", function () {
+        const reflection = document
+          .getElementById("reflection-input")
+          .value.trim();
+        if (reflection) {
+          fetch("/api/save-reflection", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              module_index: moduleIndex,
+              reflection: reflection,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                alert("反思已保存");
+                document.getElementById("reflection-input").value = "";
+              }
+            });
+        }
+      });
   });
 </script>
 
@@ -564,6 +747,24 @@
     border: 1px solid #dee2e6;
     border-radius: 5px;
     padding: 15px;
+  }
+
+  .interactive-elements {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1rem;
+  }
+
+  .self-check,
+  .practice-exercise,
+  .reflection-prompt {
+    display: none; /* Hide original elements after processing */
+  }
+
+  .exercise-content {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
   }
 </style>
 {% endblock %}

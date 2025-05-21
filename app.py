@@ -532,21 +532,55 @@ def generate_module_content(session_id, module, profile):
         model="gemini-1.5-flash"
     )
     
+    # Get module topic
+    module_topic = module["title"].split(": ", 1)[1] if ": " in module["title"] else module["title"]
+    
+    # Check if this is a retry
+    is_retry = module.get('retry_count', 0) > 0
+    retry_count = module.get('retry_count', 0)
+    
+    # Determine scaffolding level based on knowledge level and retry count
+    knowledge_level = profile.current_knowledge_level
+    scaffolding_level = "high"  # Default to high scaffolding
+    
+    if knowledge_level == "advanced":
+        scaffolding_level = "low"
+    elif knowledge_level == "intermediate":
+        if retry_count == 0:
+            scaffolding_level = "medium"
+        else:
+            scaffolding_level = "high"
+    
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""您是一位專業的教育內容創作者。
-        根據模組主題和學生的學習風格和知識水平，創造引人入勝的教育內容。
+        SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
+        根據模組主題和學生的學習風格、知識水平，創造引人入勝的教育內容。
         
         您的內容應該：
-        1. 針對學生的學習風格進行量身定制(但是不要放入圖片，如果需要圖片，請使用markdown格式化)
+        1. 針對學生的學習風格進行量身定制(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
         2. 適合學生的知識水平
         3. 包含清晰的關鍵概念解釋
         4. 使用例子和比喻來闡明觀點
-        5. 包含適合知識水平的應架元素
-        6. 結構清晰，有明確的章節和標題
-        7. 結尾時有簡要的關鍵點總結
-        8. 每個章節都要根據context的內容標註來源(source)，格式為：
+        5. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
+           - 高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
+           - 中鷹架支持：提供適中的解釋和例子，加入一些思考問題
+           - 低鷹架支持：提供基本概念，鼓勵自主探索和思考
+        
+        6. 結構清晰，包含以下部分：
+           - 學習目標
+           - 前置知識提醒
+           - 主要內容（分為小節）
+           - 關鍵概念總結
+           - 自我檢查問題
+           - 延伸思考問題
+        
+        7. 每個章節都要根據context的內容標註來源(source)，格式為：
            [來源: 檔名.pdf, 頁碼: X]
            如果有多個來源，請分別列出。
+        
+        8. 加入互動元素：
+           - 思考問題
+           - 反思提示
+        
         使用markdown格式化您的內容，以提高可讀性。
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
@@ -554,12 +588,10 @@ def generate_module_content(session_id, module, profile):
         模組主題：{module_topic}
         學生學習風格：{learning_style}
         學生知識水平：{knowledge_level}
+        鷹架支持程度：{scaffolding_level}
         資料來源：{context}
         """)
     ])
-    
-    # Get module topic
-    module_topic = module["title"].split(": ", 1)[1] if ": " in module["title"] else module["title"]
     
     # Create the chain
     content_chain = (
@@ -569,6 +601,7 @@ def generate_module_content(session_id, module, profile):
             "module_topic": module_topic,
             "learning_style": profile.learning_style,
             "knowledge_level": profile.current_knowledge_level,
+            "scaffolding_level": scaffolding_level,
             "context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in docs])
         })
         | prompt
@@ -593,7 +626,6 @@ def simulate_peer_discussion(session_id, topic, message):
         您的角色是：
         1. 模擬一位也在學習該主題但有一定見解的同儕
         2. 提出有助於促進批判性思考的問題
-        3. 提供溫和的指導，而不是直接給出答案
         4. 以對話的方式表達想法，像是學生之間的交流
         5. 鼓勵並保持積極的態度
         
@@ -646,6 +678,17 @@ def create_posttest(session_id, module, profile):
     
     # Check if this is a retry with easier test
     is_easier_test = module.get('easier_test', False)
+    retry_count = module.get('retry_count', 0)
+    
+    # Determine scaffolding level for test
+    scaffolding_level = "high"  # Default to high scaffolding
+    if knowledge_level == "advanced":
+        scaffolding_level = "low"
+    elif knowledge_level == "intermediate":
+        if retry_count == 0:
+            scaffolding_level = "medium"
+        else:
+            scaffolding_level = "high"
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育評估設計師。
@@ -658,6 +701,18 @@ def create_posttest(session_id, module, profile):
         
         {'如果這是重新學習的測驗，請將所有問題的難度降低一級，並增加更多基礎概念的問題。' if is_easier_test else ''}
         
+        根據鷹架支持程度 ({scaffolding_level}) 調整測驗：
+        - 高鷹架支持：
+          * 提供更多提示和引導
+          * 增加基礎概念問題
+          * 加入部分答案選項的解釋
+        - 中鷹架支持：
+          * 適中的提示
+          * 平衡的難度分布
+        - 低鷹架支持：
+          * 較少的提示
+          * 更多應用和分析問題
+        
         題目應該測試學生的理解、應用和分析能力。
         
         每個問題應該包含：
@@ -666,6 +721,7 @@ def create_posttest(session_id, module, profile):
         3. 正確答案
         4. 為什麼它是正確的解釋
         5. 難度等級
+        6. 相關提示（根據鷹架支持程度）
         
         您必須遵循這個精確的 JSON 格式：
         {{
@@ -677,7 +733,8 @@ def create_posttest(session_id, module, profile):
               "choices": ["A. 選項 A", "B. 選項 B", "C. 選項 C", "D. 選項 D"],
               "correct_answer": "A. 選項 A",
               "explanation": "為什麼 A 是正確的解釋",
-              "difficulty": "easy"
+              "difficulty": "easy",
+              "hints": ["提示1", "提示2"]
             }}
           ]
         }}
@@ -687,6 +744,7 @@ def create_posttest(session_id, module, profile):
         HumanMessagePromptTemplate.from_template("""Generate a post-test based on:
         
         學生的當前知識水平：{knowledge_level}
+        鷹架支持程度：{scaffolding_level}
         章節內容：{context}
         """)
     ])
@@ -697,6 +755,7 @@ def create_posttest(session_id, module, profile):
         | retriever
         | (lambda docs: {
             "knowledge_level": knowledge_level,
+            "scaffolding_level": scaffolding_level,
             "context": "\n\n".join([d.page_content for d in docs])
         })
         | prompt
