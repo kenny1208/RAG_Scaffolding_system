@@ -862,6 +862,19 @@ def select_profile(profile_id):
     with open(profile_path, 'r', encoding='utf-8') as f:
         profile = json.load(f)
     
+    # Get or create session_id
+    if 'session_id' not in session:
+        # Try to find existing session_id from profile
+        if 'current_session_id' in profile:
+            session['session_id'] = profile['current_session_id']
+        else:
+            # Create new session_id
+            session['session_id'] = str(uuid.uuid4())
+            profile['current_session_id'] = session['session_id']
+            # Save updated profile
+            with open(profile_path, 'w', encoding='utf-8') as f:
+                json.dump(profile, f, ensure_ascii=False, indent=4)
+    
     # Check if the profile has a learning path
     if profile.get('learning_path'):
         # If student has a learning path, redirect to learning page
@@ -1250,9 +1263,8 @@ def peer_discussion():
 
 @app.route('/api/posttest/<int:module_index>', methods=['GET'])
 def get_posttest(module_index):
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
     
     # Load student profile
     profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
@@ -1261,6 +1273,13 @@ def get_posttest(module_index):
     
     with open(profile_path, 'r', encoding='utf-8') as f:
         student_profile = json.load(f)
+    
+    # Get session_id from profile if not in session
+    if 'session_id' not in session and 'current_session_id' in student_profile:
+        session['session_id'] = student_profile['current_session_id']
+    
+    if 'session_id' not in session:
+        return jsonify({'error': 'No session found. Please upload documents first.'}), 400
     
     learning_path = student_profile.get('learning_path')
     if not learning_path:
@@ -1272,10 +1291,15 @@ def get_posttest(module_index):
     module = learning_path['modules'][module_index]
     
     try:
-        posttest_data = create_posttest(session_id, module, student_profile)
+        # Check if vector DB exists for this session
+        vector_db_path = os.path.join(app.config['VECTOR_DB_DIR'], session['session_id'])
+        if not os.path.exists(vector_db_path):
+            return jsonify({'error': 'No documents have been processed yet. Please upload documents first.'}), 400
+        
+        posttest_data = create_posttest(session['session_id'], module, student_profile)
         
         # Store posttest data in file instead of session
-        posttest_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id, 'posttests')
+        posttest_dir = os.path.join(app.config['UPLOAD_FOLDER'], session['session_id'], 'posttests')
         os.makedirs(posttest_dir, exist_ok=True)
         posttest_path = os.path.join(posttest_dir, f'posttest_{module_index}.json')
         
@@ -1284,7 +1308,8 @@ def get_posttest(module_index):
         
         return jsonify(posttest_data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error creating posttest: {str(e)}")
+        return jsonify({'error': f'Error creating posttest: {str(e)}'}), 500
 
 @app.route('/api/evaluate-posttest/<int:module_index>', methods=['POST'])
 def evaluate_posttest(module_index):
