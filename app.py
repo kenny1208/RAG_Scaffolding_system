@@ -1894,23 +1894,20 @@ def confirm_learning_path():
 
 @app.route('/api/get-current-learning-path', methods=['GET'])
 def get_current_learning_path():
-    if 'student_id' not in session:
-        return jsonify({'error': 'No student session found'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return jsonify({'error': 'Student profile not found'}), 400
-    
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
     
     # Check if learning path exists
-    if not student_profile.get('learning_path'):
+    if not course.learning_path:
         return jsonify({'error': 'No learning path found'}), 400
     
     return jsonify({
-        'learning_path': student_profile['learning_path']
+        'learning_path': course.learning_path
     })
 
 @app.route('/view_pdf/<path:filename>')
