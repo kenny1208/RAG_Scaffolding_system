@@ -220,7 +220,7 @@ def process_pdfs(file_paths, session_id):
         try:
             chat_model = ChatGoogleGenerativeAI(
                 google_api_key=api_key,
-                model="gemini-1.5-flash"
+                model="gemini-2.0-flash-lite"
             )
             
             summary_prompt = ChatPromptTemplate.from_messages([
@@ -270,7 +270,7 @@ def get_answer(session_id, question):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     retriever = vectorstore.as_retriever()
@@ -396,11 +396,28 @@ def process_learning_style_answers(survey, answers):
 def create_pretest(session_id, topic=""):
     """Generate a pretest based on the uploaded documents，並且嚴格遵守4選1單選的題型"""
     vectorstore = get_vectorstore(session_id)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    
+    # 使用兩種檢索策略
+    # 1. 相關性檢索
+    relevance_retriever = vectorstore.as_retriever(
+        search_kwargs={
+            "k": 20  # 獲取相關的內容
+        }
+    )
+    
+    # 2. 全面檢索 - 獲取所有文檔
+    all_docs_data = vectorstore.get()
+    all_docs = []
+    for i, doc in enumerate(all_docs_data["documents"]):
+        metadata = all_docs_data["metadatas"][i] if i < len(all_docs_data["metadatas"]) else {}
+        all_docs.append({
+            "page_content": doc,
+            "metadata": metadata
+        })
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     prompt = ChatPromptTemplate.from_messages([
@@ -438,18 +455,25 @@ def create_pretest(session_id, topic=""):
            - 2 題困難題目（進階分析和整合）
         3. 每個問題都要有明確的學習目標
         4. 確保問題的選項都是合理的，且只有一個正確答案
+        5. 確保問題涵蓋所有提供的教材內容，不要遺漏任何重要概念
         """),
         HumanMessagePromptTemplate.from_template("""根據以下內容生成一份前測：
         
-        {context}
+        相關內容：
+        {relevant_context}
+        
+        完整教材：
+        {all_context}
         """)
     ])
     
     # Create the chain
     pretest_chain = (
         RunnablePassthrough()
-        | retriever
-        | (lambda docs: {"context": "\n\n".join([d.page_content for d in docs])})
+        | (lambda _: {
+            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(topic)]),
+            "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
+        })
         | prompt
         | chat_model
         | JsonOutputParser()
@@ -469,11 +493,28 @@ def evaluate_knowledge_level(score_percentage):
 def generate_learning_path(session_id, profile, test_results):
     """Generate a personalized learning path based on profile and test results"""
     vectorstore = get_vectorstore(session_id)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    
+    # 使用兩種檢索策略
+    # 1. 相關性檢索
+    relevance_retriever = vectorstore.as_retriever(
+        search_kwargs={
+            "k": 20
+        }
+    )
+    
+    # 2. 全面檢索 - 獲取所有文檔
+    all_docs_data = vectorstore.get()
+    all_docs = []
+    for i, doc in enumerate(all_docs_data["documents"]):
+        metadata = all_docs_data["metadatas"][i] if i < len(all_docs_data["metadatas"]) else {}
+        all_docs.append({
+            "page_content": doc,
+            "metadata": metadata
+        })
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     # Get student requirements if they exist
@@ -494,6 +535,12 @@ def generate_learning_path(session_id, profile, test_results):
         2. 針對學生的學習風格、知識水平進行量身調整
         3. 遵循鷹架原則，逐步增加難度並減少支持
         4. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
+        5. 確保每章節都涵蓋相關的教材內容，不要遺漏任何重要概念
+        6. 確保學習路徑的連續性和完整性，章節之間要有清晰的關聯
+        7. 根據學生的知識水平調整內容深度和廣度：
+           - 初學者：更詳細的基礎概念解釋，更多例子
+           - 中級者：平衡的理論和應用，適中的難度
+           - 進階者：更深入的理論探討，更多分析和整合的內容
         
         您的回應必須遵循這個精確的 JSON 格式：
         {{
@@ -523,8 +570,11 @@ def generate_learning_path(session_id, profile, test_results):
         測驗結果：
         {test_results}
         
-        內容：
-        {context}
+        相關內容：
+        {relevant_context}
+        
+        完整教材：
+        {all_context}
         """)
     ])
     
@@ -539,11 +589,11 @@ def generate_learning_path(session_id, profile, test_results):
     # Create the chain
     learning_path_chain = (
         RunnablePassthrough()
-        | retriever
-        | (lambda docs: {
+        | (lambda _: {
             "profile": profile_json,
             "test_results": json.dumps(test_results),
-            "context": "\n\n".join([d.page_content for d in docs])
+            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke("")]),
+            "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
         })
         | prompt
         | chat_model
@@ -555,11 +605,28 @@ def generate_learning_path(session_id, profile, test_results):
 def generate_module_content(session_id, module, profile):
     """Generate educational content for a module"""
     vectorstore = get_vectorstore(session_id)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    
+    # 使用兩種檢索策略
+    # 1. 相關性檢索
+    relevance_retriever = vectorstore.as_retriever(
+        search_kwargs={
+            "k": 20
+        }
+    )
+    
+    # 2. 全面檢索 - 獲取所有文檔
+    all_docs_data = vectorstore.get()
+    all_docs = []
+    for i, doc in enumerate(all_docs_data["documents"]):
+        metadata = all_docs_data["metadatas"][i] if i < len(all_docs_data["metadatas"]) else {}
+        all_docs.append({
+            "page_content": doc,
+            "metadata": metadata
+        })
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     # Get module topic
@@ -594,7 +661,7 @@ def generate_module_content(session_id, module, profile):
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
-        根據模組主題和學生的學習風格、知識水平，創造引人入勝的教育內容。
+        根據章節主題和學生的學習風格、知識水平，創造引人入勝的教育內容。
         
         您的內容應該：
         1. 針對學生的學習風格進行量身定制(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
@@ -616,34 +683,41 @@ def generate_module_content(session_id, module, profile):
         
         7. 每個章節都要根據context的內容標註來源(source)，格式為：
            [來源: 檔名.pdf, 頁碼: X]
-           如果有多個來源，請分別列出。
+           如果有多個來源，只列出第一個。
         
         8. 加入互動元素：
            - 思考問題
            - 反思提示
         
+        9. 確保內容涵蓋所有提供的教材，不要遺漏任何重要概念。
+        
         使用markdown格式化您的內容，以提高可讀性。
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
-        模組主題：{module_topic}
+        章節主題：{module_topic}
         學生學習風格：{learning_style}
         學生知識水平：{knowledge_level}
         鷹架支持程度：{scaffolding_level}
-        資料來源：{context}
+        
+        相關內容：
+        {relevant_context}
+        
+        完整教材：
+        {all_context}
         """)
     ])
     
     # Create the chain
     content_chain = (
         RunnablePassthrough()
-        | retriever
-        | (lambda docs: {
+        | (lambda _: {
             "module_topic": module_topic,
             "learning_style": profile.learning_style,
             "knowledge_level": profile.current_knowledge_level,
             "scaffolding_level": scaffolding_level,
-            "context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in docs])
+            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(module_topic)]),
+            "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
         })
         | prompt
         | chat_model
@@ -659,7 +733,7 @@ def simulate_peer_discussion(session_id, topic, message):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     prompt = ChatPromptTemplate.from_messages([
@@ -708,7 +782,7 @@ def create_posttest(session_id, module, profile):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     # Get module topic
@@ -733,7 +807,7 @@ def create_posttest(session_id, module, profile):
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育評估設計師。
-        根據模組內容和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
+        根據章節內容和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
         
         難度應該符合學生的當前水平：
         - 初學者：更多容易的問題 (70%)，一些中等難度 (30%)
@@ -810,7 +884,7 @@ def analyze_learning_log(student_name, topic, log_content):
     """Analyze a student's learning log"""
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-1.5-flash"
+        model="gemini-2.0-flash-lite"
     )
     
     prompt = ChatPromptTemplate.from_messages([
@@ -1767,73 +1841,154 @@ def discuss_learning_path():
     if not student_profile:
         return jsonify({'error': 'Student profile not found'}), 400
     
-    # Create chat model
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-1.5-flash"
+    # Get vectorstore
+    vectorstore = get_vectorstore(course.session_id)
+    
+    # 使用兩種檢索策略
+    # 1. 相關性檢索
+    relevance_retriever = vectorstore.as_retriever(
+        search_kwargs={
+            "k": 20
+        }
     )
+    
+    # 2. 全面檢索 - 獲取所有文檔
+    all_docs_data = vectorstore.get()
+    all_docs = []
+    for i, doc in enumerate(all_docs_data["documents"]):
+        metadata = all_docs_data["metadatas"][i] if i < len(all_docs_data["metadatas"]) else {}
+        all_docs.append({
+            "page_content": doc,
+            "metadata": metadata
+        })
+    
+    # Create chat model with retry mechanism
+    max_retries = 3
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            chat_model = ChatGoogleGenerativeAI(
+                google_api_key=api_key,
+                model="gemini-2.0-flash-lite"
+            )
+            break
+        except Exception as e:
+            retry_count += 1
+            if retry_count == max_retries:
+                return jsonify({'error': f'Failed to initialize chat model after {max_retries} attempts: {str(e)}'}), 500
+            time.sleep(1)
     
     # Create prompt for discussion
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content="""
             你是一位專業的學習路徑設計師，正在與學生討論他們的個人化學習路徑。
-            你已經擁有學生的學習路徑（{learning_path}）和個人檔案（{profile}）。
-            當學生提出修改需求時，請直接根據這些資訊自動修改學習路徑，只需用簡短的中文回覆說明修改了什麼，並在需要時加上 [ADJUST_PATH] 標記。
+            你已經擁有學生的學習路徑和個人檔案。
+            當學生提出修改需求時，請直接根據這些資訊自動修改學習路徑，並且只需用簡短的中文回覆說明修改了什麼。
             禁止要求學生再提供任何資訊，也不要詢問學生「請提供 learning_path 或 profile」。
+            
+            在修改學習路徑時，請確保：
+            1. 完整涵蓋教材中的所有重要內容和概念
+            2. 針對學生的學習風格、知識水平進行量身調整
+            3. 遵循鷹架原則，逐步增加難度並減少支持
+            4. 確保每章節都涵蓋相關的教材內容，不要遺漏任何重要概念
+            5. 確保學習路徑的連續性和完整性，章節之間要有清晰的關聯
+            
+            回覆格式要求：
+            1. 只回覆修改的內容，不要回覆完整的學習路徑
+            2. 使用簡短的中文說明修改了什麼
+            3. 如果沒有需要修改的地方，請簡短說明原因
+            4. 回覆要非常簡潔，不要包含任何多餘的內容
+            5. 例如: 已經按照指示改成2個章節!
             """),
-        HumanMessagePromptTemplate.from_template("學生訊息：{message}")
+        HumanMessagePromptTemplate.from_template("""根據以下內容進行學習路徑討論：
+        
+        學生檔案：
+        {profile}
+        
+        當前學習路徑：
+        {learning_path}
+        
+        相關內容：
+        {relevant_context}
+        
+        完整教材：
+        {all_context}
+        
+        學生訊息：{message}
+        """)
     ])
     
     # Create the chain
     discussion_chain = (
         RunnablePassthrough()
+        | (lambda _: {
+            "profile": json.dumps({
+                "name": student_profile.name,
+                "learning_style": student_profile.learning_style,
+                "current_knowledge_level": course.current_knowledge_level
+            }, ensure_ascii=False),
+            "learning_path": json.dumps(learning_path, ensure_ascii=False),
+            "message": message,
+            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(message)]),
+            "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
+        })
         | prompt
         | chat_model
         | StrOutputParser()
     )
     
     try:
-        response = discussion_chain.invoke({
-            "learning_path": json.dumps(learning_path, ensure_ascii=False),
-            "profile": json.dumps({
-                "name": student_profile.name,
-                "learning_style": student_profile.learning_style,
-                "current_knowledge_level": course.current_knowledge_level
-            }, ensure_ascii=False),
-            "message": message
-        })
+        # Add retry mechanism for the discussion chain
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                response = discussion_chain.invoke("")
+                # 清理回應，移除多餘的內容
+                response = response.strip()
+                if response.startswith("修改"):
+                    response = response[2:].strip()
+                if response.endswith("。"):
+                    response = response[:-1]
+                break
+            except Exception as e:
+                retry_count += 1
+                if retry_count == max_retries:
+                    return jsonify({'error': f'Failed to generate discussion response after {max_retries} attempts: {str(e)}'}), 500
+                time.sleep(1)
         
-        # Check if the response indicates path adjustment is needed
-        path_adjusted = False
-        if "[ADJUST_PATH]" in response:
-            # Remove the adjustment marker from the response
-            response = response.replace("[ADJUST_PATH]", "").strip()
-            
-            # Generate new learning path with student's requirements
-            new_learning_path = generate_learning_path(
-                course.session_id,
-                course,
-                {
-                    'score_percentage': course.current_knowledge_level,
-                    'knowledge_level': course.current_knowledge_level,
-                    'student_requirements': message  # Add student's requirements to the test results
-                }
-            )
-            
-            # Update course profile with new learning path
-            course.learning_path = new_learning_path
-            
-            # Save updated course profile
-            save_course_profile(course)
-            
-            path_adjusted = True
+        # Add retry mechanism for learning path generation
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                new_learning_path = generate_learning_path(
+                    course.session_id,
+                    course,
+                    {
+                        'score_percentage': course.current_knowledge_level,
+                        'knowledge_level': course.current_knowledge_level,
+                        'student_requirements': message
+                    }
+                )
+                break
+            except Exception as e:
+                retry_count += 1
+                if retry_count == max_retries:
+                    return jsonify({'error': f'Failed to generate new learning path after {max_retries} attempts: {str(e)}'}), 500
+                time.sleep(1)
+        
+        # Update course profile with new learning path
+        course.learning_path = new_learning_path
+        
+        # Save updated course profile
+        save_course_profile(course)
         
         return jsonify({
             'response': response,
-            'path_adjusted': path_adjusted
+            'path_adjusted': True
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error in discuss_learning_path: {str(e)}")
+        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
 @app.route('/api/adjust-learning-path', methods=['POST'])
 def adjust_learning_path():
