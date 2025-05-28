@@ -1,0 +1,81 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-5">
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="display-4">我的課程</h1>
+      <p class="lead">選擇一個現有課程或創建新課程</p>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('create_course') }}" class="btn btn-primary btn-lg">
+        <i class="fas fa-plus"></i> 創建新課程
+      </a>
+    </div>
+  </div>
+
+  {% if courses %}
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for course in courses %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ course.title }}</h5>
+          <p class="card-text text-muted">{{ course.description }}</p>
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              創建於: {{ course.created_at.split('T')[0] }}
+            </small>
+            <a
+              href="{{ url_for('select_course', course_id=course.id) }}"
+              class="btn btn-outline-primary"
+            >
+              進入課程
+            </a>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          {% if course.learning_path %}
+          <div class="progress" style="height: 5px">
+            <div
+              class="progress-bar"
+              role="progressbar"
+              style="width: '{{ (course.current_module_index / course.learning_path.modules|length * 100)|round }}%'"
+            ></div>
+          </div>
+          <small class="text-muted mt-2 d-block">
+            進度: {{ course.current_module_index + 1 }}/{{
+            course.learning_path.modules|length }} 單元
+          </small>
+          {% else %}
+          <small class="text-muted">尚未開始學習</small>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <div class="mb-4">
+      <i class="fas fa-book fa-4x text-muted"></i>
+    </div>
+    <h3>您還沒有任何課程</h3>
+    <p class="text-muted">點擊上方的「創建新課程」按鈕開始您的學習之旅</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .card {
+    transition: transform 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+  }
+  .progress {
+    background-color: #e9ecef;
+  }
+  .progress-bar {
+    background-color: #007bff;
+  }
+</style>
+{% endblock %}

@@ -200,7 +200,7 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            window.location.href = "/learning";
+            window.location.href = data.redirect || "/learning";
           } else {
             alert(data.error || "確認學習路徑失敗");
           }

@@ -27,12 +27,14 @@ app.config['VECTOR_DB_DIR'] = 'vectordbs'
 app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 app.config['STUDENT_PROFILES_DIR'] = 'student_profiles'
+app.config['COURSE_PROFILES_DIR'] = 'course_profiles'
 app.config['LEARNING_LOGS_DIR'] = 'learning_logs'
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['VECTOR_DB_DIR'], exist_ok=True)
 os.makedirs(app.config['STUDENT_PROFILES_DIR'], exist_ok=True)
+os.makedirs(app.config['COURSE_PROFILES_DIR'], exist_ok=True)
 os.makedirs(app.config['LEARNING_LOGS_DIR'], exist_ok=True)
 
 # Load environment variables
@@ -65,6 +67,9 @@ class StudentProfile(BaseModel):
     id: str = Field(description="Unique student ID")
     name: str = Field(description="Student name")
     learning_style: str = Field(description="Visual, auditory, or kinesthetic")
+    felder_silverman_profile: Optional[Dict[str, Any]] = Field(default=None, description="Detailed Felder-Silverman learning style profile")
+    courses: List[str] = Field(default_factory=list, description="List of course IDs the student is enrolled in")
+    created_at: str = Field(default_factory=lambda: datetime.datetime.now().isoformat(), description="Profile creation timestamp")
     current_knowledge_level: str = Field(description="Beginner, intermediate, or advanced")
     strengths: List[str] = Field(description="Academic strengths")
     areas_for_improvement: List[str] = Field(description="Areas that need improvement")
@@ -73,6 +78,24 @@ class StudentProfile(BaseModel):
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
     current_module_index: Optional[int] = Field(default=0, description="Current module index")
     learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
+
+class CourseProfile(BaseModel):
+    id: str = Field(description="Unique course ID")
+    student_id: str = Field(description="Student ID this course belongs to")
+    title: str = Field(description="Course title")
+    description: str = Field(description="Course description")
+    created_at: str = Field(default_factory=lambda: datetime.datetime.now().isoformat(), description="Course creation timestamp")
+    current_knowledge_level: str = Field(description="Beginner, intermediate, or advanced")
+    strengths: List[str] = Field(default_factory=list, description="Academic strengths")
+    areas_for_improvement: List[str] = Field(default_factory=list, description="Areas that need improvement")
+    interests: List[str] = Field(default_factory=list, description="Academic interests")
+    learning_history: List[Dict[str, Any]] = Field(default_factory=list, description="History of learning activities")
+    learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
+    current_module_index: Optional[int] = Field(default=0, description="Current module index")
+    learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
+    session_id: Optional[str] = Field(default=None, description="Current session ID for this course")
+    learning_completed: Optional[bool] = Field(default=False, description="Whether the course has been completed")
+    completion_date: Optional[str] = Field(default=None, description="Course completion timestamp")
 
 class LearningLog(BaseModel):
     id: str = Field(description="Unique log ID")
@@ -271,15 +294,41 @@ def get_answer(session_id, question):
     
     return chain.invoke(question)
 
-# Educational system functions
+# Helper functions for profile management
+def get_student_profile(student_id):
+    """Get student profile from disk"""
+    profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{student_id}.json")
+    if os.path.exists(profile_path):
+        with open(profile_path, 'r', encoding='utf-8') as f:
+            return StudentProfile.model_validate(json.load(f))
+    return None
+
+def save_student_profile(profile):
+    """Save student profile to disk"""
+    profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{profile.id}.json")
+    with open(profile_path, 'w', encoding='utf-8') as f:
+        f.write(profile.model_dump_json(indent=4))
+
+def get_course_profile(course_id):
+    """Get course profile from disk"""
+    profile_path = os.path.join(app.config['COURSE_PROFILES_DIR'], f"{course_id}.json")
+    if os.path.exists(profile_path):
+        with open(profile_path, 'r', encoding='utf-8') as f:
+            return CourseProfile.model_validate(json.load(f))
+    return None
+
+def save_course_profile(profile):
+    """Save course profile to disk"""
+    profile_path = os.path.join(app.config['COURSE_PROFILES_DIR'], f"{profile.id}.json")
+    with open(profile_path, 'w', encoding='utf-8') as f:
+        f.write(profile.model_dump_json(indent=4))
+
 def create_or_get_student_profile(name=None):
     """Create a new student profile or retrieve an existing one"""
     if 'student_id' in session:
-        # Try to load existing profile
-        profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-        if os.path.exists(profile_path):
-            with open(profile_path, 'r', encoding='utf-8') as f:
-                return StudentProfile.model_validate(json.load(f))
+        profile = get_student_profile(session['student_id'])
+        if profile:
+            return profile
     
     # Create new profile
     student_id = str(uuid.uuid4())[:8]
@@ -289,66 +338,42 @@ def create_or_get_student_profile(name=None):
         id=student_id,
         name=name,
         learning_style="",
+        courses=[],
+        created_at=datetime.datetime.now().isoformat()
+    )
+    
+    # Save the profile
+    session['student_id'] = student_id
+    save_student_profile(profile)
+    
+    return profile
+
+def create_new_course(student_id, title, description):
+    """Create a new course for a student"""
+    course_id = str(uuid.uuid4())[:8]
+    
+    course = CourseProfile(
+        id=course_id,
+        student_id=student_id,
+        title=title,
+        description=description,
+        created_at=datetime.datetime.now().isoformat(),
         current_knowledge_level="",
-        strengths=[],
-        areas_for_improvement=[],
-        interests=[],
-        learning_history=[],
         learning_path=None,
         current_module_index=0,
         learning_path_confirmed=False
     )
     
-    # Save the profile
-    session['student_id'] = student_id
-    session['session_id'] = str(uuid.uuid4())
-    with open(os.path.join('student_profiles', f"{student_id}.json"), 'w', encoding='utf-8') as f:
-        f.write(profile.model_dump_json(indent=4))
+    # Save course profile
+    save_course_profile(course)
     
-    return profile
-
-def save_student_profile(profile):
-    """Save a student profile to disk"""
-    profile_path = os.path.join('student_profiles', f"{profile.id}.json")
-    with open(profile_path, 'w', encoding='utf-8') as f:
-        f.write(profile.model_dump_json(indent=4))
-
-    """Generate a learning style assessment survey"""
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-1.5-flash"
-    )
+    # Update student profile with new course
+    student_profile = get_student_profile(student_id)
+    if student_profile:
+        student_profile.courses.append(course_id)
+        save_student_profile(student_profile)
     
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are an expert in learning style assessment.
-        Design a concise but effective learning style assessment questionnaire with 5 multiple-choice questions.
-        Each question should have 3 options, aimed at determining if the student is primarily:
-        1. Visual learner
-        2. Auditory learner
-        3. Kinesthetic learner
-        
-        Format your response as a questionnaire with numbered questions and lettered options.
-        
-        Return the result as a valid JSON object with this structure:
-        {
-            "title": "Learning Style Assessment",
-            "description": "This assessment will help identify your primary learning style",
-            "questions": [
-                {
-                    "question": "Question text?",
-                    "choices": ["A. Option A (Visual)", "B. Option B (Auditory)", "C. Option C (Kinesthetic)"],
-                    "visual_index": 0,
-                    "auditory_index": 1,
-                    "kinesthetic_index": 2
-                }
-            ]
-        }
-        """),
-        HumanMessagePromptTemplate.from_template("Create a learning style assessment questionnaire.")
-    ])
-    
-    chain = prompt | chat_model | JsonOutputParser()
-    return chain.invoke({})
+    return course
 
 def process_learning_style_answers(survey, answers):
     """Process learning style survey answers and determine the dominant style"""
@@ -455,6 +480,11 @@ def generate_learning_path(session_id, profile, test_results):
     student_requirements = test_results.get('student_requirements', '')
     requirements_prompt = f"\nStudent's specific requirements: {student_requirements}" if student_requirements else ""
     
+    # Get student profile if we have a course profile
+    student_profile = None
+    if isinstance(profile, CourseProfile):
+        student_profile = get_student_profile(profile.student_id)
+    
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專精於個人化學習路徑設計的教育課程設計專家。
         根據提供的學生檔案、測驗結果和內容，創建一條適合他自學的學習路徑。
@@ -500,10 +530,10 @@ def generate_learning_path(session_id, profile, test_results):
     
     # Format profile and test results
     profile_json = json.dumps({
-        "name": profile.name,
-        "learning_style": profile.learning_style,
+        "name": student_profile.name if student_profile else "Student",
+        "learning_style": student_profile.learning_style if student_profile else profile.learning_style,
         "current_knowledge_level": profile.current_knowledge_level,
-        "interests": profile.interests
+        "interests": student_profile.interests if student_profile else []
     })
     
     # Create the chain
@@ -684,8 +714,8 @@ def create_posttest(session_id, module, profile):
     # Get module topic
     module_topic = module["title"].split(": ", 1)[1] if ": " in module["title"] else module["title"]
     
-    # Get knowledge level from profile dictionary
-    knowledge_level = profile.get('current_knowledge_level', 'beginner')
+    # Get knowledge level from profile
+    knowledge_level = profile.current_knowledge_level
     
     # Check if this is a retry with easier test
     is_easier_test = module.get('easier_test', False)
@@ -909,14 +939,15 @@ def create_user():
             json.dump(profile, f, ensure_ascii=False, indent=4)
         
         session['student_id'] = student_id
-        return redirect(url_for('upload_pdf'))
+        # Redirect to learning style survey instead of upload_pdf
+        return redirect(url_for('learning_style_survey'))
     
     return render_template('create_user.html')
 
 @app.route('/upload_pdf', methods=['GET', 'POST'])
 def upload_pdf():
-    if 'student_id' not in session:
-        return redirect(url_for('select_user'))
+    if 'student_id' not in session or 'course_id' not in session:
+        return redirect(url_for('course_selection'))
     
     if request.method == 'POST':
         try:
@@ -967,9 +998,15 @@ def upload_pdf():
                 # Store file paths in session
                 session['pdf_files'] = [os.path.basename(path) for path in file_paths]
                 
-                # Redirect to learning style survey
+                # Update course profile with session ID
+                course = get_course_profile(session['course_id'])
+                if course:
+                    course.session_id = session_id
+                    save_course_profile(course)
+                
+                # Redirect to pretest
                 app.logger.info("PDF processing completed successfully")
-                return redirect(url_for('learning_style_survey'))
+                return redirect(url_for('pretest'))
                 
             except Exception as e:
                 app.logger.error(f'Error processing PDFs: {str(e)}')
@@ -985,7 +1022,7 @@ def upload_pdf():
 
 @app.route('/learning_style_survey', methods=['GET', 'POST'])
 def learning_style_survey():
-    if 'student_id' not in session or 'session_id' not in session:
+    if 'student_id' not in session:
         return redirect(url_for('select_user'))
     
     if request.method == 'POST':
@@ -995,55 +1032,96 @@ def learning_style_survey():
         if not felder_results:
             return jsonify({'error': 'Learning style assessment results are required'}), 400
         
-        # Map the primary visual/verbal dimension to the learning style for compatibility with existing code
-        # While also saving the full Felder-Silverman profile for future use
-        primary_style = felder_results.get('dimension3', 'visual')  # Default to visual if missing
+        # Map the primary visual/verbal dimension to the learning style
+        primary_style = felder_results.get('dimension3', 'visual')
         
         # Update student profile
-        profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
+        profile = get_student_profile(session['student_id'])
+        if profile:
+            profile.learning_style = primary_style
+            profile.felder_silverman_profile = felder_results
+            save_student_profile(profile)
         
-        if os.path.exists(profile_path):
-            try:
-                with open(profile_path, 'r', encoding='utf-8') as f:
-                    profile = json.load(f)
-            except UnicodeDecodeError:
-                # If UTF-8 fails, try with a different encoding
-                with open(profile_path, 'r', encoding='big5') as f:
-                    profile = json.load(f)
-        else:
-            # Create a new profile if it doesn't exist
-            profile = {
-                'id': session['student_id'],
-                'name': f"Student_{session['student_id']}",
-                'learning_style': '',
-                'current_knowledge_level': '',
-                'strengths': [],
-                'areas_for_improvement': [],
-                'interests': [],
-                'learning_history': [],
-                'learning_path': None,
-                'current_module_index': 0,
-                'learning_path_confirmed': False
-            }
-        
-        # Update the profile with both simplified and detailed learning style info
-        profile['learning_style'] = primary_style
-        profile['felder_silverman_profile'] = felder_results
-        
-        # Save the updated profile
-        with open(profile_path, 'w', encoding='utf-8') as f:
-            json.dump(profile, f, ensure_ascii=False, indent=4)
-        
-        # Redirect to pretest
-        return jsonify({'success': True, 'redirect': url_for('pretest')})
+        # Redirect to course selection
+        return jsonify({'success': True, 'redirect': url_for('course_selection')})
     
-    # For GET requests, just render the template with the pre-designed questions
     return render_template('learning_style_survey.html')
+
+@app.route('/course_selection')
+def course_selection():
+    if 'student_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    # Get student profile
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return redirect(url_for('select_user'))
+    
+    # Get all courses for this student
+    courses = []
+    for course_id in profile.courses:
+        course = get_course_profile(course_id)
+        if course:
+            courses.append(course.model_dump())
+    
+    return render_template('course_selection.html', courses=courses)
+
+@app.route('/create_course', methods=['GET', 'POST'])
+def create_course():
+    if 'student_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    if request.method == 'POST':
+        data = request.json
+        title = data.get('title')
+        description = data.get('description')
+        
+        if not title:
+            return jsonify({'error': 'Course title is required'}), 400
+        
+        # Create new course
+        course = create_new_course(session['student_id'], title, description)
+        
+        # Set current course in session
+        session['course_id'] = course.id
+        
+        return jsonify({
+            'success': True,
+            'course': course.model_dump(),
+            'redirect': url_for('upload_pdf')
+        })
+    
+    return render_template('create_course.html')
+
+@app.route('/select_course/<course_id>')
+def select_course(course_id):
+    if 'student_id' not in session:
+        return redirect(url_for('select_user'))
+    
+    # Verify course belongs to student
+    profile = get_student_profile(session['student_id'])
+    if not profile or course_id not in profile.courses:
+        return redirect(url_for('course_selection'))
+    
+    # Get course profile
+    course = get_course_profile(course_id)
+    if not course:
+        return redirect(url_for('course_selection'))
+    
+    # Set current course in session
+    session['course_id'] = course_id
+    session['session_id'] = course.session_id
+    
+    # Check if course has learning path
+    if course.learning_path:
+        return redirect(url_for('learning'))
+    else:
+        return redirect(url_for('upload_pdf'))
 
 @app.route('/pretest', methods=['GET', 'POST'])
 def pretest():
-    if 'student_id' not in session or 'session_id' not in session:
-        return redirect(url_for('select_user'))
+    if 'student_id' not in session or 'course_id' not in session:
+        return redirect(url_for('course_selection'))
     
     if request.method == 'POST':
         data = request.json
@@ -1080,24 +1158,21 @@ def pretest():
         score_percentage = (correct_count / len(answers)) * 100
         knowledge_level = evaluate_knowledge_level(score_percentage)
         
-        # Update student profile
-        profile = create_or_get_student_profile()
-        profile.current_knowledge_level = knowledge_level
-        profile.learning_history.append({
-            'activity_type': 'pretest',
-            'timestamp': datetime.datetime.now().isoformat(),
-            'score': f'{correct_count}/{len(answers)}',
-            'percentage': score_percentage,
-            'knowledge_level': knowledge_level
-        })
-        profile.learning_path = generate_learning_path(session['session_id'], profile, {
+        # Get course profile
+        course = get_course_profile(session['course_id'])
+        if not course:
+            return jsonify({'error': 'Course profile not found'}), 400
+        
+        # Update course profile with learning path
+        course.current_knowledge_level = knowledge_level
+        course.learning_path = generate_learning_path(session['session_id'], course, {
             'score_percentage': score_percentage,
             'knowledge_level': knowledge_level,
             'results': results
         })
-        profile.current_module_index = 0
-        profile.learning_path_confirmed = False  # Reset confirmation status
-        save_student_profile(profile)
+        course.current_module_index = 0
+        course.learning_path_confirmed = False  # Reset confirmation status
+        save_course_profile(course)
         
         # Return detailed results
         return jsonify({
@@ -1116,50 +1191,58 @@ def pretest():
 
 @app.route('/learning', methods=['GET', 'POST'])
 def learning():
-    if 'student_id' not in session:
-        return redirect(url_for('select_user'))
+    if 'student_id' not in session or 'course_id' not in session:
+        return redirect(url_for('course_selection'))
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return redirect(url_for('select_user'))
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return redirect(url_for('course_selection'))
     
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = StudentProfile.model_validate(json.load(f))
+    # Get student profile
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return redirect(url_for('select_user'))
     
     # Check if student has completed learning style survey
-    if not student_profile.learning_style:
+    if not profile.learning_style:
         return redirect(url_for('learning_style_survey'))
     
-    # Check if student has a learning path
-    if not student_profile.learning_path:
+    # Check if course has a learning path
+    if not course.learning_path:
         return redirect(url_for('pretest'))
     
     # Get current module index
-    current_module_index = student_profile.current_module_index or 0
+    current_module_index = course.current_module_index or 0
     
     # Validate current module index
-    if current_module_index >= len(student_profile.learning_path['modules']):
+    if current_module_index >= len(course.learning_path['modules']):
         # If student has completed all modules, redirect to summary
         return redirect(url_for('summary'))
     
     # Get current module
-    current_module = student_profile.learning_path['modules'][current_module_index]
+    current_module = course.learning_path['modules'][current_module_index]
     
     # Generate module content if not already present
     if 'content' not in current_module:
         try:
-            content = generate_module_content(session['session_id'], current_module, student_profile)
+            content = generate_module_content(course.session_id, current_module, profile)
             current_module['content'] = content
-            # Save the updated profile with content
-            with open(profile_path, 'w', encoding='utf-8') as f:
-                json.dump(student_profile.model_dump(), f, ensure_ascii=False, indent=4)
+            # Save the updated course profile with content
+            save_course_profile(course)
         except Exception as e:
             current_module['content'] = f"Error generating content: {str(e)}"
     
+    # Calculate progress percentage
+    progress_percentage = 0
+    if course.learning_path and course.learning_path['modules']:
+        progress_percentage = (current_module_index / len(course.learning_path['modules']) * 100)
+    
     return render_template('learning.html', 
-                         student_profile=student_profile.model_dump(),
-                         current_module=current_module)
+                         student_profile=profile.model_dump(),
+                         course=course.model_dump(),
+                         current_module=current_module,
+                         progress_percentage=progress_percentage)
 
 @app.route('/api/profile', methods=['GET', 'POST'])
 def profile():
@@ -1263,43 +1346,33 @@ def peer_discussion():
 
 @app.route('/api/posttest/<int:module_index>', methods=['GET'])
 def get_posttest(module_index):
-    if 'student_id' not in session:
-        return jsonify({'error': 'No student session found'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return jsonify({'error': 'Student profile not found'}), 400
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
     
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+    # Check if course has learning path
+    if not course.learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
     
-    # Get session_id from profile if not in session
-    if 'session_id' not in session and 'current_session_id' in student_profile:
-        session['session_id'] = student_profile['current_session_id']
-    
-    if 'session_id' not in session:
-        return jsonify({'error': 'No session found. Please upload documents first.'}), 400
-    
-    learning_path = student_profile.get('learning_path')
-    if not learning_path:
-        return jsonify({'error': 'No learning path available'}), 400
-    
-    if module_index >= len(learning_path['modules']):
+    if module_index >= len(course.learning_path['modules']):
         return jsonify({'error': 'Invalid module index'}), 400
     
-    module = learning_path['modules'][module_index]
+    module = course.learning_path['modules'][module_index]
     
     try:
         # Check if vector DB exists for this session
-        vector_db_path = os.path.join(app.config['VECTOR_DB_DIR'], session['session_id'])
+        vector_db_path = os.path.join(app.config['VECTOR_DB_DIR'], course.session_id)
         if not os.path.exists(vector_db_path):
             return jsonify({'error': 'No documents have been processed yet. Please upload documents first.'}), 400
         
-        posttest_data = create_posttest(session['session_id'], module, student_profile)
+        posttest_data = create_posttest(course.session_id, module, course)
         
         # Store posttest data in file instead of session
-        posttest_dir = os.path.join(app.config['UPLOAD_FOLDER'], session['session_id'], 'posttests')
+        posttest_dir = os.path.join(app.config['UPLOAD_FOLDER'], course.session_id, 'posttests')
         os.makedirs(posttest_dir, exist_ok=True)
         posttest_path = os.path.join(posttest_dir, f'posttest_{module_index}.json')
         
@@ -1313,34 +1386,33 @@ def get_posttest(module_index):
 
 @app.route('/api/evaluate-posttest/<int:module_index>', methods=['POST'])
 def evaluate_posttest(module_index):
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
     data = request.json
     answers = data.get('answers', [])
     
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+    
+    # Check if course has learning path
+    if not course.learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    if module_index >= len(course.learning_path['modules']):
+        return jsonify({'error': 'Invalid module index'}), 400
+    
+    module = course.learning_path['modules'][module_index]
+    
     # Load posttest data from file
-    posttest_path = os.path.join(app.config['UPLOAD_FOLDER'], session_id, 'posttests', f'posttest_{module_index}.json')
+    posttest_path = os.path.join(app.config['UPLOAD_FOLDER'], course.session_id, 'posttests', f'posttest_{module_index}.json')
     if not os.path.exists(posttest_path):
         return jsonify({'error': 'No posttest available for this module'}), 400
     
     with open(posttest_path, 'r', encoding='utf-8') as f:
         posttest_data = json.load(f)
-    
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return jsonify({'error': 'Student profile not found'}), 400
-    
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
-    
-    learning_path = student_profile.get('learning_path')
-    if not learning_path or module_index >= len(learning_path['modules']):
-        return jsonify({'error': 'Invalid module index'}), 400
-    
-    module = learning_path['modules'][module_index]
     
     if len(answers) != len(posttest_data['questions']):
         return jsonify({'error': 'Number of answers does not match number of questions'}), 400
@@ -1368,8 +1440,8 @@ def evaluate_posttest(module_index):
     
     score_percentage = (correct_count / len(answers)) * 100
     
-    # Update student profile
-    previous_level = student_profile['current_knowledge_level']
+    # Update course profile
+    previous_level = course.current_knowledge_level
     
     # Potentially adjust knowledge level based on score
     if score_percentage >= 80 and previous_level != "advanced":
@@ -1377,18 +1449,18 @@ def evaluate_posttest(module_index):
             new_level = "intermediate"
         else:
             new_level = "advanced"
-        student_profile['current_knowledge_level'] = new_level
+        course.current_knowledge_level = new_level
     elif score_percentage < 50 and previous_level != "beginner":
         if previous_level == "advanced":
             new_level = "intermediate"
         else:
             new_level = "beginner"
-        student_profile['current_knowledge_level'] = new_level
+        course.current_knowledge_level = new_level
     else:
         new_level = previous_level
     
     # Add to learning history
-    student_profile['learning_history'].append({
+    course.learning_history.append({
         'activity_type': 'posttest',
         'module': module['title'],
         'timestamp': datetime.datetime.now().isoformat(),
@@ -1398,12 +1470,11 @@ def evaluate_posttest(module_index):
         'current_level': new_level
     })
     
-    # Save updated profile
-    with open(profile_path, 'w', encoding='utf-8') as f:
-        json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    # Save updated course profile
+    save_course_profile(course)
     
     # Store results in file
-    results_path = os.path.join(app.config['UPLOAD_FOLDER'], session_id, 'posttests', f'results_{module_index}.json')
+    results_path = os.path.join(app.config['UPLOAD_FOLDER'], course.session_id, 'posttests', f'results_{module_index}.json')
     with open(results_path, 'w', encoding='utf-8') as f:
         json.dump({
             'score': correct_count,
@@ -1419,22 +1490,27 @@ def evaluate_posttest(module_index):
         'previous_level': previous_level,
         'new_level': new_level,
         'results': results,
-        'profile': student_profile
+        'profile': course.model_dump()
     })
 
 @app.route('/api/learning-log/<int:module_index>', methods=['POST'])
 def create_learning_log(module_index):
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
 
-    # 這裡改成從 student_profile 讀取
-    profile = create_or_get_student_profile()
-    learning_path = profile.learning_path
-    if not learning_path or module_index >= len(learning_path['modules']):
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+
+    # Check if course has learning path
+    if not course.learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
+
+    if module_index >= len(course.learning_path['modules']):
         return jsonify({'error': 'Invalid module index'}), 400
 
-    module = learning_path['modules'][module_index]
+    module = course.learning_path['modules'][module_index]
     module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
     
     data = request.json
@@ -1444,11 +1520,16 @@ def create_learning_log(module_index):
     if not log_content:
         return jsonify({'error': 'No log content provided'}), 400
     
+    # Get student profile for name
+    student_profile = get_student_profile(session['student_id'])
+    if not student_profile:
+        return jsonify({'error': 'Student profile not found'}), 400
+    
     # Create learning log
     log_id = str(uuid.uuid4())[:8]
     log = LearningLog(
         id=log_id,
-        student_id=profile.id,
+        student_id=student_profile.id,
         timestamp=datetime.datetime.now().isoformat(),
         topic=module_topic,
         content=log_content,
@@ -1459,22 +1540,22 @@ def create_learning_log(module_index):
     
     # Analyze learning log
     try:
-        analysis = analyze_learning_log(profile.name, module_topic, log_content)
+        analysis = analyze_learning_log(student_profile.name, module_topic, log_content)
         
         # Update log with analysis results
         if "recommended_next_steps" in analysis:
             log.next_steps = analysis["recommended_next_steps"]
         
-        # Update profile strengths and areas for improvement
+        # Update course profile strengths and areas for improvement
         if "strengths" in analysis:
             for strength in analysis["strengths"]:
-                if strength not in profile.strengths:
-                    profile.strengths.append(strength)
+                if strength not in course.strengths:
+                    course.strengths.append(strength)
         
         if "areas_for_improvement" in analysis:
             for area in analysis["areas_for_improvement"]:
-                if area not in profile.areas_for_improvement:
-                    profile.areas_for_improvement.append(area)
+                if area not in course.areas_for_improvement:
+                    course.areas_for_improvement.append(area)
         
         # Update module's scaffolding level based on emotional analysis
         if "emotional_state" in analysis and "recommended_scaffolding_level" in analysis:
@@ -1498,8 +1579,8 @@ def create_learning_log(module_index):
             module['easier_test'] = True
             module['scaffolding_level'] = 'high'  # Increase scaffolding for retry
         
-        # Save the profile
-        save_student_profile(profile)
+        # Save the course profile
+        save_course_profile(course)
         
         # Save the learning log
         with open(os.path.join(app.config['LEARNING_LOGS_DIR'], f"{log_id}.json"), 'w', encoding='utf-8') as f:
@@ -1536,8 +1617,8 @@ def ask_question():
 
 @app.route('/api/update-module-index', methods=['POST'])
 def update_module_index():
-    if 'student_id' not in session:
-        return jsonify({'error': 'No student session found'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
     data = request.json
     new_module_index = data.get('module_index')
@@ -1545,30 +1626,26 @@ def update_module_index():
     if new_module_index is None:
         return jsonify({'error': 'No module index provided'}), 400
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return jsonify({'error': 'Student profile not found'}), 400
-    
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
     
     # Check if learning path exists and get total number of modules
-    if not student_profile.get('learning_path'):
+    if not course.learning_path:
         return jsonify({'error': 'No learning path found'}), 400
     
-    total_modules = len(student_profile['learning_path']['modules'])
+    total_modules = len(course.learning_path['modules'])
     
     # Check if the student has completed all modules
     if new_module_index >= total_modules:
-        # Update the profile to mark completion
-        student_profile['current_module_index'] = total_modules - 1
-        student_profile['learning_completed'] = True
-        student_profile['completion_date'] = datetime.datetime.now().isoformat()
+        # Update the course profile to mark completion
+        course.current_module_index = total_modules - 1
+        course.learning_completed = True
+        course.completion_date = datetime.datetime.now().isoformat()
         
-        # Save the updated profile
-        with open(profile_path, 'w', encoding='utf-8') as f:
-            json.dump(student_profile, f, ensure_ascii=False, indent=4)
+        # Save the updated course profile
+        save_course_profile(course)
         
         return jsonify({
             'success': True,
@@ -1581,16 +1658,15 @@ def update_module_index():
     if not isinstance(new_module_index, int) or new_module_index < 0:
         return jsonify({
             'error': f'Invalid module index. Must be between 0 and {total_modules-1}',
-            'current_index': student_profile.get('current_module_index', 0),
+            'current_index': course.current_module_index,
             'total_modules': total_modules
         }), 400
     
     # Update the module index
-    student_profile['current_module_index'] = new_module_index
+    course.current_module_index = new_module_index
     
-    # Save the updated profile
-    with open(profile_path, 'w', encoding='utf-8') as f:
-        json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    # Save the updated course profile
+    save_course_profile(course)
     
     return jsonify({
         'success': True,
@@ -1601,64 +1677,74 @@ def update_module_index():
 
 @app.route('/summary')
 def summary():
-    if 'student_id' not in session:
+    if 'student_id' not in session or 'course_id' not in session:
+        return redirect(url_for('course_selection'))
+    
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return redirect(url_for('course_selection'))
+    
+    # Get student profile
+    profile = get_student_profile(session['student_id'])
+    if not profile:
         return redirect(url_for('select_user'))
     
-    # 讀取學生檔案
-    with open(f'student_profiles/{session["student_id"]}.json', 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
-    
-    # 讀取所有學習日誌
+    # Read all learning logs for this course
     logs = []
-    for log_file in os.listdir('learning_logs'):
+    for log_file in os.listdir(app.config['LEARNING_LOGS_DIR']):
         if log_file.endswith('.json'):
             try:
-                # 嘗試使用不同的編碼方式讀取文件
-                try:
-                    with open(os.path.join('learning_logs', log_file), 'r', encoding='utf-8') as lf:
-                        log = json.load(lf)
-                except UnicodeDecodeError:
-                    with open(os.path.join('learning_logs', log_file), 'r', encoding='big5') as lf:
-                        log = json.load(lf)
-                
-                if log['student_id'] == student_profile['id']:
-                    logs.append(log)
+                with open(os.path.join(app.config['LEARNING_LOGS_DIR'], log_file), 'r', encoding='utf-8') as lf:
+                    log = json.load(lf)
+                    if log['student_id'] == profile.id:
+                        logs.append(log)
             except Exception as e:
                 app.logger.error(f"Error reading log file {log_file}: {str(e)}")
                 continue
     
-    # 按時間排序
+    # Sort logs by timestamp
     logs.sort(key=lambda x: x['timestamp'])
-    return render_template('summary.html', student_profile=student_profile, logs=logs)
+    
+    # Get learning history from course profile
+    learning_history = course.learning_history if course.learning_history else []
+    
+    return render_template('summary.html', 
+                         student_profile=profile.model_dump(),
+                         course=course.model_dump(),
+                         logs=logs,
+                         learning_history=learning_history)
 
 @app.route('/learning_path_discussion')
 def learning_path_discussion():
-    if 'student_id' not in session:
-        return redirect(url_for('select_user'))
+    if 'student_id' not in session or 'course_id' not in session:
+        return redirect(url_for('course_selection'))
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return redirect(url_for('select_user'))
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return redirect(url_for('course_selection'))
     
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+    # Get student profile
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return redirect(url_for('select_user'))
     
     # Check if learning path exists
-    if not student_profile.get('learning_path'):
+    if not course.learning_path:
         return redirect(url_for('pretest'))
     
     # Check if learning path has already been confirmed
-    if student_profile.get('learning_path_confirmed'):
+    if course.learning_path_confirmed:
         return redirect(url_for('learning'))
     
     return render_template('learning_path_discussion.html', 
-                         learning_path=student_profile['learning_path'])
+                         learning_path=course.learning_path)
 
 @app.route('/api/discuss-learning-path', methods=['POST'])
 def discuss_learning_path():
-    if 'student_id' not in session:
-        return jsonify({'error': 'No student session found'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
     data = request.json
     message = data.get('message')
@@ -1666,18 +1752,20 @@ def discuss_learning_path():
     if not message:
         return jsonify({'error': 'No message provided'}), 400
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return jsonify({'error': 'Student profile not found'}), 400
-    
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
     
     # Get learning path
-    learning_path = student_profile.get('learning_path')
+    learning_path = course.learning_path
     if not learning_path:
         return jsonify({'error': 'No learning path found'}), 400
+    
+    # Get student profile
+    student_profile = get_student_profile(session['student_id'])
+    if not student_profile:
+        return jsonify({'error': 'Student profile not found'}), 400
     
     # Create chat model
     chat_model = ChatGoogleGenerativeAI(
@@ -1708,9 +1796,9 @@ def discuss_learning_path():
         response = discussion_chain.invoke({
             "learning_path": json.dumps(learning_path, ensure_ascii=False),
             "profile": json.dumps({
-                "name": student_profile['name'],
-                "learning_style": student_profile['learning_style'],
-                "current_knowledge_level": student_profile['current_knowledge_level']
+                "name": student_profile.name,
+                "learning_style": student_profile.learning_style,
+                "current_knowledge_level": course.current_knowledge_level
             }, ensure_ascii=False),
             "message": message
         })
@@ -1723,21 +1811,20 @@ def discuss_learning_path():
             
             # Generate new learning path with student's requirements
             new_learning_path = generate_learning_path(
-                session['session_id'],
-                StudentProfile.model_validate(student_profile),
+                course.session_id,
+                course,
                 {
-                    'score_percentage': student_profile.get('pretest_score', 0),
-                    'knowledge_level': student_profile['current_knowledge_level'],
+                    'score_percentage': course.current_knowledge_level,
+                    'knowledge_level': course.current_knowledge_level,
                     'student_requirements': message  # Add student's requirements to the test results
                 }
             )
             
-            # Update student profile with new learning path
-            student_profile['learning_path'] = new_learning_path
+            # Update course profile with new learning path
+            course.learning_path = new_learning_path
             
-            # Save updated profile
-            with open(profile_path, 'w', encoding='utf-8') as f:
-                json.dump(student_profile, f, ensure_ascii=False, indent=4)
+            # Save updated course profile
+            save_course_profile(course)
             
             path_adjusted = True
         
@@ -1785,25 +1872,25 @@ def adjust_learning_path():
 
 @app.route('/api/confirm-learning-path', methods=['POST'])
 def confirm_learning_path():
-    if 'student_id' not in session:
-        return jsonify({'error': 'No student session found'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
-    # Load student profile
-    profile_path = os.path.join('student_profiles', f"{session['student_id']}.json")
-    if not os.path.exists(profile_path):
-        return jsonify({'error': 'Student profile not found'}), 400
-    
-    with open(profile_path, 'r', encoding='utf-8') as f:
-        student_profile = json.load(f)
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
     
     # Mark learning path as confirmed
-    student_profile['learning_path_confirmed'] = True
+    course.learning_path_confirmed = True
     
-    # Save updated profile
-    with open(profile_path, 'w', encoding='utf-8') as f:
-        json.dump(student_profile, f, ensure_ascii=False, indent=4)
+    # Save updated course profile
+    save_course_profile(course)
     
-    return jsonify({'success': True})
+    # Return success with redirect to learning page
+    return jsonify({
+        'success': True,
+        'redirect': url_for('learning')
+    })
 
 @app.route('/api/get-current-learning-path', methods=['GET'])
 def get_current_learning_path():

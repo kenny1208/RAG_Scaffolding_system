@@ -2,29 +2,56 @@
 <div class="container mt-5">
   <h2>學習總結</h2>
   <p>學員：{{ student_profile.name }}</p>
-  <h4>學習歷程</h4>
-  <ul>
-    {% for log in logs %}
-    <li>
-      <strong>{{ log.topic }}</strong> ({{ log.timestamp }})<br />
-      <em>心得：</em> {{ log.content }}<br />
-      {% if log.next_steps %}
-      <em>建議：</em> {{ log.next_steps|join(', ') }}<br />
+  <p>課程：{{ course.title }}</p>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h4>學習歷程</h4>
+    </div>
+    <div class="card-body">
+      {% if logs %}
+      <ul class="list-group">
+        {% for log in logs %}
+        <li class="list-group-item">
+          <strong>{{ log.topic }}</strong> ({{ log.timestamp }})<br />
+          <em>心得：</em> {{ log.content }}<br />
+          {% if log.next_steps %}
+          <em>建議：</em> {{ log.next_steps|join(', ') }}<br />
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>尚無學習歷程記錄</p>
       {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  <h4>學習成績</h4>
-  <ul>
-    {% for record in student_profile.learning_history %}
-    <li>
-      <strong>{{ record.activity_type }}</strong>
-      {% if record.module %} - {{ record.module }}{% endif %} ：{{ record.score
-      }} ({{ record.percentage }}%) {% if record.current_level %}，知識等級：{{
-      record.current_level }}{% endif %}
-    </li>
-    {% endfor %}
-  </ul>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h4>學習成績</h4>
+    </div>
+    <div class="card-body">
+      {% if learning_history %}
+      <ul class="list-group">
+        {% for record in learning_history %}
+        <li class="list-group-item">
+          <strong>{{ record.activity_type }}</strong>
+          {% if record.module %} - {{ record.module }}{% endif %}
+          <br />
+          分數：{{ record.score }} ({{ record.percentage }}%) {% if
+          record.current_level %}
+          <br />
+          知識等級：{{ record.current_level }} {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>尚無學習成績記錄</p>
+      {% endif %}
+    </div>
+  </div>
+
   <div class="mt-4">
     <a href="{{ url_for('learning') }}" class="btn btn-primary">我要再學一次</a>
     <a href="{{ url_for('index') }}" class="btn btn-secondary">結束學習</a>

@@ -2,29 +2,33 @@
 <div
   class="row"
   id="learning-page"
-  data-module-index="{{ student_profile.current_module_index }}"
+  data-module-index="{{ course.current_module_index }}"
 >
   <!-- Sidebar with progress -->
   <div class="col-md-3">
     <div class="card">
       <div class="card-body">
-        <h3 class="h5 mb-3">Learning Progress</h3>
+        <h3 class="h5 mb-3">學習進度</h3>
         <div class="progress mb-3">
           <div
             class="progress-bar"
             role="progressbar"
-            data-progress="{{ (student_profile.current_module_index / student_profile.learning_path['modules']|length * 100)|round(2) }}"
-          ></div>
+            aria-valuenow="{{ progress_percentage }}"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            {{ progress_percentage|round(2) }}%
+          </div>
         </div>
 
-        <h4 class="h6 mb-2">Modules</h4>
+        <h4 class="h6 mb-2">章節列表</h4>
         <div class="list-group">
-          {% for module in student_profile.learning_path['modules'] %}
+          {% for module in course.learning_path.modules %}
           <div
-            class="list-group-item {% if loop.index0 == student_profile.current_module_index %}active{% endif %}"
+            class="list-group-item {% if loop.index0 == course.current_module_index %}active{% endif %}"
           >
             <i
-              class="fas {% if loop.index0 < student_profile.current_module_index %}fa-check-circle text-success{% elif loop.index0 == student_profile.current_module_index %}fa-play-circle{% else %}fa-circle{% endif %} me-2"
+              class="fas {% if loop.index0 < course.current_module_index %}fa-check-circle text-success{% elif loop.index0 == course.current_module_index %}fa-play-circle{% else %}fa-circle{% endif %} me-2"
             ></i>
             {{ module.title }}
           </div>
@@ -38,10 +42,10 @@
   <div class="col-md-9">
     <div class="card mb-4">
       <div class="card-body">
-        <h2 class="card-title">{{ student_profile.learning_path['title'] }}</h2>
-        <p class="lead">{{ student_profile.learning_path['description'] }}</p>
+        <h2 class="card-title">{{ course.learning_path.title }}</h2>
+        <p class="lead">{{ course.learning_path.description }}</p>
         <ul>
-          {% for obj in student_profile.learning_path['objectives'] %}
+          {% for obj in course.learning_path.objectives %}
           <li>{{ obj }}</li>
           {% endfor %}
         </ul>
@@ -191,6 +195,13 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // Set progress bar width
+    const progressBar = document.querySelector(".progress-bar");
+    if (progressBar) {
+      const progress = progressBar.getAttribute("aria-valuenow");
+      progressBar.style.width = progress + "%";
+    }
+
     // Initialize Mermaid
     mermaid.initialize({
       startOnLoad: true,
@@ -615,7 +626,7 @@
     );
     const pdfViewer = document.getElementById("pdfViewer");
 
-    // Process interactive elements from markdown content
+    // Process interactive elements
     function processInteractiveElements() {
       const content = document.querySelector(".module-content");
       if (!content) return;
@@ -787,6 +798,11 @@
     padding: 1rem;
     border-radius: 0.25rem;
     margin-top: 0.5rem;
+  }
+
+  .progress-bar {
+    width: 0%;
+    transition: width 0.3s ease;
   }
 </style>
 {% endblock %}

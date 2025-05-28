@@ -1,0 +1,103 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-body">
+          <h2 class="card-title text-center mb-4">創建新課程</h2>
+          <form id="createCourseForm">
+            <div class="mb-3">
+              <label for="title" class="form-label">課程名稱</label>
+              <input
+                type="text"
+                class="form-control"
+                id="title"
+                name="title"
+                required
+                placeholder="請輸入課程名稱"
+              />
+              <div class="form-text">為您的課程取一個有意義的名稱</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">課程描述</label>
+              <textarea
+                class="form-control"
+                id="description"
+                name="description"
+                rows="3"
+                placeholder="請描述這個課程的主要內容和目標"
+              ></textarea>
+              <div class="form-text">簡要描述這個課程的內容和學習目標</div>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> 創建課程
+              </button>
+              <a
+                href="{{ url_for('course_selection') }}"
+                class="btn btn-outline-secondary"
+              >
+                返回課程列表
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document
+    .getElementById("createCourseForm")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+
+      try {
+        const response = await fetch('{{ url_for("create_course") }}', {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: title,
+            description: description,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          window.location.href = data.redirect;
+        } else {
+          alert(data.error || "創建課程失敗，請稍後再試");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("發生錯誤，請稍後再試");
+      }
+    });
+</script>
+
+<style>
+  .card {
+    border: none;
+    border-radius: 15px;
+  }
+  .form-control {
+    border-radius: 8px;
+  }
+  .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  .btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+  }
+</style>
+{% endblock %}
