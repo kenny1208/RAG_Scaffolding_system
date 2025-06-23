@@ -530,14 +530,21 @@ def generate_learning_path(session_id, profile, test_results):
         SystemMessage(content=f"""您是一位專精於個人化學習路徑設計的教育課程設計專家。
         根據提供的學生檔案、測驗結果和內容，創建一條適合他自學的學習路徑。
         
+        重要：您必須先分析教材內容，建立清晰的課程結構，然後為每個章節分配特定的內容範圍。
+        
+        您的學習路徑設計流程：
+        1. 首先分析教材內容，識別主要主題和概念
+        2. 建立邏輯性的章節結構，確保知識的遞進關係
+        3. 為每個章節分配特定的內容範圍，避免重複
+        4. 確保章節之間有清晰的連接和過渡
+        
         您的學習路徑必須：
-        1. 完整涵蓋教材中的所有重要內容和概念
-        2. 針對學生的學習風格、知識水平進行量身調整
-        3. 遵循鷹架原則，逐步增加難度並減少支持
-        4. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
-        5. 確保每章節都涵蓋相關的教材內容，不要遺漏任何重要概念
-        6. 確保學習路徑的連續性和完整性，章節之間要有清晰的關聯
-        7. 根據學生的知識水平調整內容深度和廣度：
+        1. 建立清晰的章節分工，每個章節專注於特定主題
+        2. 確保章節之間有邏輯順序和知識遞進
+        3. 針對學生的學習風格、知識水平進行量身調整
+        4. 遵循鷹架原則，逐步增加難度並減少支持
+        5. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
+        6. 根據學生的知識水平調整內容深度和廣度：
            - 初學者：更詳細的基礎概念解釋，更多例子
            - 中級者：平衡的理論和應用，適中的難度
            - 進階者：更深入的理論探討，更多分析和整合的內容
@@ -551,16 +558,25 @@ def generate_learning_path(session_id, profile, test_results):
             {{
               "title": "章節 1: [標題]",
               "description": "章節描述",
+              "content_scope": "此章節專注的具體內容範圍",
+              "prerequisites": ["前置知識 1", "前置知識 2"],
+              "learning_outcomes": ["學習成果 1", "學習成果 2"],
               "activities": [
                 {{
                   "content": "列出該章節要學會的內容",
                   "source": "資料來源"
                 }}
               ],
-              
+              "module_index": 0
             }}
           ]
         }}
+        
+        請確保：
+        1. 每個章節的content_scope明確且不重複
+        2. 章節之間有清晰的prerequisites關係
+        3. 學習成果逐步遞進
+        4. 總章節數控制在3-5個，避免過於分散
         """),
         HumanMessagePromptTemplate.from_template("""根據以下內容生成個人化學習路徑：
         
@@ -607,14 +623,14 @@ def generate_module_content(session_id, module, profile):
     vectorstore = get_vectorstore(session_id)
     
     # 使用兩種檢索策略
-    # 1. 相關性檢索
+    # 1. 相關性檢索 - 針對章節特定內容
     relevance_retriever = vectorstore.as_retriever(
         search_kwargs={
-            "k": 20
+            "k": 15
         }
     )
     
-    # 2. 全面檢索 - 獲取所有文檔
+    # 2. 全面檢索 - 獲取所有文檔（用於上下文理解）
     all_docs_data = vectorstore.get()
     all_docs = []
     for i, doc in enumerate(all_docs_data["documents"]):
@@ -629,8 +645,12 @@ def generate_module_content(session_id, module, profile):
         model="gemini-2.0-flash-lite"
     )
     
-    # Get module topic
+    # Get module topic and content scope
     module_topic = module["title"].split(": ", 1)[1] if ": " in module["title"] else module["title"]
+    content_scope = module.get("content_scope", module_topic)
+    prerequisites = module.get("prerequisites", [])
+    learning_outcomes = module.get("learning_outcomes", [])
+    module_index = module.get("module_index", 0)
     
     # Check if this is a retry
     is_retry = module.get('retry_count', 0) > 0
@@ -661,49 +681,57 @@ def generate_module_content(session_id, module, profile):
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
-        根據章節主題和學生的學習風格、知識水平，創造引人入勝的教育內容。
+        根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
+        
+        重要：您必須專注於此章節的特定內容範圍，不要重複涵蓋其他章節的內容。
         
         您的內容應該：
-        1. 針對學生的學習風格進行量身定制(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
-        2. 適合學生的知識水平
-        3. 包含清晰的關鍵概念解釋
-        4. 使用例子和比喻來闡明觀點
-        5. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
+        1. 專注於章節的特定內容範圍：{content_scope}
+        2. 針對學生的學習風格進行量身定制(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
+        3. 適合學生的知識水平
+        4. 包含清晰的關鍵概念解釋
+        5. 使用例子和比喻來闡明觀點
+        6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
            - 高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
            - 中鷹架支持：提供適中的解釋和例子，加入一些思考問題
            - 低鷹架支持：提供基本概念，鼓勵自主探索和思考
         
-        6. 結構清晰，包含以下部分：
-           - 學習目標
-           - 前置知識提醒
-           - 主要內容（分為小節）
+        7. 結構清晰，包含以下部分：
+           - 學習目標（基於learning_outcomes）
+           - 前置知識提醒（基於prerequisites）
+           - 主要內容（專注於content_scope）
            - 關鍵概念總結
            - 自我檢查問題
            - 延伸思考問題
+           - 與下一章節的連接提示
         
-        7. 每個章節都要根據context的內容標註來源(source)，格式為：
+        8. 每個章節都要根據context的內容標註來源(source)，格式為：
            [來源: 檔名.pdf, 頁碼: X]
            如果有多個來源，只列出第一個。
         
-        8. 加入互動元素：
+        9. 加入互動元素：
            - 思考問題
            - 反思提示
         
-        9. 確保內容涵蓋所有提供的教材，不要遺漏任何重要概念。
+        10. 確保內容與章節的特定範圍相關，避免重複其他章節的內容。
         
         使用markdown格式化您的內容，以提高可讀性。
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
         章節主題：{module_topic}
+        章節內容範圍：{content_scope}
+        前置知識：{prerequisites}
+        學習成果：{learning_outcomes}
+        章節順序：{module_index}
         學生學習風格：{learning_style}
         學生知識水平：{knowledge_level}
         鷹架支持程度：{scaffolding_level}
         
-        相關內容：
+        相關內容（專注於此章節範圍）：
         {relevant_context}
         
-        完整教材：
+        完整教材（用於上下文理解）：
         {all_context}
         """)
     ])
@@ -713,10 +741,14 @@ def generate_module_content(session_id, module, profile):
         RunnablePassthrough()
         | (lambda _: {
             "module_topic": module_topic,
+            "content_scope": content_scope,
+            "prerequisites": ", ".join(prerequisites) if prerequisites else "無",
+            "learning_outcomes": ", ".join(learning_outcomes) if learning_outcomes else "理解本章節內容",
+            "module_index": module_index,
             "learning_style": profile.learning_style,
             "knowledge_level": profile.current_knowledge_level,
             "scaffolding_level": scaffolding_level,
-            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(module_topic)]),
+            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(content_scope)]),
             "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
         })
         | prompt
@@ -726,10 +758,66 @@ def generate_module_content(session_id, module, profile):
     
     return content_chain.invoke("")
 
+def generate_module_transition(session_id, current_module, next_module, profile):
+    """Generate transition content between modules"""
+    if not next_module:
+        return ""
+    
+    vectorstore = get_vectorstore(session_id)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    
+    chat_model = ChatGoogleGenerativeAI(
+        google_api_key=api_key,
+        model="gemini-2.0-flash-lite"
+    )
+    
+    current_topic = current_module["title"].split(": ", 1)[1] if ": " in current_module["title"] else current_module["title"]
+    next_topic = next_module["title"].split(": ", 1)[1] if ": " in next_module["title"] else next_module["title"]
+    
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content="""您是一位專業的教育內容設計師，專精於創建章節之間的過渡內容。
+        您的任務是創建一個簡短但有效的過渡段落，幫助學生從當前章節順利過渡到下一個章節。
+        
+        過渡內容應該：
+        1. 簡短總結當前章節的關鍵概念
+        2. 預告下一個章節的主要內容
+        3. 建立兩個章節之間的邏輯連接
+        4. 激發學生對下一個章節的興趣
+        5. 提供學習建議和準備提示
+        
+        使用markdown格式化，保持簡潔明瞭。
+        """),
+        HumanMessagePromptTemplate.from_template("""創建章節過渡內容：
+        
+        當前章節：{current_topic}
+        下一個章節：{next_topic}
+        
+        相關內容：
+        {context}
+        """)
+    ])
+    
+    transition_chain = (
+        RunnablePassthrough()
+        | retriever
+        | (lambda docs: {
+            "current_topic": current_topic,
+            "next_topic": next_topic,
+            "context": "\n\n".join([d.page_content for d in docs])
+        })
+        | prompt
+        | chat_model
+        | StrOutputParser()
+    )
+    
+    return transition_chain.invoke(f"{current_topic} {next_topic}")
+
 def simulate_peer_discussion(session_id, topic, message):
     """Simulate a peer discussion with an AI learning partner"""
     vectorstore = get_vectorstore(session_id)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    
+    # 使用針對特定主題的檢索
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
@@ -741,11 +829,13 @@ def simulate_peer_discussion(session_id, topic, message):
         您的角色是：
         1. 模擬一位也在學習該主題但有一定見解的同儕
         2. 提出有助於促進批判性思考的問題
+        3. 專注於討論的主題範圍，不要偏離主題
         4. 以對話的方式表達想法，像是學生之間的交流
         5. 鼓勵並保持積極的態度
         
         根據提供的相關內容回應，但不要只是簡單地背誦資訊。
         而是以自然的方式進行來回討論，就像一起學習一樣，但是還是要能回答同學的問題而不是一直反問。
+        確保討論內容與主題相關，避免偏離到其他章節的內容。
         """),
         HumanMessagePromptTemplate.from_template("""學生想要討論這個主題：
         
@@ -778,15 +868,19 @@ def simulate_peer_discussion(session_id, topic, message):
 def create_posttest(session_id, module, profile):
     """Generate a post-test for a module"""
     vectorstore = get_vectorstore(session_id)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    
+    # 使用針對章節特定內容的檢索
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
         model="gemini-2.0-flash-lite"
     )
     
-    # Get module topic
+    # Get module topic and content scope
     module_topic = module["title"].split(": ", 1)[1] if ": " in module["title"] else module["title"]
+    content_scope = module.get("content_scope", module_topic)
+    learning_outcomes = module.get("learning_outcomes", [])
     
     # Get knowledge level from profile
     knowledge_level = profile.current_knowledge_level
@@ -807,7 +901,10 @@ def create_posttest(session_id, module, profile):
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育評估設計師。
-        根據章節內容和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
+        根據章節的特定內容範圍和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
+        
+        重要：您必須專注於此章節的特定內容範圍：{content_scope}
+        不要測試其他章節的內容，確保題目與章節的學習成果相關。
         
         難度應該符合學生的當前水平：
         - 初學者：更多容易的問題 (70%)，一些中等難度 (30%)
@@ -828,7 +925,7 @@ def create_posttest(session_id, module, profile):
           * 較少的提示
           * 更多應用和分析問題
         
-        題目應該測試學生的理解、應用和分析能力。
+        題目應該測試學生對章節特定內容的理解、應用和分析能力。
         
         每個問題應該包含：
         1. 問題文字
@@ -855,12 +952,16 @@ def create_posttest(session_id, module, profile):
         }}
 
         根據學生的水平生成總共 5 個問題，並且適當的難度分布。
+        確保所有問題都與章節的特定內容範圍相關。
         """),
         HumanMessagePromptTemplate.from_template("""Generate a post-test based on:
         
+        章節主題：{module_topic}
+        章節內容範圍：{content_scope}
+        學習成果：{learning_outcomes}
         學生的當前知識水平：{knowledge_level}
         鷹架支持程度：{scaffolding_level}
-        章節內容：{context}
+        章節相關內容：{context}
         """)
     ])
     
@@ -869,6 +970,9 @@ def create_posttest(session_id, module, profile):
         RunnablePassthrough()
         | retriever
         | (lambda docs: {
+            "module_topic": module_topic,
+            "content_scope": content_scope,
+            "learning_outcomes": ", ".join(learning_outcomes) if learning_outcomes else "理解本章節內容",
             "knowledge_level": knowledge_level,
             "scaffolding_level": scaffolding_level,
             "context": "\n\n".join([d.page_content for d in docs])
@@ -878,7 +982,7 @@ def create_posttest(session_id, module, profile):
         | JsonOutputParser()
     )
     
-    return posttest_chain.invoke(module_topic)
+    return posttest_chain.invoke(content_scope)
 
 def analyze_learning_log(student_name, topic, log_content):
     """Analyze a student's learning log"""
@@ -1297,10 +1401,22 @@ def learning():
     # Get current module
     current_module = course.learning_path['modules'][current_module_index]
     
+    # Get next module for transition content
+    next_module = None
+    if current_module_index + 1 < len(course.learning_path['modules']):
+        next_module = course.learning_path['modules'][current_module_index + 1]
+    
     # Generate module content if not already present
     if 'content' not in current_module:
         try:
             content = generate_module_content(course.session_id, current_module, profile)
+            
+            # Add transition content if there's a next module
+            if next_module:
+                transition_content = generate_module_transition(course.session_id, current_module, next_module, profile)
+                if transition_content:
+                    content += f"\n\n## 章節過渡\n\n{transition_content}"
+            
             current_module['content'] = content
             # Save the updated course profile with content
             save_course_profile(course)
@@ -1316,6 +1432,7 @@ def learning():
                          student_profile=profile.model_dump(),
                          course=course.model_dump(),
                          current_module=current_module,
+                         next_module=next_module,
                          progress_percentage=progress_percentage)
 
 @app.route('/api/profile', methods=['GET', 'POST'])
@@ -2078,6 +2195,46 @@ def view_pdf(filename):
         return "PDF file not found", 404
     
     return send_file(pdf_path, mimetype='application/pdf')
+
+@app.route('/api/module-transition/<int:module_index>', methods=['GET'])
+def get_module_transition(module_index):
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
+    
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+    
+    # Check if course has learning path
+    if not course.learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    if module_index >= len(course.learning_path['modules']):
+        return jsonify({'error': 'Invalid module index'}), 400
+    
+    # Get current and next module
+    current_module = course.learning_path['modules'][module_index]
+    next_module = None
+    if module_index + 1 < len(course.learning_path['modules']):
+        next_module = course.learning_path['modules'][module_index + 1]
+    
+    if not next_module:
+        return jsonify({'transition': ''})
+    
+    # Get student profile
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return jsonify({'error': 'Student profile not found'}), 400
+    
+    try:
+        transition_content = generate_module_transition(course.session_id, current_module, next_module, profile)
+        return jsonify({
+            'transition': transition_content,
+            'next_module': next_module
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
