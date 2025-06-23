@@ -18,6 +18,7 @@ from typing import List, Dict, Optional, Any
 import nltk
 
 import time
+import shutil
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -2267,6 +2268,46 @@ def get_module_transition(module_index):
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/delete_course/<course_id>', methods=['POST'])
+def delete_course(course_id):
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+
+    # 1. 從 student_profile 移除該課程ID
+    student_profile = get_student_profile(session['student_id'])
+    if not student_profile:
+        return jsonify({'error': 'Student profile not found'}), 400
+    if course_id in student_profile.courses:
+        student_profile.courses.remove(course_id)
+        save_student_profile(student_profile)
+
+    # 2. 刪除 course_profiles 下對應的 json
+    course_profile_path = os.path.join(app.config['COURSE_PROFILES_DIR'], f"{course_id}.json")
+    session_id = None
+    if os.path.exists(course_profile_path):
+        # 取得 session_id 以便刪除相關資料夾
+        try:
+            with open(course_profile_path, 'r', encoding='utf-8') as f:
+                course_data = json.load(f)
+                session_id = course_data.get('session_id')
+        except Exception:
+            pass
+        os.remove(course_profile_path)
+
+    # 3. 刪除 data 和 vectordbs 下該課程的 session_id 資料夾（如果有）
+    if session_id:
+        for base_dir in [app.config['UPLOAD_FOLDER'], app.config['VECTOR_DB_DIR']]:
+            target_dir = os.path.join(base_dir, session_id)
+            if os.path.exists(target_dir):
+                shutil.rmtree(target_dir, ignore_errors=True)
+
+    # 4. 若目前 session 的 course_id 是被刪除的，也從 session 移除
+    if session.get('course_id') == course_id:
+        session.pop('course_id', None)
+        session.pop('session_id', None)
+
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run(debug=True)
