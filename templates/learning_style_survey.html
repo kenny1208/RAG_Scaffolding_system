@@ -1,7 +1,8 @@
 {% extends "base.html" %} {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-8">
-    <div class="card">
+    <!-- Survey Form -->
+    <div class="card" id="survey-card">
       <div class="card-body">
         <h2 class="card-title text-center mb-4">Learning Style Assessment</h2>
         <p class="lead text-center mb-4">
@@ -11,7 +12,7 @@
         <form id="survey-form">
           <!-- Active/Reflective Dimension -->
           <div class="mb-4">
-            <h3 class="h5 mb-3">1..您傾向於如何學習新資訊?</h3>
+            <h3 class="h5 mb-3">1.您傾向於如何學習新資訊?</h3>
             <div class="list-group">
               <label class="list-group-item">
                 <input
@@ -230,12 +231,289 @@
         </form>
       </div>
     </div>
+
+    <!-- Results Display -->
+    <div class="card" id="results-card" style="display: none">
+      <div class="card-body">
+        <h2 class="card-title text-center mb-4">
+          <i class="fas fa-chart-pie me-2"></i>
+          您的學習風格分析結果
+        </h2>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-4">
+              <h4 class="h5 text-primary">
+                <i class="fas fa-lightbulb me-2"></i>
+                主要學習風格
+              </h4>
+              <div class="alert alert-info" id="primary-style">
+                <!-- Primary style will be inserted here -->
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="mb-4">
+              <h4 class="h5 text-success">
+                <i class="fas fa-brain me-2"></i>
+                學習偏好分析
+              </h4>
+              <div class="alert alert-success" id="learning-preferences">
+                <!-- Learning preferences will be inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <h4 class="h5 text-warning">
+            <i class="fas fa-layer-group me-2"></i>
+            四維度學習風格分析
+          </h4>
+          <div class="row" id="dimensions-analysis">
+            <!-- Dimensions analysis will be inserted here -->
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <h4 class="h5 text-info">
+            <i class="fas fa-lightbulb me-2"></i>
+            學習建議
+          </h4>
+          <div class="alert alert-light" id="learning-suggestions">
+            <!-- Learning suggestions will be inserted here -->
+          </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <button
+            type="button"
+            class="btn btn-secondary me-md-2"
+            id="retake-survey"
+          >
+            <i class="fas fa-redo me-2"></i>
+            重新測驗
+          </button>
+          <button type="button" class="btn btn-primary" id="continue-btn">
+            <i class="fas fa-arrow-right me-2"></i>
+            繼續下一步
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %} {% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("survey-form");
+    const surveyCard = document.getElementById("survey-card");
+    const resultsCard = document.getElementById("results-card");
+    const retakeBtn = document.getElementById("retake-survey");
+    const continueBtn = document.getElementById("continue-btn");
+
+    // Learning style descriptions
+    const styleDescriptions = {
+      active: {
+        name: "主動型學習者",
+        description:
+          "您偏好透過實作、討論和互動來學習。您喜歡動手操作和與他人合作。",
+        suggestions: [
+          "參與小組討論和團隊專案",
+          "使用實作練習和實驗",
+          "與同學分享想法和經驗",
+          "嘗試解決實際問題",
+        ],
+      },
+      reflective: {
+        name: "反思型學習者",
+        description:
+          "您偏好先思考和分析資訊，然後再進行實作。您喜歡獨自思考和內省。",
+        suggestions: [
+          "在學習前先閱讀和思考材料",
+          "寫學習日誌記錄想法",
+          "給自己時間消化新概念",
+          "在實作前先規劃步驟",
+        ],
+      },
+      sensing: {
+        name: "感知型學習者",
+        description:
+          "您偏好具體的事實、實例和實用資訊。您喜歡循序漸進的學習方式。",
+        suggestions: [
+          "尋找具體的例子和應用",
+          "使用實際案例學習",
+          "注重細節和準確性",
+          "建立實用的學習目標",
+        ],
+      },
+      intuitive: {
+        name: "直覺型學習者",
+        description: "您偏好抽象概念、理論和創新想法。您喜歡探索新的可能性。",
+        suggestions: [
+          "探索概念之間的關聯",
+          "尋找創新的解決方案",
+          "思考理論背後的原理",
+          "嘗試不同的學習方法",
+        ],
+      },
+      visual: {
+        name: "視覺型學習者",
+        description: "您偏好透過圖片、圖表、圖示和視覺材料來學習。",
+        suggestions: [
+          "使用思維導圖整理資訊",
+          "觀看教學影片和動畫",
+          "使用圖表和圖表",
+          "創建視覺筆記",
+        ],
+      },
+      verbal: {
+        name: "語言型學習者",
+        description: "您偏好透過文字、口語解釋和討論來學習。",
+        suggestions: [
+          "閱讀詳細的文字說明",
+          "參與討論和辯論",
+          "寫作總結和筆記",
+          "與他人討論概念",
+        ],
+      },
+      sequential: {
+        name: "序列型學習者",
+        description: "您偏好循序漸進、邏輯性的學習方式。您喜歡按步驟解決問題。",
+        suggestions: [
+          "按邏輯順序組織學習材料",
+          "逐步解決複雜問題",
+          "建立清晰的學習計劃",
+          "使用檢查清單追蹤進度",
+        ],
+      },
+      global: {
+        name: "整體型學習者",
+        description: "您偏好先了解整體概念，然後再探索細節。您喜歡看到大圖像。",
+        suggestions: [
+          "先了解主題的整體架構",
+          "尋找概念之間的關聯",
+          "使用類比和比喻",
+          "創建學習的整體框架",
+        ],
+      },
+    };
+
+    function showResults(learningStyle) {
+      // Hide survey form and show results
+      surveyCard.style.display = "none";
+      resultsCard.style.display = "block";
+
+      // Set primary learning style
+      const primaryStyle = learningStyle.dimension3; // Visual/Verbal is the primary dimension
+      const primaryStyleInfo = styleDescriptions[primaryStyle];
+      document.getElementById("primary-style").innerHTML = `
+        <strong>${primaryStyleInfo.name}</strong><br>
+        ${primaryStyleInfo.description}
+      `;
+
+      // Set learning preferences
+      document.getElementById("learning-preferences").innerHTML = `
+        <strong>您的學習偏好：</strong><br>
+        • ${styleDescriptions[learningStyle.dimension1].name}<br>
+        • ${styleDescriptions[learningStyle.dimension2].name}<br>
+        • ${styleDescriptions[learningStyle.dimension3].name}<br>
+        • ${styleDescriptions[learningStyle.dimension4].name}
+      `;
+
+      // Set dimensions analysis
+      const dimensionsHtml = `
+        <div class="col-md-6">
+          <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+              <i class="fas fa-users me-2"></i>
+              處理資訊方式
+            </div>
+            <div class="card-body">
+              <strong>${
+                styleDescriptions[learningStyle.dimension1].name
+              }</strong><br>
+              ${styleDescriptions[learningStyle.dimension1].description}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card border-success">
+            <div class="card-header bg-success text-white">
+              <i class="fas fa-eye me-2"></i>
+              感知資訊方式
+            </div>
+            <div class="card-body">
+              <strong>${
+                styleDescriptions[learningStyle.dimension2].name
+              }</strong><br>
+              ${styleDescriptions[learningStyle.dimension2].description}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 mt-3">
+          <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+              <i class="fas fa-image me-2"></i>
+              接收資訊方式
+            </div>
+            <div class="card-body">
+              <strong>${
+                styleDescriptions[learningStyle.dimension3].name
+              }</strong><br>
+              ${styleDescriptions[learningStyle.dimension3].description}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 mt-3">
+          <div class="card border-info">
+            <div class="card-header bg-info text-white">
+              <i class="fas fa-sitemap me-2"></i>
+              理解資訊方式
+            </div>
+            <div class="card-body">
+              <strong>${
+                styleDescriptions[learningStyle.dimension4].name
+              }</strong><br>
+              ${styleDescriptions[learningStyle.dimension4].description}
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById("dimensions-analysis").innerHTML = dimensionsHtml;
+
+      // Set learning suggestions
+      const allSuggestions = [
+        ...styleDescriptions[learningStyle.dimension1].suggestions,
+        ...styleDescriptions[learningStyle.dimension2].suggestions,
+        ...styleDescriptions[learningStyle.dimension3].suggestions,
+        ...styleDescriptions[learningStyle.dimension4].suggestions,
+      ];
+
+      // Remove duplicates and take first 6 suggestions
+      const uniqueSuggestions = [...new Set(allSuggestions)].slice(0, 6);
+
+      document.getElementById("learning-suggestions").innerHTML = `
+        <ul class="mb-0">
+          ${uniqueSuggestions
+            .map((suggestion) => `<li>${suggestion}</li>`)
+            .join("")}
+        </ul>
+      `;
+    }
+
+    // Handle retake survey
+    retakeBtn.addEventListener("click", function () {
+      surveyCard.style.display = "block";
+      resultsCard.style.display = "none";
+      form.reset();
+    });
+
+    // Handle continue button
+    continueBtn.addEventListener("click", function () {
+      window.location.href = "{{ url_for('course_selection') }}";
+    });
 
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -301,12 +579,8 @@
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.redirect) {
-            window.location.href = data.redirect;
-          } else {
-            window.location.href = "{{ url_for('pretest') }}";
-          }
+          // Show results instead of redirecting
+          showResults(learningStyle);
         } else {
           const data = await response.json();
           alert(data.error || "An error occurred");
