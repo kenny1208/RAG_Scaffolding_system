@@ -1401,6 +1401,37 @@ def learning():
     # Get current module
     current_module = course.learning_path['modules'][current_module_index]
     
+    # Calculate scaffolding level for display
+    retry_count = current_module.get('retry_count', 0)
+    knowledge_level = course.current_knowledge_level
+    emotional_state = current_module.get('emotional_analysis', {})
+    base_scaffolding_level = current_module.get('scaffolding_level', 'medium')
+    
+    # Adjust scaffolding level based on emotional state
+    if emotional_state:
+        if emotional_state.get('frustration_level') == 'high' or emotional_state.get('confidence_level') == 'low':
+            base_scaffolding_level = 'high'
+        elif emotional_state.get('engagement_level') == 'high' and emotional_state.get('confidence_level') == 'high':
+            base_scaffolding_level = 'low'
+    
+    # Further adjust based on knowledge level and retry count
+    if knowledge_level == "advanced" and base_scaffolding_level != 'high':
+        scaffolding_level = "low"
+    elif knowledge_level == "intermediate":
+        if retry_count == 0 and base_scaffolding_level != 'high':
+            scaffolding_level = "medium"
+        else:
+            scaffolding_level = "high"
+    else:
+        scaffolding_level = "high"
+        
+    scaffolding_map = {
+        "high": {"label": "高", "description": "提供詳細的步驟、更多範例和引導性問題，適合初學者或需要更多支持的學習者。"},
+        "medium": {"label": "中", "description": "提供適度的解釋和範例，並加入一些思考性問題，適合已有基礎的學習者。"},
+        "low": {"label": "低", "description": "提供核心概念，鼓勵學習者自主探索和深入思考，適合進階學習者。"}
+    }
+    scaffolding_info = scaffolding_map.get(scaffolding_level, scaffolding_map["medium"])
+
     # Get next module for transition content
     next_module = None
     if current_module_index + 1 < len(course.learning_path['modules']):
@@ -1433,7 +1464,8 @@ def learning():
                          course=course.model_dump(),
                          current_module=current_module,
                          next_module=next_module,
-                         progress_percentage=progress_percentage)
+                         progress_percentage=progress_percentage,
+                         scaffolding_info=scaffolding_info)
 
 @app.route('/api/profile', methods=['GET', 'POST'])
 def profile():
