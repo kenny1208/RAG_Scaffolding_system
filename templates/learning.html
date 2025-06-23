@@ -600,7 +600,8 @@
             if (data.response) {
               const botMessage = document.createElement("div");
               botMessage.className = "message bot-message";
-              botMessage.textContent = data.response;
+              // Parse markdown and set as HTML content
+              botMessage.innerHTML = marked.parse(data.response);
               chatMessages.appendChild(botMessage);
               chatMessages.scrollTop = chatMessages.scrollHeight;
             } else {
@@ -803,6 +804,78 @@
   .progress-bar {
     width: 0%;
     transition: width 0.3s ease;
+  }
+
+  /* Chat message markdown styles */
+  .bot-message h1,
+  .bot-message h2,
+  .bot-message h3,
+  .bot-message h4,
+  .bot-message h5,
+  .bot-message h6 {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .bot-message h1 {
+    font-size: 1.2rem;
+  }
+  .bot-message h2 {
+    font-size: 1.1rem;
+  }
+  .bot-message h3 {
+    font-size: 1rem;
+  }
+
+  .bot-message p {
+    margin-bottom: 0.5rem;
+  }
+
+  .bot-message ul,
+  .bot-message ol {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .bot-message li {
+    margin-bottom: 0.25rem;
+  }
+
+  .bot-message code {
+    background-color: #e9ecef;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.9em;
+  }
+
+  .bot-message pre {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+  }
+
+  .bot-message pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+
+  .bot-message blockquote {
+    border-left: 3px solid #007bff;
+    padding-left: 0.5rem;
+    margin-left: 0;
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  .bot-message strong {
+    font-weight: 600;
+  }
+
+  .bot-message em {
+    font-style: italic;
   }
 </style>
 {% endblock %}

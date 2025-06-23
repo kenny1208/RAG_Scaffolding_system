@@ -28,6 +28,10 @@ numpy
 flask==3.0.0
 werkzeug==3.0.1
 
+# Production server
+waitress==2.1.2
+gunicorn==21.2.0
+
 # Other dependencies
 rich==13.7.0
 langchain==0.1.0
