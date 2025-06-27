@@ -32,6 +32,17 @@
           <strong class="me-2">{{ scaffolding_info.label }}</strong>
         </div>
 
+        <h4 class="h6 mb-2 mt-4">學習風格</h4>
+        <div
+          class="alert alert-success d-flex align-items-center"
+          data-bs-toggle="tooltip"
+          data-bs-placement="top"
+          title="{{ learning_style_info.description }}"
+        >
+          <i class="fas fa-user-graduate me-2"></i>
+          <strong class="me-2">{{ learning_style_info.label }}</strong>
+        </div>
+
         <h4 class="h6 mb-2">章節列表</h4>
         <div class="list-group">
           {% for module in course.learning_path.modules %}
@@ -206,6 +217,12 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // Global variables to store test data and answers
+    let testData = null;
+    let testAnswers = {};
+    let testSubmitted = false;
+    let testResults = null;
+
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(
       document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -305,6 +322,59 @@
     const chatMessages = document.getElementById("chat-messages");
     const submitTestBtn = document.getElementById("submit-test");
 
+    // Load test data when page loads
+    function loadTestData() {
+      fetch(`/api/posttest/${moduleIndex}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            console.error("Error loading test data:", data.error);
+            return;
+          }
+          if (data.questions) {
+            testData = data;
+            console.log("Test data loaded successfully");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching test:", error);
+        });
+    }
+
+    // Load test data immediately when page loads
+    loadTestData();
+
+    // Save answers to local storage
+    function saveAnswers() {
+      const answers = {};
+      document.querySelectorAll('input[name^="q"]:checked').forEach((input) => {
+        const questionIndex = input.name.replace("q", "");
+        answers[questionIndex] = input.value;
+      });
+      testAnswers = answers;
+      localStorage.setItem(
+        `test_answers_${moduleIndex}`,
+        JSON.stringify(answers)
+      );
+    }
+
+    // Load answers from local storage
+    function loadAnswers() {
+      const saved = localStorage.getItem(`test_answers_${moduleIndex}`);
+      if (saved) {
+        testAnswers = JSON.parse(saved);
+        // Restore selected answers
+        Object.keys(testAnswers).forEach((questionIndex) => {
+          const input = document.querySelector(
+            `input[name="q${questionIndex}"][value="${testAnswers[questionIndex]}"]`
+          );
+          if (input) {
+            input.checked = true;
+          }
+        });
+      }
+    }
+
     // Toggle discussion section
     startDiscussionBtn.addEventListener("click", function () {
       discussionSection.style.display =
@@ -318,38 +388,27 @@
         testSection.style.display === "none" ? "block" : "none";
       discussionSection.style.display = "none";
 
-      fetch(`/api/posttest/${moduleIndex}`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.error) {
-            document.getElementById("test-questions").innerHTML = `
-              <div class="alert alert-danger">
-                <h5>無法取得測驗題目</h5>
-                <p>${data.error}</p>
-                ${
-                  data.error.includes("upload documents")
-                    ? `<p>請先上傳學習文件：<a href="/upload_pdf" class="btn btn-primary mt-2">上傳文件</a></p>`
-                    : ""
-                }
-              </div>`;
-            return;
-          }
-          if (data.questions) {
-            renderTestQuestions(data);
-          } else {
-            document.getElementById("test-questions").innerHTML =
-              "<div class='alert alert-danger'>無法取得測驗題目：未知錯誤</div>";
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching test:", error);
-          document.getElementById("test-questions").innerHTML = `
-            <div class="alert alert-danger">
-              <h5>無法取得測驗題目</h5>
-              <p>發生錯誤：${error.message}</p>
-              <p>請重新整理頁面後再試一次。</p>
-            </div>`;
-        });
+      // If test data is not loaded yet, show loading message
+      if (!testData) {
+        document.getElementById("test-questions").innerHTML = `
+          <div class="alert alert-info">
+            <h5>載入測驗題目中...</h5>
+            <p>請稍候，正在準備您的測驗題目。</p>
+          </div>`;
+        return;
+      }
+
+      // If test has already been submitted, show results
+      if (testSubmitted && testResults) {
+        showTestResults(testResults);
+        return;
+      }
+
+      // Render test questions if not already rendered
+      if (document.getElementById("test-questions").children.length === 0) {
+        renderTestQuestions(testData);
+        loadAnswers(); // Restore saved answers
+      }
     });
 
     // Handle test submission
@@ -390,167 +449,9 @@
             return;
           }
 
-          // Display results
-          const resultsHtml = `
-          <div class="alert ${
-            data.percentage >= 80 ? "alert-success" : "alert-warning"
-          }">
-            <h4>測驗結果</h4>
-            <p>得分: ${data.score}/${data.total} (${data.percentage}%)</p>
-            <p>知識水平: ${data.new_level}</p>
-          </div>
-          <div class="mt-3">
-            <h5>詳細解答</h5>
-            ${data.results
-              .map(
-                (result, idx) => `
-              <div class="mb-3">
-                <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
-                <p>你的答案: ${result.student_answer} ${
-                  result.is_correct ? "✓" : "✗"
-                }</p>
-                <p>正確答案: ${result.correct_answer}</p>
-                <p>解釋: ${result.explanation}</p>
-              </div>
-            `
-              )
-              .join("")}
-          </div>
-          <div class="mt-4">
-            <h5>學習日誌</h5>
-            <p>請分享你對這個模組的學習心得：</p>
-            <div class="mb-3">
-              <textarea class="form-control" id="learning-log-content" rows="5" 
-                placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
-            </div>
-            ${
-              data.percentage < 60
-                ? `
-              <div class="alert alert-info mb-3">
-                <p>你的測驗分數顯示你可能需要更多時間來掌握這個主題。你想要：</p>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-warning" id="retry-module">重新學習這個章節</button>
-                  <button class="btn btn-primary" id="submit-learning-log">繼續下一個章節</button>
-                </div>
-              </div>
-            `
-                : `
-              <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
-            `
-            }
-          </div>
-        `;
-          document.getElementById("test-questions").innerHTML = resultsHtml;
-          submitTestBtn.style.display = "none";
-
-          // Add event listener for retry button if it exists
-          const retryButton = document.getElementById("retry-module");
-          if (retryButton) {
-            retryButton.addEventListener("click", function () {
-              // Submit learning log first
-              const logContent = document
-                .getElementById("learning-log-content")
-                .value.trim();
-              if (!logContent) {
-                alert("請填寫學習日誌內容");
-                return;
-              }
-
-              // Submit learning log with retry flag
-              fetch(`/api/learning-log/${moduleIndex}`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  content: logContent,
-                  retry: true,
-                }),
-              })
-                .then((response) => response.json())
-                .then((data) => {
-                  if (data.error) {
-                    alert(data.error);
-                    return;
-                  }
-                  // Reload the page to retry the module
-                  window.location.reload();
-                })
-                .catch((error) => {
-                  console.error("Error:", error);
-                  alert("提交學習日誌時發生錯誤");
-                });
-            });
-          }
-
-          // Add event listener for learning log submission
-          document
-            .getElementById("submit-learning-log")
-            .addEventListener("click", function () {
-              const logContent = document
-                .getElementById("learning-log-content")
-                .value.trim();
-
-              if (!logContent) {
-                alert("請填寫學習日誌內容");
-                return;
-              }
-
-              // Submit learning log
-              fetch(`/api/learning-log/${moduleIndex}`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  content: logContent,
-                }),
-              })
-                .then((response) => response.json())
-                .then((data) => {
-                  if (data.error) {
-                    alert(data.error);
-                    return;
-                  }
-
-                  // After successful log submission, proceed to next module
-                  fetch("/api/update-module-index", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      module_index: moduleIndex + 1,
-                    }),
-                  })
-                    .then((response) => response.json())
-                    .then((data) => {
-                      if (data.success) {
-                        // Check if we've reached the end of the modules
-                        if (data.finished) {
-                          alert("恭喜！你已經完成所有模組的學習！");
-                          window.location.href = "/summary";
-                        } else {
-                          // Reload the page to show the next module
-                          window.location.reload();
-                        }
-                      } else {
-                        // Show more detailed error message
-                        const errorMsg = data.error || "切換模組時發生錯誤";
-                        alert(errorMsg);
-                        console.error("Module update error:", data);
-                      }
-                    })
-                    .catch((error) => {
-                      console.error("Error:", error);
-                      alert("切換模組時發生錯誤，請重新整理頁面再試一次");
-                    });
-                })
-                .catch((error) => {
-                  console.error("Error:", error);
-                  alert("提交學習日誌時發生錯誤");
-                });
-            });
+          testSubmitted = true;
+          testResults = data;
+          showTestResults(data);
         })
         .catch((error) => {
           alert("提交答案時發生錯誤");
@@ -558,7 +459,171 @@
         });
     });
 
-    // Place the function here, inside the event handler!
+    // Function to show test results
+    function showTestResults(data) {
+      const resultsHtml = `
+        <div class="alert ${
+          data.percentage >= 80 ? "alert-success" : "alert-warning"
+        }">
+          <h4>測驗結果</h4>
+          <p>得分: ${data.score}/${data.total} (${data.percentage}%)</p>
+          <p>知識水平: ${data.new_level}</p>
+        </div>
+        <div class="mt-3">
+          <h5>詳細解答</h5>
+          ${data.results
+            .map(
+              (result, idx) => `
+            <div class="mb-3">
+              <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
+              <p>你的答案: ${result.student_answer} ${
+                result.is_correct ? "✓" : "✗"
+              }</p>
+              <p>正確答案: ${result.correct_answer}</p>
+              <p>解釋: ${result.explanation}</p>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+        <div class="mt-4">
+          <h5>學習日誌</h5>
+          <p>請分享你對這個模組的學習心得：</p>
+          <div class="mb-3">
+            <textarea class="form-control" id="learning-log-content" rows="5" 
+              placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
+          </div>
+          ${
+            data.percentage < 60
+              ? `
+            <div class="alert alert-info mb-3">
+              <p>你的測驗分數顯示你可能需要更多時間來掌握這個主題。你想要：</p>
+              <div class="d-flex gap-2">
+                <button class="btn btn-warning" id="retry-module">重新學習這個章節</button>
+                <button class="btn btn-primary" id="submit-learning-log">繼續下一個章節</button>
+              </div>
+            </div>
+          `
+              : `
+            <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
+          `
+          }
+        </div>
+      `;
+      document.getElementById("test-questions").innerHTML = resultsHtml;
+      submitTestBtn.style.display = "none";
+
+      // Add event listener for retry button if it exists
+      const retryButton = document.getElementById("retry-module");
+      if (retryButton) {
+        retryButton.addEventListener("click", function () {
+          // Submit learning log first
+          const logContent = document
+            .getElementById("learning-log-content")
+            .value.trim();
+          if (!logContent) {
+            alert("請填寫學習日誌內容");
+            return;
+          }
+
+          // Submit learning log with retry flag
+          fetch(`/api/learning-log/${moduleIndex}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content: logContent,
+              retry: true,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.error) {
+                alert(data.error);
+                return;
+              }
+              // Reload the page to retry the module
+              window.location.reload();
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("提交學習日誌時發生錯誤");
+            });
+        });
+      }
+
+      // Add event listener for learning log submission
+      document
+        .getElementById("submit-learning-log")
+        .addEventListener("click", function () {
+          const logContent = document
+            .getElementById("learning-log-content")
+            .value.trim();
+
+          if (!logContent) {
+            alert("請填寫學習日誌內容");
+            return;
+          }
+
+          // Submit learning log
+          fetch(`/api/learning-log/${moduleIndex}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content: logContent,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.error) {
+                alert(data.error);
+                return;
+              }
+
+              // After successful log submission, proceed to next module
+              fetch("/api/update-module-index", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  module_index: moduleIndex + 1,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data.success) {
+                    // Check if we've reached the end of the modules
+                    if (data.finished) {
+                      alert("恭喜！你已經完成所有模組的學習！");
+                      window.location.href = "/summary";
+                    } else {
+                      // Reload the page to show the next module
+                      window.location.reload();
+                    }
+                  } else {
+                    // Show more detailed error message
+                    const errorMsg = data.error || "切換模組時發生錯誤";
+                    alert(errorMsg);
+                    console.error("Module update error:", data);
+                  }
+                })
+                .catch((error) => {
+                  console.error("Error:", error);
+                  alert("切換模組時發生錯誤，請重新整理頁面再試一次");
+                });
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("提交學習日誌時發生錯誤");
+            });
+        });
+    }
+
+    // Function to render test questions
     function renderTestQuestions(testData) {
       const container = document.getElementById("test-questions");
       container.innerHTML = "";
@@ -581,6 +646,11 @@
             .join("")}
         `;
         container.appendChild(qDiv);
+      });
+
+      // Add event listeners to save answers when user selects options
+      document.querySelectorAll('input[name^="q"]').forEach((input) => {
+        input.addEventListener("change", saveAnswers);
       });
     }
 

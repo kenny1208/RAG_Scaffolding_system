@@ -70,7 +70,6 @@ class LearningPath(BaseModel):
 class StudentProfile(BaseModel):
     id: str = Field(description="Unique student ID")
     name: str = Field(description="Student name")
-    learning_style: str = Field(description="Visual, auditory, or kinesthetic")
     felder_silverman_profile: Optional[Dict[str, Any]] = Field(default=None, description="Detailed Felder-Silverman learning style profile")
     courses: List[str] = Field(default_factory=list, description="List of course IDs the student is enrolled in")
     created_at: str = Field(default_factory=lambda: datetime.datetime.now().isoformat(), description="Profile creation timestamp")
@@ -282,7 +281,7 @@ def create_or_get_student_profile(name=None):
     profile = StudentProfile(
         id=student_id,
         name=name,
-        learning_style="",
+        felder_silverman_profile=None,
         courses=[],
         created_at=datetime.datetime.now().isoformat()
     )
@@ -377,7 +376,7 @@ def create_pretest(session_id, topic=""):
         4. 為什麼正確的解釋
         5. 難度級別
         
-        您必須遵循以下精確的 JSON 格式：
+        您必須遵循以下精確的 JSON 格式，不要包含任何 markdown 標記：
         {
           "title": "前測：[主題]",
           "description": "此測驗將評估您對[主題]的現有知識",
@@ -401,6 +400,7 @@ def create_pretest(session_id, topic=""):
         3. 每個問題都要有明確的學習目標
         4. 確保問題的選項都是合理的，且只有一個正確答案
         5. 確保問題涵蓋所有提供的教材內容，不要遺漏任何重要概念
+        重要：請直接返回 JSON 格式，不要包含 ```json 或 ``` 標記。
         """),
         HumanMessagePromptTemplate.from_template("""根據以下內容生成一份前測：
         
@@ -421,10 +421,93 @@ def create_pretest(session_id, topic=""):
         })
         | prompt
         | chat_model
-        | JsonOutputParser()
+        | StrOutputParser()
     )
     
-    return pretest_chain.invoke(topic)
+    # Function to clean and parse JSON response
+    def clean_and_parse_json(response_text):
+        """Clean the AI response and parse it as JSON"""
+        # Remove markdown code block markers
+        cleaned = response_text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        
+        cleaned = cleaned.strip()
+        
+        # Try to parse as JSON
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            app.logger.error(f"JSON parsing error: {e}")
+            app.logger.error(f"Cleaned response: {cleaned}")
+            raise ValueError(f"Invalid JSON format: {str(e)}")
+    
+    # Retry mechanism
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Get raw response from AI
+            raw_response = pretest_chain.invoke(topic)
+            
+            # Clean and parse the response
+            pretest_data = clean_and_parse_json(raw_response)
+            
+            # Validate the structure
+            if not isinstance(pretest_data, dict):
+                raise ValueError("Response is not a dictionary")
+            
+            if "title" not in pretest_data or "questions" not in pretest_data:
+                raise ValueError("Missing required fields: title or questions")
+            
+            if not isinstance(pretest_data["questions"], list):
+                raise ValueError("Questions field is not a list")
+            
+            if len(pretest_data["questions"]) == 0:
+                raise ValueError("No questions generated")
+            
+            # Validate each question
+            for i, question in enumerate(pretest_data["questions"]):
+                required_fields = ["question", "choices", "correct_answer", "explanation", "difficulty"]
+                for field in required_fields:
+                    if field not in question:
+                        raise ValueError(f"Question {i+1} missing required field: {field}")
+                
+                if len(question["choices"]) != 4:
+                    raise ValueError(f"Question {i+1} must have exactly 4 choices")
+            
+            app.logger.info(f"Successfully generated pretest with {len(pretest_data['questions'])} questions")
+            return pretest_data
+            
+        except Exception as e:
+            app.logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt == max_retries - 1:
+                # Last attempt failed, return a fallback test
+                app.logger.error(f"All {max_retries} attempts failed to generate pretest")
+                return {
+                    "title": "前測：基礎知識評估",
+                    "description": "此測驗將評估您對學習主題的現有知識",
+                    "questions": [
+                        {
+                            "question": "請評估您對本學習主題的熟悉程度。",
+                            "choices": [
+                                "A. 非常熟悉",
+                                "B. 有些熟悉", 
+                                "C. 不太熟悉",
+                                "D. 完全不熟悉"
+                            ],
+                            "correct_answer": "A. 非常熟悉",
+                            "explanation": "這是一個基礎評估問題，用於了解您的起始知識水平。",
+                            "difficulty": "簡單"
+                        }
+                    ]
+                }
+            else:
+                # Wait before retrying
+                time.sleep(1)
 
 def evaluate_knowledge_level(score_percentage):
     """Determine knowledge level based on test score percentage"""
@@ -481,18 +564,12 @@ def generate_learning_path(session_id, profile, test_results):
         1. 首先分析教材內容，識別主要主題和概念
         2. 建立邏輯性的章節結構，確保知識的遞進關係
         3. 為每個章節分配特定的內容範圍，避免重複
-        4. 確保章節之間有清晰的連接和過渡
         
         您的學習路徑必須：
         1. 建立清晰的章節分工，每個章節專注於特定主題
         2. 確保章節之間有邏輯順序和知識遞進
         3. 針對學生的學習風格、知識水平進行量身調整
-        4. 遵循鷹架原則，逐步增加難度並減少支持
         5. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
-        6. 根據學生的知識水平調整內容深度和廣度：
-           - 初學者：更詳細的基礎概念解釋，更多例子
-           - 中級者：平衡的理論和應用，適中的難度
-           - 進階者：更深入的理論探討，更多分析和整合的內容
         
         您的回應必須遵循這個精確的 JSON 格式：
         {{
@@ -521,7 +598,6 @@ def generate_learning_path(session_id, profile, test_results):
         1. 每個章節的content_scope明確且不重複
         2. 章節之間有清晰的prerequisites關係
         3. 學習成果逐步遞進
-        4. 總章節數控制在3-5個，避免過於分散
         """),
         HumanMessagePromptTemplate.from_template("""根據以下內容生成個人化學習路徑：
         
@@ -542,7 +618,7 @@ def generate_learning_path(session_id, profile, test_results):
     # Format profile and test results
     profile_json = json.dumps({
         "name": student_profile.name if student_profile else "Student",
-        "learning_style": student_profile.learning_style if student_profile else profile.learning_style,
+        "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile and student_profile.felder_silverman_profile else "未完成學習風格問卷",
         "current_knowledge_level": profile.current_knowledge_level,
         "interests": student_profile.interests if student_profile else []
     })
@@ -558,10 +634,93 @@ def generate_learning_path(session_id, profile, test_results):
         })
         | prompt
         | chat_model
-        | JsonOutputParser()
+        | StrOutputParser()
     )
     
-    return learning_path_chain.invoke("")
+    # Function to clean and parse JSON response
+    def clean_and_parse_json(response_text):
+        """Clean the AI response and parse it as JSON"""
+        # Remove markdown code block markers
+        cleaned = response_text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        
+        cleaned = cleaned.strip()
+        
+        # Try to parse as JSON
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            app.logger.error(f"JSON parsing error: {e}")
+            app.logger.error(f"Cleaned response: {cleaned}")
+            raise ValueError(f"Invalid JSON format: {str(e)}")
+    
+    # Retry mechanism
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Get raw response from AI
+            raw_response = learning_path_chain.invoke("")
+            
+            # Clean and parse the response
+            learning_path_data = clean_and_parse_json(raw_response)
+            
+            # Validate the structure
+            if not isinstance(learning_path_data, dict):
+                raise ValueError("Response is not a dictionary")
+            
+            if "title" not in learning_path_data or "modules" not in learning_path_data:
+                raise ValueError("Missing required fields: title or modules")
+            
+            if not isinstance(learning_path_data["modules"], list):
+                raise ValueError("Modules field is not a list")
+            
+            if len(learning_path_data["modules"]) == 0:
+                raise ValueError("No modules generated")
+            
+            # Validate each module
+            for i, module in enumerate(learning_path_data["modules"]):
+                required_fields = ["title", "description", "content_scope", "learning_outcomes"]
+                for field in required_fields:
+                    if field not in module:
+                        raise ValueError(f"Module {i+1} missing required field: {field}")
+            
+            app.logger.info(f"Successfully generated learning path with {len(learning_path_data['modules'])} modules")
+            return learning_path_data
+            
+        except Exception as e:
+            app.logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt == max_retries - 1:
+                # Last attempt failed, return a fallback learning path
+                app.logger.error(f"All {max_retries} attempts failed to generate learning path")
+                return {
+                    "title": "基礎學習路徑",
+                    "description": "這是一個基礎的學習路徑，用於開始您的學習旅程",
+                    "objectives": ["理解基本概念", "掌握核心技能", "應用所學知識"],
+                    "modules": [
+                        {
+                            "title": "章節 1: 基礎概念",
+                            "description": "學習基本概念和理論",
+                            "content_scope": "基礎概念和理論框架",
+                            "prerequisites": [],
+                            "learning_outcomes": ["理解基本概念", "掌握理論框架"],
+                            "activities": [
+                                {
+                                    "content": "學習基礎概念",
+                                    "source": "教材內容"
+                                }
+                            ],
+                            "module_index": 0
+                        }
+                    ]
+                }
+            else:
+                # Wait before retrying
+                time.sleep(1)
 
 def generate_module_content(session_id, module, profile):
     """Generate educational content for a module"""
@@ -587,7 +746,7 @@ def generate_module_content(session_id, module, profile):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
+        model="gemini-2.0-flash"
     )
     
     # Get module topic and content scope
@@ -632,7 +791,7 @@ def generate_module_content(session_id, module, profile):
         
         您的內容應該：
         1. 專注於章節的特定內容範圍：{content_scope}
-        2. 針對學生的學習風格進行量身定制(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
+        2. 針對學生的學習風格進行量身定制{learning_style}(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
         3. 適合學生的知識水平
         4. 包含清晰的關鍵概念解釋
         5. 使用例子和比喻來闡明觀點
@@ -650,17 +809,15 @@ def generate_module_content(session_id, module, profile):
            - 延伸思考問題
            - 與下一章節的連接提示
         
-        8. 每個章節都要根據context的內容標註來源(source)，格式為：
+        8. 【強制要求】每個章節都必須根據context的內容標註來源(source)，格式為：
            [來源: 檔名.pdf, 頁碼: X]
-           如果有多個來源，只列出第一個。
-        
-        9. 加入互動元素：
-           - 思考問題
-           - 反思提示
-        
-        10. 確保內容與章節的特定範圍相關，避免重複其他章節的內容。
+           
+           如果有多個來源，請列出主要的第1個來源。
+           如果超過一個頁碼，請列出第1個頁碼。
         
         使用markdown格式化您的內容，以提高可讀性。
+        
+        【重要提醒】：請務必包含資料來源標註，這是必須的格式要求。
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
@@ -690,7 +847,7 @@ def generate_module_content(session_id, module, profile):
             "prerequisites": ", ".join(prerequisites) if prerequisites else "無",
             "learning_outcomes": ", ".join(learning_outcomes) if learning_outcomes else "理解本章節內容",
             "module_index": module_index,
-            "learning_style": profile.learning_style,
+            "learning_style": json.dumps(profile.felder_silverman_profile) if profile.felder_silverman_profile else "未完成學習風格問卷",
             "knowledge_level": profile.current_knowledge_level,
             "scaffolding_level": scaffolding_level,
             "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(content_scope)]),
@@ -703,59 +860,6 @@ def generate_module_content(session_id, module, profile):
     
     return content_chain.invoke("")
 
-def generate_module_transition(session_id, current_module, next_module, profile):
-    """Generate transition content between modules"""
-    if not next_module:
-        return ""
-    
-    vectorstore = get_vectorstore(session_id)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
-    )
-    
-    current_topic = current_module["title"].split(": ", 1)[1] if ": " in current_module["title"] else current_module["title"]
-    next_topic = next_module["title"].split(": ", 1)[1] if ": " in next_module["title"] else next_module["title"]
-    
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""您是一位專業的教育內容設計師，專精於創建章節之間的過渡內容。
-        您的任務是創建一個簡短但有效的過渡段落，幫助學生從當前章節順利過渡到下一個章節。
-        
-        過渡內容應該：
-        1. 簡短總結當前章節的關鍵概念
-        2. 預告下一個章節的主要內容
-        3. 建立兩個章節之間的邏輯連接
-        4. 激發學生對下一個章節的興趣
-        5. 提供學習建議和準備提示
-        
-        使用markdown格式化，保持簡潔明瞭。
-        """),
-        HumanMessagePromptTemplate.from_template("""創建章節過渡內容：
-        
-        當前章節：{current_topic}
-        下一個章節：{next_topic}
-        
-        相關內容：
-        {context}
-        """)
-    ])
-    
-    transition_chain = (
-        RunnablePassthrough()
-        | retriever
-        | (lambda docs: {
-            "current_topic": current_topic,
-            "next_topic": next_topic,
-            "context": "\n\n".join([d.page_content for d in docs])
-        })
-        | prompt
-        | chat_model
-        | StrOutputParser()
-    )
-    
-    return transition_chain.invoke(f"{current_topic} {next_topic}")
 
 def simulate_peer_discussion(session_id, topic, message):
     """Simulate a peer discussion with an AI learning partner"""
@@ -880,7 +984,7 @@ def create_posttest(session_id, module, profile):
         5. 難度等級
         6. 相關提示（根據鷹架支持程度）
         
-        您必須遵循這個精確的 JSON 格式：
+        您必須遵循這個精確的 JSON 格式，不要包含任何 markdown 標記：
         {{
           "title": "後測: [主題]",
           "description": "這個測驗將評估您對 [主題] 的學習成果",
@@ -898,6 +1002,7 @@ def create_posttest(session_id, module, profile):
 
         根據學生的水平生成總共 5 個問題，並且適當的難度分布。
         確保所有問題都與章節的特定內容範圍相關。
+        重要：請直接返回 JSON 格式，不要包含 ```json 或 ``` 標記。
         """),
         HumanMessagePromptTemplate.from_template("""Generate a post-test based on:
         
@@ -924,10 +1029,94 @@ def create_posttest(session_id, module, profile):
         })
         | prompt
         | chat_model
-        | JsonOutputParser()
+        | StrOutputParser()
     )
     
-    return posttest_chain.invoke(content_scope)
+    # Function to clean and parse JSON response
+    def clean_and_parse_json(response_text):
+        """Clean the AI response and parse it as JSON"""
+        # Remove markdown code block markers
+        cleaned = response_text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        
+        cleaned = cleaned.strip()
+        
+        # Try to parse as JSON
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            app.logger.error(f"JSON parsing error: {e}")
+            app.logger.error(f"Cleaned response: {cleaned}")
+            raise ValueError(f"Invalid JSON format: {str(e)}")
+    
+    # Retry mechanism
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Get raw response from AI
+            raw_response = posttest_chain.invoke(content_scope)
+            
+            # Clean and parse the response
+            posttest_data = clean_and_parse_json(raw_response)
+            
+            # Validate the structure
+            if not isinstance(posttest_data, dict):
+                raise ValueError("Response is not a dictionary")
+            
+            if "title" not in posttest_data or "questions" not in posttest_data:
+                raise ValueError("Missing required fields: title or questions")
+            
+            if not isinstance(posttest_data["questions"], list):
+                raise ValueError("Questions field is not a list")
+            
+            if len(posttest_data["questions"]) == 0:
+                raise ValueError("No questions generated")
+            
+            # Validate each question
+            for i, question in enumerate(posttest_data["questions"]):
+                required_fields = ["question", "choices", "correct_answer", "explanation", "difficulty"]
+                for field in required_fields:
+                    if field not in question:
+                        raise ValueError(f"Question {i+1} missing required field: {field}")
+                
+                if len(question["choices"]) != 4:
+                    raise ValueError(f"Question {i+1} must have exactly 4 choices")
+            
+            app.logger.info(f"Successfully generated posttest with {len(posttest_data['questions'])} questions")
+            return posttest_data
+            
+        except Exception as e:
+            app.logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt == max_retries - 1:
+                # Last attempt failed, return a fallback test
+                app.logger.error(f"All {max_retries} attempts failed to generate posttest")
+                return {
+                    "title": f"後測: {module_topic}",
+                    "description": f"這個測驗將評估您對 {module_topic} 的學習成果",
+                    "questions": [
+                        {
+                            "question": "請描述您對本章節內容的理解程度。",
+                            "choices": [
+                                "A. 完全理解",
+                                "B. 大部分理解", 
+                                "C. 部分理解",
+                                "D. 需要更多學習"
+                            ],
+                            "correct_answer": "A. 完全理解",
+                            "explanation": "這是一個基礎理解問題，用於評估學習成果。",
+                            "difficulty": "easy",
+                            "hints": ["請根據您的實際理解程度選擇"]
+                        }
+                    ]
+                }
+            else:
+                # Wait before retrying
+                time.sleep(1)
 
 def analyze_learning_log(student_name, topic, log_content):
     """Analyze a student's learning log"""
@@ -947,7 +1136,7 @@ def analyze_learning_log(student_name, topic, log_content):
         5. 學習風格的指標
         6. 建議的鷹架支持等級（高/中/低）
         
-        您的回應必須遵循以下精確的 JSON 結構：
+        您的回應必須遵循以下精確的 JSON 結構，不要包含任何 markdown 標記：
         {
           "understanding_level": "high/medium/low",
           "strengths": ["強項 1", "強項 2"],
@@ -1301,7 +1490,7 @@ def learning():
         return redirect(url_for('select_user'))
     
     # Check if student has completed learning style survey
-    if not profile.learning_style:
+    if not profile.felder_silverman_profile:
         return redirect(url_for('learning_style_survey'))
     
     # Check if course has a learning path
@@ -1350,6 +1539,34 @@ def learning():
     }
     scaffolding_info = scaffolding_map.get(scaffolding_level, scaffolding_map["medium"])
 
+    # Get learning style display information
+    learning_style_info = {"label": "未完成學習風格問卷", "description": "請先完成學習風格問卷"}
+    if profile.felder_silverman_profile:
+        style_profile = profile.felder_silverman_profile
+        style_parts = []
+        
+        # Convert English to Chinese
+        style_mapping = {
+            "Active": "主動",
+            "Reflective": "反思", 
+            "Sensing": "感覺",
+            "Intuitive": "直覺",
+            "Visual": "視覺",
+            "Verbal": "語言",
+            "Sequential": "循序",
+            "Global": "整體"
+        }
+        
+        for key, value in style_profile.items():
+            if value in style_mapping:
+                style_parts.append(style_mapping[value])
+        
+        if style_parts:
+            learning_style_info = {
+                "label": " + ".join(style_parts) + " 型學習者",
+                "description": f"您的學習風格偏好：{', '.join(style_parts)}"
+            }
+
     # Get next module for transition content
     next_module = None
     if current_module_index + 1 < len(course.learning_path['modules']):
@@ -1359,13 +1576,6 @@ def learning():
     if 'content' not in current_module:
         try:
             content = generate_module_content(course.session_id, current_module, profile)
-            
-            # Add transition content if there's a next module
-            if next_module:
-                transition_content = generate_module_transition(course.session_id, current_module, next_module, profile)
-                if transition_content:
-                    content += f"\n\n## 章節過渡\n\n{transition_content}"
-            
             current_module['content'] = content
             # Save the updated course profile with content
             save_course_profile(course)
@@ -1383,7 +1593,8 @@ def learning():
                          current_module=current_module,
                          next_module=next_module,
                          progress_percentage=progress_percentage,
-                         scaffolding_info=scaffolding_info)
+                         scaffolding_info=scaffolding_info,
+                         learning_style_info=learning_style_info)
 
 @app.route('/api/profile', methods=['GET', 'POST'])
 def profile():
@@ -1510,20 +1721,51 @@ def get_posttest(module_index):
         if not os.path.exists(vector_db_path):
             return jsonify({'error': 'No documents have been processed yet. Please upload documents first.'}), 400
         
-        posttest_data = create_posttest(course.session_id, module, course)
-        
-        # Store posttest data in file instead of session
+        # Check if posttest already exists
         posttest_dir = os.path.join(app.config['UPLOAD_FOLDER'], course.session_id, 'posttests')
-        os.makedirs(posttest_dir, exist_ok=True)
         posttest_path = os.path.join(posttest_dir, f'posttest_{module_index}.json')
         
+        if os.path.exists(posttest_path):
+            # Load existing posttest
+            try:
+                with open(posttest_path, 'r', encoding='utf-8') as f:
+                    posttest_data = json.load(f)
+                app.logger.info(f"Loaded existing posttest for module {module_index}")
+                return jsonify(posttest_data)
+            except Exception as e:
+                app.logger.warning(f"Error loading existing posttest: {str(e)}, will regenerate")
+        
+        # Generate new posttest
+        app.logger.info(f"Generating new posttest for module {module_index}")
+        posttest_data = create_posttest(course.session_id, module, course)
+        
+        # Store posttest data in file
+        os.makedirs(posttest_dir, exist_ok=True)
         with open(posttest_path, 'w', encoding='utf-8') as f:
             json.dump(posttest_data, f, ensure_ascii=False, indent=4)
         
+        app.logger.info(f"Successfully generated and saved posttest for module {module_index}")
         return jsonify(posttest_data)
+        
     except Exception as e:
-        app.logger.error(f"Error creating posttest: {str(e)}")
-        return jsonify({'error': f'Error creating posttest: {str(e)}'}), 500
+        app.logger.error(f"Error creating posttest for module {module_index}: {str(e)}")
+        
+        # Provide more specific error messages
+        if "Invalid JSON format" in str(e):
+            return jsonify({
+                'error': 'AI 模型返回的格式不正確，請稍後再試。如果問題持續，請聯繫管理員。',
+                'details': str(e)
+            }), 500
+        elif "No documents have been processed" in str(e):
+            return jsonify({
+                'error': '沒有找到處理過的文檔，請先上傳學習文件。',
+                'details': str(e)
+            }), 400
+        else:
+            return jsonify({
+                'error': f'生成後測時發生錯誤: {str(e)}',
+                'details': '請稍後再試，或聯繫管理員獲取協助。'
+            }), 500
 
 @app.route('/api/evaluate-posttest/<int:module_index>', methods=['POST'])
 def evaluate_posttest(module_index):
@@ -1972,7 +2214,7 @@ def discuss_learning_path():
         | (lambda _: {
             "profile": json.dumps({
                 "name": student_profile.name,
-                "learning_style": student_profile.learning_style,
+                "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile.felder_silverman_profile else "未完成學習風格問卷",
                 "current_knowledge_level": course.current_knowledge_level
             }, ensure_ascii=False),
             "learning_path": json.dumps(learning_path, ensure_ascii=False),
@@ -2127,46 +2369,6 @@ def view_pdf(filename):
     
     return send_file(pdf_path, mimetype='application/pdf')
 
-@app.route('/api/module-transition/<int:module_index>', methods=['GET'])
-def get_module_transition(module_index):
-    if 'student_id' not in session or 'course_id' not in session:
-        return jsonify({'error': 'No student or course session found'}), 400
-    
-    # Get course profile
-    course = get_course_profile(session['course_id'])
-    if not course:
-        return jsonify({'error': 'Course profile not found'}), 400
-    
-    # Check if course has learning path
-    if not course.learning_path:
-        return jsonify({'error': 'No learning path found'}), 400
-    
-    if module_index >= len(course.learning_path['modules']):
-        return jsonify({'error': 'Invalid module index'}), 400
-    
-    # Get current and next module
-    current_module = course.learning_path['modules'][module_index]
-    next_module = None
-    if module_index + 1 < len(course.learning_path['modules']):
-        next_module = course.learning_path['modules'][module_index + 1]
-    
-    if not next_module:
-        return jsonify({'transition': ''})
-    
-    # Get student profile
-    profile = get_student_profile(session['student_id'])
-    if not profile:
-        return jsonify({'error': 'Student profile not found'}), 400
-    
-    try:
-        transition_content = generate_module_transition(course.session_id, current_module, next_module, profile)
-        return jsonify({
-            'transition': transition_content,
-            'next_module': next_module
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/delete_course/<course_id>', methods=['POST'])
 def delete_course(course_id):
     if 'student_id' not in session:
@@ -2300,7 +2502,6 @@ def learning_style_survey():
             profile = get_student_profile(session['student_id'])
             if profile:
                 profile.felder_silverman_profile = result
-                profile.learning_style = result["visual_vs_verbal"]  # 可根據需要選擇一個主軸
                 save_student_profile(profile)
 
         return render_template("learning_style_result.html", result=result)
@@ -2314,3 +2515,5 @@ def learning_style_survey():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
