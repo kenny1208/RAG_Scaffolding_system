@@ -1,0 +1,121 @@
+/* From Uiverse.io by satyamchaudharydev */ 
+/* === removing default button style ===*/
+
+.user-profile {
+  position: absolute;
+  top: 10px;
+  right: 30px;
+  z-index: 20;
+  width: 131px;
+  height: 51px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  background: linear-gradient(
+    to bottom right,
+    #2e8eff 0%,
+    rgba(46, 142, 255, 0) 30%
+  );
+  background-color: rgba(46, 142, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-profile:hover,
+.user-profile:focus {
+  background-color: rgb(0, 183, 255);
+  box-shadow: 0 0 10px rgba(46, 142, 255, 0.5);
+  outline: none;
+}
+
+.user-profile-inner {
+  width: 127px;
+  height: 47px;
+  border-radius: 13px;
+  background-color: #1a1a1a;
+  display: flex;
+  align-items: center;       /* 垂直置中 */
+  justify-content: center;   /* 水平置中 */
+  gap: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 12px;
+}
+
+.user-profile-inner svg {
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+  vertical-align: middle;
+  display: block; /* 🔧 防止 baseline shift */
+}
+
+.user-profile-inner p {
+  margin: 0;       /* 🔧 消除文字偏移 */
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;  /* 保證垂直置中 */
+} 
+
+.button {
+  margin: 0;
+  height: auto;
+  background: transparent;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); 
+}
+
+/* button styling */
+.button {
+  --border-right: 6px;
+  --text-stroke-color: rgb(255, 255, 255);
+  --animation-color: #ffffff;
+  --fs-size: 2em;
+  letter-spacing: 3px;
+  text-decoration: none;
+  font-size: calc(var(--fs-size) * 2);
+  font-family: "Arial";
+  position: relative;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--text-stroke-color);
+}
+/* this is the text, when you hover on button */
+.hover-text {
+  width: 100% !important;  /* 直接顯示全部文字 */
+  overflow: visible;
+  color: white;
+  -webkit-text-stroke: 1px white;
+  filter: drop-shadow(0 0 23px white);
+    text-shadow:
+      0 0 2px #fff;  
+}
+
+
+.center-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px; /* 讓副標題下移更多 */
+  z-index: 10;
+}
+
+.button.subtitle-button {
+  margin-top: 65px;
+  --fs-size: 2em; /* 字體稍小 */
+  font-size: calc(var(--fs-size) * 1.2);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}

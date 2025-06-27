@@ -1,25 +1,87 @@
-{% extends "base.html" %} {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8 text-center">
-    <div class="card">
-      <div class="card-body">
-        <h1 class="display-4 mb-4">Welcome to RAG Education System</h1>
-        <p class="lead mb-4">
-          A personalized learning experience powered by Retrieval-Augmented
-          Generation (RAG) technology.
-        </p>
-        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-          <a
-            href="{{ url_for('select_user') }}"
-            class="btn btn-primary btn-lg px-4 gap-3"
-          >
-            <i class="fas fa-user me-2"></i>
-            Start Learning
-          </a>
-        </div>
-      </div>
+{% set fullscreen = true %}
+{% extends "base.html" %}
+{% block content %}
+
+<div id="vanta-bg">
+
+  <!-- 🔵 右上角登入按鈕 -->
+  <div
+    aria-label="User Login Button"
+    tabindex="0"
+    role="button"
+    class="user-profile"
+    onclick="window.location.href='{{ url_for('select_user') }}'"
+  >
+    <div class="user-profile-inner">
+      <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g data-name="Layer 2" id="Layer_2">
+          <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z"></path>
+        </g>
+      </svg>
+      <p>Log In</p>
     </div>
   </div>
+
+<div class="center-title">
+
+  <div class="button" data-text="Awesome">
+    <span aria-hidden="true" class="hover-text">&nbsp;RAG_SCAFFOLDING&nbsp;</span>
+  </div>
+
+  <div class="button subtitle-button" data-text="Awesome">
+    <span aria-hidden="true" class="hover-text">&nbsp;RAG 鷹架式學習系統&nbsp;</span>
+  </div>
 </div>
+
+</div>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #vanta-bg {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+</style>
+
 {% endblock %}
-<!-- 註解-->
+
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.birds.min.js"></script>
+  <script>
+    VANTA.BIRDS({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      scale: 1.00,
+      scaleMobile: 1.00,
+      backgroundColor: 0x80231,
+      color1: 0xb5ff,
+      color2: 0xfffd79,
+      quantity: 5,
+      birdSize: 1,
+      wingSpan: 40,
+      speedLimit: 3,
+      separation: 64,
+      alignment: 20,
+      cohesion: 8
+    });
+  </script>
+{% endblock %}

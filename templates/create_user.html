@@ -1,32 +1,140 @@
-{% extends "base.html" %} {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="card-title text-center mb-4">Create New Profile</h2>
+{% set fullscreen = true %}
+{% extends "base.html" %}
 
-        <form method="POST" action="{{ url_for('create_user') }}">
-          <div class="mb-3">
-            <label for="name" class="form-label">Your Name</label>
-            <input
-              type="text"
-              class="form-control"
-              id="name"
-              name="name"
-              required
-            />
-          </div>
+{% block content %}
+<!-- ✅ 背景容器 -->
+<div id="vanta-bg"></div>
 
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-user-plus me-2"></i>
-              Create Profile
-            </button>
-          </div>
-        </form>
-      </div>
+<!-- ✅ 表單本體不要放進 vanta-bg 裡 -->
+<div class="form">
+  <p id="heading">建立使用者</p>
+  <form method="POST" action="{{ url_for('create_user') }}">
+    <div class="field">
+      <input
+        autocomplete="off"
+        placeholder="請輸入使用者名稱"
+        class="input-field"
+        type="text"
+        name="name"
+        required
+      />
     </div>
-  </div>
+
+    <div class="btn">
+      <button class="button1" type="submit">建立</button>
+      <a href="{{ url_for('select_user') }}">
+        <button class="button2" type="button">返回</button>
+      </a>
+    </div>
+  </form>
 </div>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* ✅ 背景動畫容器 */
+  #vanta-bg {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* ✅ 表單容器 */
+  .form {
+    width: 350px;
+    padding: 2em;
+    background-color: rgba(23, 23, 23, 0.82);
+    border-radius: 15px;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.3);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: 0.4s ease-in-out;
+    z-index: 10;
+  }
+
+  #heading {
+    text-align: center;
+    margin-bottom: 1em;
+    color: #fff;
+    font-size: 1.5em;
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    background-color: #252525;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+
+  .input-field {
+    background: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    color: #d3d3d3;
+    padding: 0.5em;
+  }
+
+  .btn {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1em;
+  }
+
+  .button1, .button2 {
+    padding: 10px 20px;
+    background-color: #4b63ff;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-shadow: 0 0 10px #fff;
+  }
+
+  .button1:hover, .button2:hover {
+    background-color: #6b83ff;
+  }
+
+  p {
+    text-shadow: 0 0 5px #fff;
+  }
+</style>
 {% endblock %}
-<!-- 註解-->
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0xbabea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
+  });
+</script>
+{% endblock %}

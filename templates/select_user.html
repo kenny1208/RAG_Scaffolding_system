@@ -1,39 +1,161 @@
-{% extends "base.html" %} {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="card-title text-center mb-4">
-          Select or Create User Profile
-        </h2>
+{% set fullscreen = true %}
+{% extends "base.html" %}
+{% block content %}
+
+<div id="vanta-bg">
+  <div class="container-flex">
+
+    <!-- 📦 卡片整體包裝 -->
+    <div class="card-wrapper">
+      
+      <!-- 🖼️ 左側圖片 -->
+      <div class="image-side">
+        <img src="{{ url_for('static', filename='images/ChatGPT_Image.png') }}"
+             class="user-img" alt="Learning Illustration">
+      </div>
+
+      <!-- 📋 右側功能區塊 -->
+      <div class="user-list">
+        <h2 class="glow-text">選擇或建立使用者</h2>
 
         {% if profiles %}
         <div class="mb-4">
-          <h3 class="h5 mb-3">Existing Profiles</h3>
+          <h3 class="h6 mb-3" style="color: white;">已有帳號</h3>
           <div class="list-group">
             {% for profile in profiles %}
-            <a
-              href="{{ url_for('select_profile', profile_id=profile.id) }}"
-              class="list-group-item list-group-item-action"
-            >
-              <i class="fas fa-user me-2"></i>
-              {{ profile.name }}
+            <a href="{{ url_for('select_profile', profile_id=profile.id) }}"
+               class="profile-link">
+              <i class="fas fa-user me-2"></i> {{ profile.name }}
             </a>
             {% endfor %}
           </div>
         </div>
         {% endif %}
 
-        <div class="text-center">
-          <p class="mb-3">Don't have a profile yet?</p>
-          <a href="{{ url_for('create_user') }}" class="btn btn-primary">
-            <i class="fas fa-user-plus me-2"></i>
-            Create New Profile
-          </a>
-        </div>
+        <a href="{{ url_for('create_user') }}">
+          <button class="btn-glow">建立新使用者</button>
+        </a>
       </div>
     </div>
+    
   </div>
 </div>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #vanta-bg {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .container-flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .card-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(23, 23, 23, 0.82);
+    border-radius: 20px;
+    box-shadow: 0 12px 32px rgb(0, 0, 0);
+    overflow: hidden;
+    width: 640px;
+    height: auto;
+    padding: 0;
+  }
+
+  .image-side {
+    flex: 1;
+    background-color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .image-side img.user-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+  }
+
+  .user-list {
+    flex: 1;
+    padding: 2em;
+    text-align: center;
+  }
+
+  .glow-text {
+    text-shadow:
+      0 0 5px #fff;
+    color: white;
+    margin-bottom: 1em;
+  }
+
+  .profile-link {
+    display: block;
+    background-color: #252525;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: background 0.3s;
+  }
+
+  .profile-link:hover {
+    background-color: #4b63ff;
+  }
+
+  .btn-glow {
+    background-color: #4b63ff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+    text-shadow:
+      0 0 5px #fff;
+  }
+
+  .btn-glow:hover {
+    background-color: #4350ff;
+  }
+</style>
+
 {% endblock %}
-<!-- 註解-->
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0xbabea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
+  });
+</script>
+{% endblock %}

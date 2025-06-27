@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% set fullscreen = true %}
+{% block content %}
+
+<div id="vanta-bg"></div>
+
+<div class="container mt-5 text-center">
+  <h2 class="mb-4 text-white glow-text">你的學習風格結果</h2>
+
+  
+ <div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="result-card shadow-lg">
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item bg-transparent text-white">
+            主動 / 反思：<strong>{{ result.active_vs_reflective }}</strong>
+          </li>
+          <li class="list-group-item bg-transparent text-white">
+            感知 / 直覺：<strong>{{ result.sensing_vs_intuitive }}</strong>
+          </li>
+          <li class="list-group-item bg-transparent text-white">
+            視覺 / 語文：<strong>{{ result.visual_vs_verbal }}</strong>
+          </li>
+          <li class="list-group-item bg-transparent text-white">
+            序列 / 整體：<strong>{{ result.sequential_vs_global }}</strong>
+          </li>
+        </ul>
+
+        <div class="button-group">
+          <a href="{{ url_for('learning_style_survey') }}" class="fancy-btn">
+            <i class="fas fa-redo-alt me-2"></i>重新測驗
+          </a>
+          <a href="{{ url_for('course_selection') }}" class="fancy-btn green">
+            <i class="fas fa-arrow-right me-2"></i>前往課程推薦
+          </a>
+        </div>
+
+
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<style>
+
+ html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  #vanta-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;            /* ✅ 僅限全畫面 */
+    z-index: -1;
+    pointer-events: none;     /* ✅ 不擋互動 */
+  }
+
+  .content-wrapper {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 100px;    /* ✅ 下方空間避免底部被遮 */
+  }
+
+  .glow-text {
+    text-shadow:
+      0 0 5px #fff,
+      0 0 10px #fff,
+      0 0 15px #7b5ecc,
+      0 0 20px #7b5ecc;
+  }
+
+  .card {
+    border-radius: 15px;
+  }
+
+  .list-group-item {
+    font-size: 1.2em;
+    border: none;
+  }
+
+  .gap-3 {
+    gap: 1rem;
+  }
+  
+.result-card {
+  background-color: rgba(0, 0, 0, 0.7); /* 深藍帶透明 */
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 20px;
+}
+
+li {
+  margin: 10px;
+  text-shadow:
+      0 0 10px #fff;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;           /* ✅ 換行支援 */
+  justify-content: center;
+  gap: 20px;                 /* ✅ 每顆間距 */
+  margin-top: 30px;
+}
+
+  
+.fancy-btn.green {
+  border: 3px ridge #00c46f;
+}
+.fancy-btn.green:hover {
+  box-shadow: inset 0px 0px 25px #00c46f;
+}
+
+/* 客製化按鈕樣式（取代 Bootstrap 按鈕） */
+.fancy-btn {
+  width: 300px;              /* ✅ 加寬 */
+  height: 2em;               /* ✅ 加高 */
+  font-size: 18px;           /* ✅ 放大文字 */
+  margin: 0 15px;       
+  position: relative;
+  border: 3px ridge #149CEA;
+  outline: none;
+  background-color: transparent;
+  color: white;
+  transition: 1s;
+  border-radius: 0.3em;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.fancy-btn::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 3%;
+  width: 95%;
+  height: 40%;
+  background-color: #21212100;
+  transition: 0.5s;
+  transform-origin: center;
+}
+
+.fancy-btn::before {
+  content: "";
+  transform-origin: center;
+  position: absolute;
+  top: 80%;
+  left: 3%;
+  width: 95%;
+  height: 40%;
+  background-color: #21212100;
+  transition: 0.5s;
+}
+
+.fancy-btn:hover::before,
+.fancy-btn:hover::after {
+  transform: scale(0);
+}
+
+.fancy-btn:hover {
+  box-shadow: inset 0px 0px 25px #1479EA;
+}
+
+
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
+<script>
+  VANTA.HALO({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    baseColor: 0x24dff,
+    backgroundColor: 0x4a,
+    scale: 1.0,
+    scaleMobile: 1.0
+  });
+</script>
+{% endblock %}

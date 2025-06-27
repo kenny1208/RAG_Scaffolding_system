@@ -1,596 +1,365 @@
-{% extends "base.html" %} {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <!-- Survey Form -->
-    <div class="card" id="survey-card">
-      <div class="card-body">
-        <h2 class="card-title text-center mb-4">Learning Style Assessment</h2>
-        <p class="lead text-center mb-4">
-          此測評將根據Felder-Silverman學習風格模型來幫助您識別您的學習偏好。
-        </p>
+{% extends "base.html" %}
+{% set fullscreen = true %}
 
-        <form id="survey-form">
-          <!-- Active/Reflective Dimension -->
-          <div class="mb-4">
-            <h3 class="h5 mb-3">1.您傾向於如何學習新資訊?</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_1"
-                  value="active"
-                  required
-                />
-                我傾向於透過實作或討論來理解資訊。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_1"
-                  value="reflective"
-                  required
-                />
-                我傾向於先思考資訊，再進行實作。
-              </label>
-            </div>
-          </div>
+{% block content %}
+<!-- ✅ 套用 VANTA 背景在 wrapper 外層 -->
+<div id="vanta-bg"></div>
 
-          <div class="mb-4">
-            <h3 class="h5 mb-3">2.當您在進行團隊專案時，您通常會：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_2"
-                  value="active"
-                  required
-                />
-                立即參與並貢獻想法。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_2"
-                  value="reflective"
-                  required
-                />
-                先聆聽並思考，再提出貢獻。
-              </label>
-            </div>
-          </div>
+<!-- ✅ 測驗主體內容 -->
+<div class="container mt-5 content-wrapper">
+  <h2 class="text-center mb-4 text-white">學習風格測驗</h2>
 
-          <!-- Sensing/Intuitive Dimension -->
-          <div class="mb-4">
-            <h3 class="h5 mb-3">3.當您學習新資訊時，您通常會偏好：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_3"
-                  value="sensing"
-                  required
-                />
-                具體事實和實用例子。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_3"
-                  value="intuitive"
-                  required
-                />
-                抽象概念和理論。
-              </label>
-            </div>
-          </div>
+  <p class="text-center text-light mb-4">
+    每題請選擇最符合你的選項，共 16 題，幫助我們了解你的學習風格。
+  </p>
 
-          <div class="mb-4">
-            <h3 class="h5 mb-3">4.我發現學習：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_4"
-                  value="sensing"
-                  required
-                />
-                循序漸進的步驟和實際應用。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_4"
-                  value="intuitive"
-                  required
-                />
-                與更廣泛的想法和創新相連的概念。
-              </label>
-            </div>
-          </div>
+  <form method="POST" action="{{ url_for('learning_style_survey') }}">
+    {% for q in questions %}
+    <div class="custom-card text-white mb-4 p-3">
+      <h5 class="card-title">{{ loop.index }}. {{ q.question }}</h5>
+      <div class="list-group">
+        <label class="radio-label">
+          <input type="radio" name="q{{ loop.index0 }}" value="a" class="radio-input" required>
+          <span class="radio-custom"></span>
+          <span class="radio-text">{{ q.option_a }}</span>
+        </label>
 
-          <!-- Visual/Verbal Dimension -->
-          <div class="mb-4">
-            <h3 class="h5 mb-3">5.我記憶資訊時，偏好以：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_5"
-                  value="visual"
-                  required
-                />
-                圖片、圖表、圖示或示範。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_5"
-                  value="verbal"
-                  required
-                />
-                書面或口語的解釋。
-              </label>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <h3 class="h5 mb-3">6.當您需要前往新地點時，您偏好：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_6"
-                  value="visual"
-                  required
-                />
-                地圖或視覺指南。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_6"
-                  value="verbal"
-                  required
-                />
-                口語或書面指示。
-              </label>
-            </div>
-          </div>
-
-          <!-- Sequential/Global Dimension -->
-          <div class="mb-4">
-            <h3 class="h5 mb-3">7.當您解決問題時，您傾向於：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_7"
-                  value="sequential"
-                  required
-                />
-                循序漸進地解決問題。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_7"
-                  value="global"
-                  required
-                />
-                先看到整體圖像，再解決問題。
-              </label>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <h3 class="h5 mb-3">8.當您學習新主題時，您偏好：</h3>
-            <div class="list-group">
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_8"
-                  value="sequential"
-                  required
-                />
-                專注於細節並逐步建立整體理解。
-              </label>
-              <label class="list-group-item">
-                <input
-                  class="form-check-input me-2"
-                  type="radio"
-                  name="question_8"
-                  value="global"
-                  required
-                />
-                先了解整體概念，再探索細節。
-              </label>
-            </div>
-          </div>
-
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-check me-2"></i>
-              提交評估
-            </button>
-          </div>
-        </form>
+        <label class="radio-label">
+          <input type="radio" name="q{{ loop.index0 }}" value="b" class="radio-input" required>
+          <span class="radio-custom"></span>
+          <span class="radio-text">{{ q.option_b }}</span>
+        </label>
       </div>
+      <input type="hidden" name="type{{ loop.index0 }}" value="{{ q.type_a }}">
     </div>
+    {% endfor %}
 
-    <!-- Results Display -->
-    <div class="card" id="results-card" style="display: none">
-      <div class="card-body">
-        <h2 class="card-title text-center mb-4">
-          <i class="fas fa-chart-pie me-2"></i>
-          您的學習風格分析結果
-        </h2>
-
-        <div class="row">
-          <div class="col-md-6">
-            <div class="mb-4">
-              <h4 class="h5 text-primary">
-                <i class="fas fa-lightbulb me-2"></i>
-                主要學習風格
-              </h4>
-              <div class="alert alert-info" id="primary-style">
-                <!-- Primary style will be inserted here -->
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-6">
-            <div class="mb-4">
-              <h4 class="h5 text-success">
-                <i class="fas fa-brain me-2"></i>
-                學習偏好分析
-              </h4>
-              <div class="alert alert-success" id="learning-preferences">
-                <!-- Learning preferences will be inserted here -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <h4 class="h5 text-warning">
-            <i class="fas fa-layer-group me-2"></i>
-            四維度學習風格分析
-          </h4>
-          <div class="row" id="dimensions-analysis">
-            <!-- Dimensions analysis will be inserted here -->
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <h4 class="h5 text-info">
-            <i class="fas fa-lightbulb me-2"></i>
-            學習建議
-          </h4>
-          <div class="alert alert-light" id="learning-suggestions">
-            <!-- Learning suggestions will be inserted here -->
-          </div>
-        </div>
-
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-          <button
-            type="button"
-            class="btn btn-secondary me-md-2"
-            id="retake-survey"
-          >
-            <i class="fas fa-redo me-2"></i>
-            重新測驗
-          </button>
-          <button type="button" class="btn btn-primary" id="continue-btn">
-            <i class="fas fa-arrow-right me-2"></i>
-            繼續下一步
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <div class="btn-wrapper">
+  <button type="submit" class="fancy-btn">
+    <i class="fas fa-check me-2"></i>提交測驗
+  </button>
 </div>
-{% endblock %} {% block scripts %}
+  </form>
+</div>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  #vanta-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;            /* ✅ 僅限全畫面 */
+    z-index: -1;
+    pointer-events: none;     /* ✅ 不擋互動 */
+  }
+
+  .content-wrapper {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 100px;    /* ✅ 下方空間避免底部被遮 */
+  }
+
+.custom-card {
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.61); /* ✅ 紅色背景 */
+  border: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  padding: 16px 24px;
+  max-width: 720px;
+  margin: auto; /* 置中 */
+}
+
+
+  h2 {
+    text-shadow: 0 0 10px #fff;
+    font-size: 50px;
+  }
+
+  p {
+    text-shadow: 
+    0 0 10px #fff,
+    0 0 20px #9fe7ff;
+    font-size: 20px;
+  }
+
+  .card-title {
+    text-shadow: 
+    0 0 10px #fff;
+    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+  }
+
+  /* From Uiverse.io by risabbir */ 
+.fullscreen-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
+
+.radio-group-container {
+  background-color: rgba(26, 27, 40, 0.7);
+  padding: 20px 35px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  width: 90%;
+  max-width: 280px;
+  transition: all 0.3s ease;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.radio-input {
+  display: none;
+}
+
+.radio-custom {
+  width: 22px;
+  height: 22px;
+  background-color: transparent;
+  border: 2px solid #5c5e79;
+  border-radius: 50%;
+  margin-right: 18px;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.radio-custom::before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #8a8b9f;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.radio-custom::after {
+  content: "";
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  border-top-color: #00a6ff;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.4s ease;
+}
+
+.radio-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #c1c3d9;
+  transition: color 0.3s ease;
+}
+
+.radio-label:hover .radio-input:not(:checked) + .radio-custom {
+  transform: scale(1.1);
+  border-color: #8a8daf;
+}
+
+.radio-label:hover .radio-text {
+  color: #e2e4f4;
+}
+
+.radio-input:checked + .radio-custom {
+  border-color: #00a6ff;
+  transform: scale(0.9);
+}
+
+.radio-input:checked + .radio-custom::before {
+  transform: scale(1);
+  background-color: #00a6ff;
+}
+
+.radio-input:checked + .radio-custom::after {
+  opacity: 1;
+  transform: scale(1.3);
+  animation: orbit 2.5s infinite linear;
+  box-shadow:
+    0 0 30px #00a6ff,
+    0 0 80px rgba(0, 166, 255, 0.2);
+}
+
+.radio-input:checked ~ .radio-text {
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 
+    0 0 10px #fff;
+}
+
+.radio-label:nth-child(2) .radio-input:checked + .radio-custom {
+  border-color: #e900ff;
+  box-shadow: none;
+}
+.radio-label:nth-child(2) .radio-input:checked + .radio-custom::before {
+  background-color: #e900ff;
+}
+.radio-label:nth-child(2) .radio-input:checked + .radio-custom::after {
+  border-top-color: #e900ff;
+  box-shadow:
+    0 0 30px #e900ff,
+    0 0 80px rgba(233, 0, 255, 0.2);
+}
+.radio-label:nth-child(2) .radio-input:checked ~ .radio-text {
+  color: #ffffff;
+}
+
+.radio-label:nth-child(3) .radio-input:checked + .radio-custom {
+  border-color: #00ffc2;
+  box-shadow: none;
+}
+.radio-label:nth-child(3) .radio-input:checked + .radio-custom::before {
+  background-color: #00ffc2;
+}
+.radio-label:nth-child(3) .radio-input:checked + .radio-custom::after {
+  border-top-color: #00ffc2;
+  box-shadow:
+    0 0 30px #00ffc2,
+    0 0 80px rgba(0, 255, 194, 0.2);
+}
+.radio-label:nth-child(3) .radio-input:checked ~ .radio-text {
+  color: #ffffff;
+}
+
+@keyframes orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Media Query for Mobile Responsiveness */
+@media (max-width: 400px) {
+  .radio-group-container {
+    padding: 15px 25px;
+  }
+
+  .radio-label {
+    margin: 25px 0;
+  }
+
+  .radio-text {
+    font-size: 1rem;
+  }
+}
+
+/* 精簡每個 label 的內距與字型 */
+.list-group-item {
+  padding: 3px 6px;   /* ✅ 原本 padding: 10~16px，壓縮更緊湊 */
+  font-size: 1rem;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+/* ✅ 調整 input 對齊 */
+.form-check-input {
+  margin-top: 2px;
+}
+
+.btn-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+}
+
+/* 客製化按鈕樣式（取代 Bootstrap 按鈕） */
+.fancy-btn {
+  width: 250px;              /* ✅ 加長按鈕 */
+  height: 3.5em;
+  position: relative;
+  height: 3.5em;
+  border: 3px ridge #149CEA;
+  outline: none;
+  background-color: transparent;
+  color: white;
+  transition: 1s;
+  border-radius: 0.3em;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.fancy-btn::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 3%;
+  width: 95%;
+  height: 40%;
+  background-color: #21212100;
+  transition: 0.5s;
+  transform-origin: center;
+}
+
+.fancy-btn::before {
+  content: "";
+  transform-origin: center;
+  position: absolute;
+  top: 80%;
+  left: 3%;
+  width: 95%;
+  height: 40%;
+  background-color: #21212100;
+  transition: 0.5s;
+}
+
+.fancy-btn:hover::before,
+.fancy-btn:hover::after {
+  transform: scale(0);
+}
+
+.fancy-btn:hover {
+  box-shadow: inset 0px 0px 25px #1479EA;
+}
+
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("survey-form");
-    const surveyCard = document.getElementById("survey-card");
-    const resultsCard = document.getElementById("results-card");
-    const retakeBtn = document.getElementById("retake-survey");
-    const continueBtn = document.getElementById("continue-btn");
-
-    // Learning style descriptions
-    const styleDescriptions = {
-      active: {
-        name: "主動型學習者",
-        description:
-          "您偏好透過實作、討論和互動來學習。您喜歡動手操作和與他人合作。",
-        suggestions: [
-          "參與小組討論和團隊專案",
-          "使用實作練習和實驗",
-          "與同學分享想法和經驗",
-          "嘗試解決實際問題",
-        ],
-      },
-      reflective: {
-        name: "反思型學習者",
-        description:
-          "您偏好先思考和分析資訊，然後再進行實作。您喜歡獨自思考和內省。",
-        suggestions: [
-          "在學習前先閱讀和思考材料",
-          "寫學習日誌記錄想法",
-          "給自己時間消化新概念",
-          "在實作前先規劃步驟",
-        ],
-      },
-      sensing: {
-        name: "感知型學習者",
-        description:
-          "您偏好具體的事實、實例和實用資訊。您喜歡循序漸進的學習方式。",
-        suggestions: [
-          "尋找具體的例子和應用",
-          "使用實際案例學習",
-          "注重細節和準確性",
-          "建立實用的學習目標",
-        ],
-      },
-      intuitive: {
-        name: "直覺型學習者",
-        description: "您偏好抽象概念、理論和創新想法。您喜歡探索新的可能性。",
-        suggestions: [
-          "探索概念之間的關聯",
-          "尋找創新的解決方案",
-          "思考理論背後的原理",
-          "嘗試不同的學習方法",
-        ],
-      },
-      visual: {
-        name: "視覺型學習者",
-        description: "您偏好透過圖片、圖表、圖示和視覺材料來學習。",
-        suggestions: [
-          "使用思維導圖整理資訊",
-          "觀看教學影片和動畫",
-          "使用圖表和圖表",
-          "創建視覺筆記",
-        ],
-      },
-      verbal: {
-        name: "語言型學習者",
-        description: "您偏好透過文字、口語解釋和討論來學習。",
-        suggestions: [
-          "閱讀詳細的文字說明",
-          "參與討論和辯論",
-          "寫作總結和筆記",
-          "與他人討論概念",
-        ],
-      },
-      sequential: {
-        name: "序列型學習者",
-        description: "您偏好循序漸進、邏輯性的學習方式。您喜歡按步驟解決問題。",
-        suggestions: [
-          "按邏輯順序組織學習材料",
-          "逐步解決複雜問題",
-          "建立清晰的學習計劃",
-          "使用檢查清單追蹤進度",
-        ],
-      },
-      global: {
-        name: "整體型學習者",
-        description: "您偏好先了解整體概念，然後再探索細節。您喜歡看到大圖像。",
-        suggestions: [
-          "先了解主題的整體架構",
-          "尋找概念之間的關聯",
-          "使用類比和比喻",
-          "創建學習的整體框架",
-        ],
-      },
-    };
-
-    function showResults(learningStyle) {
-      // Hide survey form and show results
-      surveyCard.style.display = "none";
-      resultsCard.style.display = "block";
-
-      // Set primary learning style
-      const primaryStyle = learningStyle.dimension3; // Visual/Verbal is the primary dimension
-      const primaryStyleInfo = styleDescriptions[primaryStyle];
-      document.getElementById("primary-style").innerHTML = `
-        <strong>${primaryStyleInfo.name}</strong><br>
-        ${primaryStyleInfo.description}
-      `;
-
-      // Set learning preferences
-      document.getElementById("learning-preferences").innerHTML = `
-        <strong>您的學習偏好：</strong><br>
-        • ${styleDescriptions[learningStyle.dimension1].name}<br>
-        • ${styleDescriptions[learningStyle.dimension2].name}<br>
-        • ${styleDescriptions[learningStyle.dimension3].name}<br>
-        • ${styleDescriptions[learningStyle.dimension4].name}
-      `;
-
-      // Set dimensions analysis
-      const dimensionsHtml = `
-        <div class="col-md-6">
-          <div class="card border-primary">
-            <div class="card-header bg-primary text-white">
-              <i class="fas fa-users me-2"></i>
-              處理資訊方式
-            </div>
-            <div class="card-body">
-              <strong>${
-                styleDescriptions[learningStyle.dimension1].name
-              }</strong><br>
-              ${styleDescriptions[learningStyle.dimension1].description}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card border-success">
-            <div class="card-header bg-success text-white">
-              <i class="fas fa-eye me-2"></i>
-              感知資訊方式
-            </div>
-            <div class="card-body">
-              <strong>${
-                styleDescriptions[learningStyle.dimension2].name
-              }</strong><br>
-              ${styleDescriptions[learningStyle.dimension2].description}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6 mt-3">
-          <div class="card border-warning">
-            <div class="card-header bg-warning text-dark">
-              <i class="fas fa-image me-2"></i>
-              接收資訊方式
-            </div>
-            <div class="card-body">
-              <strong>${
-                styleDescriptions[learningStyle.dimension3].name
-              }</strong><br>
-              ${styleDescriptions[learningStyle.dimension3].description}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6 mt-3">
-          <div class="card border-info">
-            <div class="card-header bg-info text-white">
-              <i class="fas fa-sitemap me-2"></i>
-              理解資訊方式
-            </div>
-            <div class="card-body">
-              <strong>${
-                styleDescriptions[learningStyle.dimension4].name
-              }</strong><br>
-              ${styleDescriptions[learningStyle.dimension4].description}
-            </div>
-          </div>
-        </div>
-      `;
-      document.getElementById("dimensions-analysis").innerHTML = dimensionsHtml;
-
-      // Set learning suggestions
-      const allSuggestions = [
-        ...styleDescriptions[learningStyle.dimension1].suggestions,
-        ...styleDescriptions[learningStyle.dimension2].suggestions,
-        ...styleDescriptions[learningStyle.dimension3].suggestions,
-        ...styleDescriptions[learningStyle.dimension4].suggestions,
-      ];
-
-      // Remove duplicates and take first 6 suggestions
-      const uniqueSuggestions = [...new Set(allSuggestions)].slice(0, 6);
-
-      document.getElementById("learning-suggestions").innerHTML = `
-        <ul class="mb-0">
-          ${uniqueSuggestions
-            .map((suggestion) => `<li>${suggestion}</li>`)
-            .join("")}
-        </ul>
-      `;
-    }
-
-    // Handle retake survey
-    retakeBtn.addEventListener("click", function () {
-      surveyCard.style.display = "block";
-      resultsCard.style.display = "none";
-      form.reset();
-    });
-
-    // Handle continue button
-    continueBtn.addEventListener("click", function () {
-      window.location.href = "{{ url_for('course_selection') }}";
-    });
-
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
-
-      const dimensions = {
-        active: 0,
-        reflective: 0,
-        sensing: 0,
-        intuitive: 0,
-        visual: 0,
-        verbal: 0,
-        sequential: 0,
-        global: 0,
-      };
-
-      // Collect answers from all radio buttons
-      const questions = [
-        "question_1",
-        "question_2",
-        "question_3",
-        "question_4",
-        "question_5",
-        "question_6",
-        "question_7",
-        "question_8",
-      ];
-
-      // Check if all questions are answered
-      for (const questionName of questions) {
-        const selected = document.querySelector(
-          `input[name="${questionName}"]:checked`
-        );
-        if (!selected) {
-          const questionNumber = questionName.replace("question_", "");
-          alert(`Please answer question ${questionNumber}`);
-          return;
-        }
-
-        // Count the selections for each dimension
-        dimensions[selected.value]++;
-      }
-
-      // Determine dominant dimensions
-      const learningStyle = {
-        dimension1:
-          dimensions.active > dimensions.reflective ? "active" : "reflective",
-        dimension2:
-          dimensions.sensing > dimensions.intuitive ? "sensing" : "intuitive",
-        dimension3: dimensions.visual > dimensions.verbal ? "visual" : "verbal",
-        dimension4:
-          dimensions.sequential > dimensions.global ? "sequential" : "global",
-      };
-
-      try {
-        const response = await fetch("{{ url_for('learning_style_survey') }}", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            felder_silverman_results: learningStyle,
-          }),
-        });
-
-        if (response.ok) {
-          // Show results instead of redirecting
-          showResults(learningStyle);
-        } else {
-          const data = await response.json();
-          alert(data.error || "An error occurred");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("An error occurred while submitting the survey");
-      }
-    });
+  VANTA.HALO({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    baseColor: 0x24dff,
+    backgroundColor: 0x4a,
+    scale: 1.0,
+    scaleMobile: 1.0
   });
 </script>
 {% endblock %}
-<!-- 註解-->

@@ -4,6 +4,9 @@ import os
 import uuid
 import json
 import datetime
+import random
+import re
+from flask import render_template, request
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import NLTKTextSplitter
@@ -1199,33 +1202,6 @@ def upload_pdf():
     
     return render_template('upload_pdf.html')
 
-@app.route('/learning_style_survey', methods=['GET', 'POST'])
-def learning_style_survey():
-    if 'student_id' not in session:
-        return redirect(url_for('select_user'))
-    
-    if request.method == 'POST':
-        data = request.json
-        felder_results = data.get('felder_silverman_results', {})
-        
-        if not felder_results:
-            return jsonify({'error': 'Learning style assessment results are required'}), 400
-        
-        # Map the primary visual/verbal dimension to the learning style
-        primary_style = felder_results.get('dimension3', 'visual')
-        
-        # Update student profile
-        profile = get_student_profile(session['student_id'])
-        if profile:
-            profile.learning_style = primary_style
-            profile.felder_silverman_profile = felder_results
-            save_student_profile(profile)
-        
-        # Redirect to course selection
-        return jsonify({'success': True, 'redirect': url_for('course_selection')})
-    
-    return render_template('learning_style_survey.html')
-
 @app.route('/course_selection')
 def course_selection():
     if 'student_id' not in session:
@@ -2308,6 +2284,111 @@ def delete_course(course_id):
         session.pop('session_id', None)
 
     return jsonify({'success': True})
+
+def load_questions():
+    with open("question.txt", encoding="utf-8") as f:
+        lines = f.read().splitlines()
+
+    categories = {
+        "Active vs Reflective": ("active", "reflective"),
+        "Sensing vs Intuitive": ("sensing", "intuitive"),
+        "Visual vs Verbal": ("visual", "verbal"),
+        "Sequential vs Global": ("sequential", "global"),
+    }
+
+    questions = {
+        "active": [],
+        "sensing": [],
+        "visual": [],
+        "sequential": [],
+    }
+
+    current_cat = ""
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        if line.startswith("===") and "===" in line:
+            for key in categories:
+                if key in line:
+                    current_cat = key
+                    break
+            i += 1
+            continue
+
+        if line and not line.startswith("draw_count:") and not line.startswith("===") and not line.startswith("(a)") and not line.startswith("(b)"):
+            q_text = line
+            a_text, b_text = "", ""
+            if i + 1 < len(lines) and lines[i + 1].strip().startswith("(a)"):
+                a_text = lines[i + 1].strip()[3:].strip()
+            if i + 2 < len(lines) and lines[i + 2].strip().startswith("(b)"):
+                b_text = lines[i + 2].strip()[3:].strip()
+
+            type_a, type_b = categories[current_cat]
+            questions[type_a].append({
+                "question": q_text,
+                "option_a": a_text,
+                "option_b": b_text,
+                "type_a": type_a,
+                "type_b": type_b,
+            })
+            i += 3
+        else:
+            i += 1
+
+    final_questions = []
+    for dim in ["active", "sensing", "visual", "sequential"]:
+        final_questions.extend(random.sample(questions[dim], 4))
+
+    return final_questions
+
+
+@app.route("/learning_style_survey", methods=["GET", "POST"])
+def learning_style_survey():
+    if request.method == "POST":
+        score = {
+            "active": 0, "reflective": 0,
+            "sensing": 0, "intuitive": 0,
+            "visual": 0, "verbal": 0,
+            "sequential": 0, "global": 0
+        }
+        for i in range(16):
+            selected = request.form.get(f"q{i}")
+            type_ = request.form.get(f"type{i}")
+            opposite_map = {
+                "active": "reflective",
+                "sensing": "intuitive",
+                "visual": "verbal",
+                "sequential": "global"
+            }
+            if selected == "a":
+                score[type_] += 1
+            elif selected == "b" and type_ in opposite_map:
+                score[opposite_map[type_]] += 1
+
+        result = {
+            "active_vs_reflective": "Active" if score["active"] >= score["reflective"] else "Reflective",
+            "sensing_vs_intuitive": "Sensing" if score["sensing"] >= score["intuitive"] else "Intuitive",
+            "visual_vs_verbal": "Visual" if score["visual"] >= score["verbal"] else "Verbal",
+            "sequential_vs_global": "Sequential" if score["sequential"] >= score["global"] else "Global"
+        }
+
+        # ✅ 儲存結果到學生 JSON 檔案
+        if 'student_id' in session:
+            profile = get_student_profile(session['student_id'])
+            if profile:
+                profile.felder_silverman_profile = result
+                profile.learning_style = result["visual_vs_verbal"]  # 可根據需要選擇一個主軸
+                save_student_profile(profile)
+
+        return render_template("learning_style_result.html", result=result)
+
+    # GET request: 顯示問卷
+    questions = load_questions()
+    return render_template("learning_style_survey.html", questions=questions)
+
+
+# 你原本的其他頁面路由可放在這裡
 
 if __name__ == '__main__':
     app.run(debug=True)
