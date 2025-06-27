@@ -22,6 +22,9 @@ import nltk
 
 import time
 import shutil
+import torch
+from transformers import AutoTokenizer, AutoModel
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -860,32 +863,76 @@ def generate_module_content(session_id, module, profile):
     
     return content_chain.invoke("")
 
+# Global ColBERT model initialization (outside function for efficiency)
+_colbert_tokenizer = None
+_colbert_model = None
+
+def get_colbert_model():
+    """Get or initialize ColBERT model globally"""
+    global _colbert_tokenizer, _colbert_model
+    if _colbert_tokenizer is None or _colbert_model is None:
+        try:
+            _colbert_tokenizer = AutoTokenizer.from_pretrained("colbert-ir/colbertv2.0")
+            _colbert_model = AutoModel.from_pretrained("colbert-ir/colbertv2.0")
+            app.logger.info("ColBERT model initialized successfully")
+        except Exception as e:
+            app.logger.error(f"Failed to initialize ColBERT model: {str(e)}")
+            return None, None
+    return _colbert_tokenizer, _colbert_model
 
 def simulate_peer_discussion(session_id, topic, message):
-    """Simulate a peer discussion with an AI learning partner"""
+    """Simulate a peer discussion with an AI learning partner using ColBERT reranker + HYDE"""
     vectorstore = get_vectorstore(session_id)
     
-    # 使用針對特定主題的檢索
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    # Initialize retriever
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
     
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
-    )
+    # Get ColBERT model (global initialization)
+    tokenizer, model = get_colbert_model()
     
-    prompt = ChatPromptTemplate.from_messages([
+    def colbert_embed(text):
+        if tokenizer is None or model is None:
+            return None
+        try:
+            inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+            with torch.no_grad():
+                outputs = model(**inputs)
+            return outputs.last_hidden_state.mean(dim=1).numpy()
+        except Exception as e:
+            app.logger.error(f"Error in colbert_embed: {str(e)}")
+            return None
+    
+    def colbert_rerank_with_query(query, docs, top_k=10):
+        q_embed = colbert_embed(query)
+        if q_embed is None:
+            # Fallback: return first top_k docs
+            return docs[:top_k]
+        
+        scored = []
+        for doc in docs:
+            d_embed = colbert_embed(doc.page_content)
+            if d_embed is not None:
+                score = cosine_similarity(q_embed, d_embed)[0][0]
+                scored.append((score, doc))
+            else:
+                # If embedding fails, give low score
+                scored.append((0.0, doc))
+        
+        sorted_docs = sorted(scored, key=lambda x: x[0], reverse=True)
+        return [doc for _, doc in sorted_docs[:top_k]]
+    
+    # Chat prompt template
+    chat_template = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是「學習夥伴」，一個友善且有幫助的 AI 同儕，與學生進行有建設性的討論。
         您的角色是：
         1. 模擬一位也在學習該主題但有一定見解的同儕
-        2. 提出有助於促進批判性思考的問題
+        2. 提出有助於促進批判性思考的問題，但不要只提問不回答。
         3. 專注於討論的主題範圍，不要偏離主題
         4. 以對話的方式表達想法，像是學生之間的交流
         5. 鼓勵並保持積極的態度
         
         根據提供的相關內容回應，但不要只是簡單地背誦資訊。
-        而是以自然的方式進行來回討論，就像一起學習一樣，但是還是要能回答同學的問題而不是一直反問。
-        確保討論內容與主題相關，避免偏離到其他章節的內容。
-        """),
+        而是以自然的方式進行來回討論，就像一起學習一樣，但是還是要回答同學的問題而不是只有反問。"""),
         HumanMessagePromptTemplate.from_template("""學生想要討論這個主題：
         
         主題：{topic}
@@ -898,21 +945,83 @@ def simulate_peer_discussion(session_id, topic, message):
         """)
     ])
     
-    # Create the chain
-    discussion_chain = (
-        RunnablePassthrough()
-        | retriever
-        | (lambda docs: {
-            "topic": topic,
-            "message": message,
-            "context": "\n\n".join([d.page_content for d in docs])
-        })
-        | prompt
-        | chat_model
-        | StrOutputParser()
+    output_parser = StrOutputParser()
+    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.0-flash-lite")
+    
+    # HyDE prompt template
+    hyde_prompt = ChatPromptTemplate.from_template(
+        "請寫一段文字來回答這個問題。\n問題：{question}\n回答："
     )
     
-    return discussion_chain.invoke(topic)
+    def generate_hypothetical_answer(query):
+        try:
+            time.sleep(0.5)  # Reduced sleep time for better UX
+            chain = (
+                {"question": lambda _: query}
+                | hyde_prompt
+                | chat_model
+                | StrOutputParser()
+            )
+            return chain.invoke(query)
+        except Exception as e:
+            app.logger.error(f"Error generating hypothetical answer: {str(e)}")
+            return query  # Fallback to original query
+    
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+    
+    # HyDE + ColBERT RAG Chain
+    def rag_hyde_colbert(query, topic):
+        try:
+            # Generate hypothetical answer
+            hypo_answer = generate_hypothetical_answer(query)
+            
+            # Get candidate documents
+            candidate_docs = retriever.invoke(topic)
+            
+            if not candidate_docs:
+                app.logger.warning("No documents found for topic")
+                return "抱歉，我沒有找到相關的學習內容來回答您的問題。請確認您討論的主題是否在學習範圍內。"
+            
+            # Rerank with ColBERT
+            top_docs = colbert_rerank_with_query(hypo_answer, candidate_docs, top_k=10)
+            
+            # Format context
+            context = format_docs(top_docs)
+            
+            # Generate final response
+            chain = (
+                {"context": lambda _: context, "topic": lambda _: topic, "message": lambda _: query}
+                | chat_template
+                | chat_model
+                | output_parser
+            )
+            answer = chain.invoke(query)
+            
+            return answer
+            
+        except Exception as e:
+            app.logger.error(f"Error in rag_hyde_colbert: {str(e)}")
+            # Fallback to simple retrieval
+            try:
+                docs = retriever.invoke(topic)
+                if docs:
+                    context = format_docs(docs[:5])
+                    chain = (
+                        {"context": lambda _: context, "topic": lambda _: topic, "message": lambda _: query}
+                        | chat_template
+                        | chat_model
+                        | output_parser
+                    )
+                    return chain.invoke(query)
+                else:
+                    return "抱歉，我無法找到相關的學習內容來回答您的問題。請稍後再試。"
+            except Exception as fallback_error:
+                app.logger.error(f"Fallback also failed: {str(fallback_error)}")
+                return "抱歉，系統暫時無法回應您的問題。請稍後再試。"
+    
+    # Execute the RAG chain
+    return rag_hyde_colbert(message, topic)
 
 def create_posttest(session_id, module, profile):
     """Generate a post-test for a module"""
