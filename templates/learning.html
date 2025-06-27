@@ -301,6 +301,38 @@
                 </small>
               </div>
             `;
+
+            // Process PDF links in the detailed explanation
+            const detailedContent = explanationDiv.querySelector(
+              ".detailed-explanation-content"
+            );
+            if (detailedContent) {
+              // Convert [來源: xxx.pdf, 頁碼: X] to clickable links
+              detailedContent.innerHTML = detailedContent.innerHTML.replace(
+                /\[來源: ([^,]+), 頁碼: (\d+)\]/g,
+                '<a href="#" data-pdf="$1" data-page="$2" class="pdf-link">[來源: $1, 頁碼: $2]</a>'
+              );
+
+              // Add click handlers for the newly created PDF links
+              detailedContent.querySelectorAll(".pdf-link").forEach((link) => {
+                link.addEventListener("click", function (e) {
+                  e.preventDefault();
+                  const pdfPath = this.getAttribute("data-pdf");
+                  const page = this.getAttribute("data-page");
+
+                  // Reset iframe src to force reload
+                  pdfViewer.src = "";
+
+                  // Set new PDF viewer source with page parameter
+                  setTimeout(() => {
+                    pdfViewer.src = `/view_pdf/${pdfPath}#page=${page}`;
+                  }, 100);
+
+                  // Show modal
+                  pdfViewerModal.show();
+                });
+              });
+            }
           }
 
           // Reset button
