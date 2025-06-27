@@ -2188,6 +2188,38 @@ def summary():
                          logs=logs,
                          learning_history=learning_history)
 
+@app.route('/restart_learning')
+def restart_learning():
+    """Reset learning progress to the first module"""
+    if 'student_id' not in session or 'course_id' not in session:
+        return redirect(url_for('course_selection'))
+    
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return redirect(url_for('course_selection'))
+    
+    # Reset current module index to 0 (first module)
+    course.current_module_index = 0
+    course.learning_completed = False
+    course.completion_date = None
+    
+    # Clear any retry flags and emotional analysis from modules
+    if course.learning_path and course.learning_path['modules']:
+        for module in course.learning_path['modules']:
+            # Remove retry-related flags
+            module.pop('retry_count', None)
+            module.pop('easier_test', None)
+            module.pop('emotional_analysis', None)
+            module.pop('scaffolding_level', None)
+            # Keep the content but reset other dynamic properties
+    
+    # Save the updated course profile
+    save_course_profile(course)
+    
+    # Redirect to learning page
+    return redirect(url_for('learning'))
+
 @app.route('/learning_path_discussion')
 def learning_path_discussion():
     if 'student_id' not in session or 'course_id' not in session:
