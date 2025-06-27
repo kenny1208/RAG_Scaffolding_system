@@ -220,37 +220,7 @@ def process_pdfs(file_paths, session_id):
             app.logger.error(f'Error creating vector store: {str(e)}')
             raise Exception(f'Error creating search index: {str(e)}')
         
-        # Create summary
-        try:
-            chat_model = ChatGoogleGenerativeAI(
-                google_api_key=api_key,
-                model="gemini-2.0-flash-lite"
-            )
-            
-            summary_prompt = ChatPromptTemplate.from_messages([
-                SystemMessage(content="You are a helpful assistant that summarizes technical documents."),
-                HumanMessagePromptTemplate.from_template("""Summarize the following content into a bullet-point outline for review:
-
-{context}
-
-Summary:""")
-            ])
-
-            summary_chain = (
-                RunnablePassthrough()
-                | (lambda docs: {"context": "\n\n".join([d.page_content for d in docs])})
-                | summary_prompt
-                | chat_model
-                | StrOutputParser()
-            )
-            
-            summary = summary_chain.invoke(chunks)
-            app.logger.info("Successfully generated document summary")
-        except Exception as e:
-            app.logger.error(f'Error generating summary: {str(e)}')
-            raise Exception(f'Error generating document summary: {str(e)}')
-        
-        return chunks, summary
+        return chunks
         
     except Exception as e:
         app.logger.error(f'Error in process_pdfs: {str(e)}')
@@ -268,35 +238,6 @@ def get_vectorstore(session_id):
     )
     return vectorstore
 
-def get_answer(session_id, question):
-    """Get an answer to a question using the retriever"""
-    vectorstore = get_vectorstore(session_id)
-    
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
-    )
-    
-    retriever = vectorstore.as_retriever()
-    
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""您是一位專精於回答問題的專家。
-        您將被提供一份內容和一個問題。
-        請根據提供的內容回答問題。"""),
-        HumanMessagePromptTemplate.from_template("""根據給定的內容回答問題。
-        內容：{context}
-        問題：{question}
-        答案：""")
-    ])
-    
-    chain = (
-        {"context": retriever | RunnablePassthrough(), "question": RunnablePassthrough()}
-        | prompt
-        | chat_model
-        | StrOutputParser()
-    )
-    
-    return chain.invoke(question)
 
 # Helper functions for profile management
 def get_student_profile(student_id):
@@ -1175,7 +1116,7 @@ def upload_pdf():
             try:
                 # Process all PDFs and create vector store
                 app.logger.info("Starting PDF processing")
-                chunks, summary = process_pdfs(file_paths, session_id)
+                chunks = process_pdfs(file_paths, session_id)
                 
                 # Store file paths in session
                 session['pdf_files'] = [os.path.basename(path) for path in file_paths]
@@ -1794,26 +1735,7 @@ def create_learning_log(module_index):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/ask', methods=['POST'])
-def ask_question():
-    question = request.json.get('question')
-    if not question:
-        return jsonify({'error': 'No question provided'}), 400
-    
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
-    
-    # Check if vector DB exists for this session
-    vector_db_path = os.path.join(app.config['VECTOR_DB_DIR'], session_id)
-    if not os.path.exists(vector_db_path):
-        return jsonify({'error': 'No documents have been processed yet'}), 400
-    
-    try:
-        answer = get_answer(session_id, question)
-        return jsonify({'answer': answer})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/update-module-index', methods=['POST'])
 def update_module_index():
