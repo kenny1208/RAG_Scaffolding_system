@@ -102,6 +102,7 @@ class CourseProfile(BaseModel):
     session_id: Optional[str] = Field(default=None, description="Current session ID for this course")
     learning_completed: Optional[bool] = Field(default=False, description="Whether the course has been completed")
     completion_date: Optional[str] = Field(default=None, description="Course completion timestamp")
+    wrong_questions: List[Dict[str, Any]] = Field(default_factory=list, description="Record of wrong questions with details")
 
 class LearningLog(BaseModel):
     id: str = Field(description="Unique log ID")
@@ -1279,6 +1280,95 @@ def analyze_learning_log(student_name, topic, log_content):
         "log_content": log_content
     })
 
+def get_detailed_explanation_for_wrong_question(session_id, wrong_question, module_topic):
+    """Generate detailed explanation for a wrong question using RAG"""
+    vectorstore = get_vectorstore(session_id)
+    
+    # 使用兩種檢索策略
+    # 1. 相關性檢索 - 針對問題內容
+    relevance_retriever = vectorstore.as_retriever(
+        search_kwargs={
+            "k": 15
+        }
+    )
+    
+    # 2. 全面檢索 - 獲取所有文檔
+    all_docs_data = vectorstore.get()
+    all_docs = []
+    for i, doc in enumerate(all_docs_data["documents"]):
+        metadata = all_docs_data["metadatas"][i] if i < len(all_docs_data["metadatas"]) else {}
+        all_docs.append({
+            "page_content": doc,
+            "metadata": metadata
+        })
+    
+    chat_model = ChatGoogleGenerativeAI(
+        google_api_key=api_key,
+        model="gemini-2.0-flash"
+    )
+    
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content="""您是一位專業的教育輔導老師，專門幫助學生理解他們答錯的問題。
+        
+        學生已經多次答錯這個問題，這表示他們對相關概念存在持續的誤解。
+        請根據提供的教材內容，為學生提供：
+        
+        1. **詳細的概念解釋**：深入解釋問題涉及的核心概念
+        2. **常見誤解分析**：分析學生可能的錯誤理解
+        3. **具體例子**：提供更多相關的例子來幫助理解
+        4. **學習建議**：給出具體的學習建議和練習方法
+        5. **相關概念連結**：將這個概念與其他相關概念連結起來
+        
+        請使用友善、鼓勵的語氣，幫助學生建立信心。
+        格式要求：
+        - 使用markdown格式
+        - 結構清晰，分段落說明
+        - 包含具體的例子和類比
+        - 提供實用的學習建議
+        
+        重要：請根據context的內容標註來源，格式為：
+        [來源: 檔名.pdf, 頁碼: X]
+        """),
+        HumanMessagePromptTemplate.from_template("""為以下答錯的問題提供詳細解釋：
+        
+        章節主題：{module_topic}
+        
+        問題：{question_text}
+        學生的答案：{student_answer}
+        正確答案：{correct_answer}
+        原始解釋：{original_explanation}
+        難度等級：{difficulty}
+        答錯次數：{attempt_count}
+        
+        相關教材內容：
+        {relevant_context}
+        
+        完整教材：
+        {all_context}
+        """)
+    ])
+    
+    # Create the chain
+    explanation_chain = (
+        RunnablePassthrough()
+        | (lambda _: {
+            "module_topic": module_topic,
+            "question_text": wrong_question['question_text'],
+            "student_answer": wrong_question['student_answer'],
+            "correct_answer": wrong_question['correct_answer'],
+            "original_explanation": wrong_question['explanation'],
+            "difficulty": wrong_question['difficulty'],
+            "attempt_count": wrong_question['attempt_count'],
+            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(wrong_question['question_text'])]),
+            "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
+        })
+        | prompt
+        | chat_model
+        | StrOutputParser()
+    )
+    
+    return explanation_chain.invoke("")
+
 # Routes
 @app.route('/')
 def index():
@@ -1876,6 +1966,68 @@ def get_posttest(module_index):
                 'details': '請稍後再試，或聯繫管理員獲取協助。'
             }), 500
 
+@app.route('/api/wrong-question-explanation/<int:module_index>/<int:question_index>', methods=['GET'])
+def get_wrong_question_explanation(module_index, question_index):
+    """Get detailed explanation for a wrong question"""
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
+    
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+    
+    # Check if course has learning path
+    if not course.learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    if module_index >= len(course.learning_path['modules']):
+        return jsonify({'error': 'Invalid module index'}), 400
+    
+    module = course.learning_path['modules'][module_index]
+    module_topic = module['title'].split(": ", 1)[1] if ": " in module['title'] else module['title']
+    
+    # Find the wrong question
+    wrong_question = None
+    for wq in course.wrong_questions:
+        if wq['module_index'] == module_index and wq['question_index'] == question_index:
+            wrong_question = wq
+            break
+    
+    if not wrong_question:
+        return jsonify({'error': 'Wrong question not found'}), 404
+    
+    # Check if this is a repeated wrong question (attempt_count > 1)
+    if wrong_question['attempt_count'] <= 1:
+        return jsonify({
+            'error': 'This question has only been wrong once. Detailed explanation is only available for repeated wrong questions.',
+            'explanation': wrong_question['explanation']
+        }), 400
+    
+    try:
+        # Generate detailed explanation using RAG
+        detailed_explanation = get_detailed_explanation_for_wrong_question(
+            course.session_id, 
+            wrong_question, 
+            module_topic
+        )
+        
+        return jsonify({
+            'detailed_explanation': detailed_explanation,
+            'original_explanation': wrong_question['explanation'],
+            'attempt_count': wrong_question['attempt_count'],
+            'question_text': wrong_question['question_text'],
+            'student_answer': wrong_question['student_answer'],
+            'correct_answer': wrong_question['correct_answer']
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error generating detailed explanation: {str(e)}")
+        return jsonify({
+            'error': f'生成詳細解釋時發生錯誤: {str(e)}',
+            'fallback_explanation': wrong_question['explanation']
+        }), 500
+
 @app.route('/api/evaluate-posttest/<int:module_index>', methods=['POST'])
 def evaluate_posttest(module_index):
     if 'student_id' not in session or 'course_id' not in session:
@@ -1920,6 +2072,41 @@ def evaluate_posttest(module_index):
         
         if is_correct:
             correct_count += 1
+        else:
+            # Record wrong question
+            wrong_question = {
+                'module_index': module_index,
+                'module_title': module['title'],
+                'question_index': i,
+                'question_text': question['question'],
+                'student_answer': answer,
+                'correct_answer': question['correct_answer'],
+                'explanation': question['explanation'],
+                'difficulty': question['difficulty'],
+                'timestamp': datetime.datetime.now().isoformat(),
+                'attempt_count': 1  # Will be updated if same question is wrong again
+            }
+            
+            # Check if this is a repeated wrong question (based on module_index and question_index)
+            existing_wrong = None
+            for existing in course.wrong_questions:
+                if (existing['module_index'] == module_index and 
+                    existing['question_index'] == i):
+                    existing_wrong = existing
+                    break
+            
+            if existing_wrong:
+                # Update attempt count for repeated wrong question
+                existing_wrong['attempt_count'] += 1
+                existing_wrong['timestamp'] = datetime.datetime.now().isoformat()
+                existing_wrong['student_answer'] = answer  # Update with latest wrong answer
+                # Update question text in case it changed
+                existing_wrong['question_text'] = question['question']
+                existing_wrong['correct_answer'] = question['correct_answer']
+                existing_wrong['explanation'] = question['explanation']
+            else:
+                # Add new wrong question
+                course.wrong_questions.append(wrong_question)
         
         results.append({
             'question': question['question'],
@@ -2651,6 +2838,54 @@ def learning_style_survey():
     questions = load_questions()
     return render_template("learning_style_survey.html", questions=questions)
 
+@app.route('/api/wrong-questions-stats', methods=['GET'])
+def get_wrong_questions_stats():
+    """Get statistics about wrong questions"""
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
+    
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+    
+    # Calculate statistics
+    total_wrong_questions = len(course.wrong_questions)
+    repeated_wrong_questions = len([wq for wq in course.wrong_questions if wq['attempt_count'] > 1])
+    
+    # Group by module
+    module_stats = {}
+    for wq in course.wrong_questions:
+        module_key = f"{wq['module_index']}_{wq['module_title']}"
+        if module_key not in module_stats:
+            module_stats[module_key] = {
+                'module_index': wq['module_index'],
+                'module_title': wq['module_title'],
+                'total_wrong': 0,
+                'repeated_wrong': 0,
+                'questions': []
+            }
+        
+        module_stats[module_key]['total_wrong'] += 1
+        if wq['attempt_count'] > 1:
+            module_stats[module_key]['repeated_wrong'] += 1
+        
+        module_stats[module_key]['questions'].append({
+            'question_index': wq['question_index'],
+            'question_text': wq['question_text'],
+            'attempt_count': wq['attempt_count'],
+            'last_wrong_time': wq['timestamp']
+        })
+    
+    # Convert to list and sort by module index
+    module_stats_list = list(module_stats.values())
+    module_stats_list.sort(key=lambda x: x['module_index'])
+    
+    return jsonify({
+        'total_wrong_questions': total_wrong_questions,
+        'repeated_wrong_questions': repeated_wrong_questions,
+        'module_stats': module_stats_list
+    })
 
 # 你原本的其他頁面路由可放在這裡
 

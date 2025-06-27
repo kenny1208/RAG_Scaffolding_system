@@ -43,6 +43,12 @@
           <strong class="me-2">{{ learning_style_info.label }}</strong>
         </div>
 
+        <h4 class="h6 mb-2 mt-4">錯題統計</h4>
+        <div id="wrong-questions-stats" class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <span>載入中...</span>
+        </div>
+
         <h4 class="h6 mb-2">章節列表</h4>
         <div class="list-group">
           {% for module in course.learning_path.modules %}
@@ -249,6 +255,67 @@
       },
     });
 
+    // Function to get detailed explanation for wrong questions (global scope)
+    window.getDetailedExplanation = function (moduleIndex, questionIndex) {
+      const explanationDiv = document.getElementById(
+        `detailed-explanation-${questionIndex}`
+      );
+      const button = event.target;
+
+      // Show loading state
+      button.disabled = true;
+      button.textContent = "載入中...";
+      explanationDiv.style.display = "block";
+      explanationDiv.innerHTML =
+        '<div class="alert alert-info">正在生成詳細解釋...</div>';
+
+      fetch(`/api/wrong-question-explanation/${moduleIndex}/${questionIndex}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            // If it's not a repeated wrong question, show the original explanation
+            if (data.explanation) {
+              explanationDiv.innerHTML = `
+                <div class="alert alert-warning">
+                  <strong>提示：</strong> ${data.error}
+                  <hr>
+                  <strong>原始解釋：</strong><br>
+                  ${data.explanation}
+                </div>
+              `;
+            } else {
+              explanationDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            }
+          } else {
+            // Show detailed explanation
+            explanationDiv.innerHTML = `
+              <div class="alert alert-success">
+                <h6>詳細解釋 (已答錯 ${data.attempt_count} 次)</h6>
+                <hr>
+                <div class="detailed-explanation-content">
+                  ${marked.parse(data.detailed_explanation)}
+                </div>
+                <hr>
+                <small class="text-muted">
+                  <strong>原始解釋：</strong> ${data.original_explanation}
+                </small>
+              </div>
+            `;
+          }
+
+          // Reset button
+          button.disabled = false;
+          button.textContent = "獲取詳細解釋";
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          explanationDiv.innerHTML =
+            '<div class="alert alert-danger">獲取詳細解釋時發生錯誤</div>';
+          button.disabled = false;
+          button.textContent = "獲取詳細解釋";
+        });
+    };
+
     // Initialize module content
     function initializeModuleContent() {
       const moduleContentElement = document.querySelector(".module-content");
@@ -343,6 +410,50 @@
 
     // Load test data immediately when page loads
     loadTestData();
+
+    // Load wrong questions statistics
+    function loadWrongQuestionsStats() {
+      fetch("/api/wrong-questions-stats")
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            console.error("Error loading wrong questions stats:", data.error);
+            document.getElementById("wrong-questions-stats").innerHTML = `
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <span>無法載入錯題統計</span>
+            `;
+            return;
+          }
+
+          const statsDiv = document.getElementById("wrong-questions-stats");
+          if (data.total_wrong_questions === 0) {
+            statsDiv.className = "alert alert-success";
+            statsDiv.innerHTML = `
+              <i class="fas fa-check-circle me-2"></i>
+              <span>目前沒有錯題記錄</span>
+            `;
+          } else {
+            statsDiv.className = "alert alert-warning";
+            statsDiv.innerHTML = `
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <div>
+                <strong>總錯題數：${data.total_wrong_questions}</strong><br>
+                <small>重複錯題：${data.repeated_wrong_questions}</small>
+              </div>
+            `;
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching wrong questions stats:", error);
+          document.getElementById("wrong-questions-stats").innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span>載入錯題統計失敗</span>
+          `;
+        });
+    }
+
+    // Load wrong questions stats when page loads
+    loadWrongQuestionsStats();
 
     // Save answers to local storage
     function saveAnswers() {
@@ -461,165 +572,247 @@
 
     // Function to show test results
     function showTestResults(data) {
-      const resultsHtml = `
-        <div class="alert ${
-          data.percentage >= 80 ? "alert-success" : "alert-warning"
-        }">
-          <h4>測驗結果</h4>
-          <p>得分: ${data.score}/${data.total} (${data.percentage}%)</p>
-          <p>知識水平: ${data.new_level}</p>
-        </div>
-        <div class="mt-3">
-          <h5>詳細解答</h5>
-          ${data.results
-            .map(
-              (result, idx) => `
-            <div class="mb-3">
-              <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
-              <p>你的答案: ${result.student_answer} ${
-                result.is_correct ? "✓" : "✗"
-              }</p>
-              <p>正確答案: ${result.correct_answer}</p>
-              <p>解釋: ${result.explanation}</p>
-            </div>
-          `
-            )
-            .join("")}
-        </div>
-        <div class="mt-4">
-          <h5>學習日誌</h5>
-          <p>請分享你對這個模組的學習心得：</p>
-          <div class="mb-3">
-            <textarea class="form-control" id="learning-log-content" rows="5" 
-              placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
-          </div>
-          ${
-            data.percentage < 60
-              ? `
-            <div class="alert alert-info mb-3">
-              <p>你的測驗分數顯示你可能需要更多時間來掌握這個主題。你想要：</p>
-              <div class="d-flex gap-2">
-                <button class="btn btn-warning" id="retry-module">重新學習這個章節</button>
-                <button class="btn btn-primary" id="submit-learning-log">繼續下一個章節</button>
-              </div>
-            </div>
-          `
-              : `
-            <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
-          `
-          }
-        </div>
-      `;
-      document.getElementById("test-questions").innerHTML = resultsHtml;
-      submitTestBtn.style.display = "none";
-
-      // Add event listener for retry button if it exists
-      const retryButton = document.getElementById("retry-module");
-      if (retryButton) {
-        retryButton.addEventListener("click", function () {
-          // Submit learning log first
-          const logContent = document
-            .getElementById("learning-log-content")
-            .value.trim();
-          if (!logContent) {
-            alert("請填寫學習日誌內容");
-            return;
-          }
-
-          // Submit learning log with retry flag
-          fetch(`/api/learning-log/${moduleIndex}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              content: logContent,
-              retry: true,
-            }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.error) {
-                alert(data.error);
-                return;
+      // First, get wrong questions stats to check which questions are repeated wrong
+      fetch("/api/wrong-questions-stats")
+        .then((response) => response.json())
+        .then((statsData) => {
+          // Create a map of repeated wrong questions
+          const repeatedWrongQuestions = new Set();
+          if (statsData.module_stats) {
+            statsData.module_stats.forEach((module) => {
+              if (module.module_index === moduleIndex) {
+                module.questions.forEach((q) => {
+                  if (q.attempt_count > 1) {
+                    repeatedWrongQuestions.add(q.question_index);
+                  }
+                });
               }
-              // Reload the page to retry the module
-              window.location.reload();
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-              alert("提交學習日誌時發生錯誤");
             });
-        });
-      }
-
-      // Add event listener for learning log submission
-      document
-        .getElementById("submit-learning-log")
-        .addEventListener("click", function () {
-          const logContent = document
-            .getElementById("learning-log-content")
-            .value.trim();
-
-          if (!logContent) {
-            alert("請填寫學習日誌內容");
-            return;
           }
 
-          // Submit learning log
-          fetch(`/api/learning-log/${moduleIndex}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              content: logContent,
-            }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.error) {
-                alert(data.error);
+          const resultsHtml = `
+            <div class="alert ${
+              data.percentage >= 80 ? "alert-success" : "alert-warning"
+            }">
+              <h4>測驗結果</h4>
+              <p>得分: ${data.score}/${data.total} (${data.percentage}%)</p>
+              <p>知識水平: ${data.new_level}</p>
+            </div>
+            <div class="mt-3">
+              <h5>詳細解答</h5>
+              ${data.results
+                .map(
+                  (result, idx) => `
+                <div class="mb-3">
+                  <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
+                  <p>你的答案: ${result.student_answer} ${
+                    result.is_correct ? "✓" : "✗"
+                  }</p>
+                  <p>正確答案: ${result.correct_answer}</p>
+                  <p>解釋: ${result.explanation}</p>
+                  ${
+                    !result.is_correct && repeatedWrongQuestions.has(idx)
+                      ? `<button class="btn btn-sm btn-outline-info mt-2" onclick="getDetailedExplanation(${moduleIndex}, ${idx})">
+                          獲取詳細解釋
+                         </button>
+                         <div id="detailed-explanation-${idx}" class="mt-2" style="display: none;"></div>`
+                      : ""
+                  }
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+            <div class="mt-4">
+              <h5>學習日誌</h5>
+              <p>請分享你對這個模組的學習心得：</p>
+              <div class="mb-3">
+                <textarea class="form-control" id="learning-log-content" rows="5" 
+                  placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
+              </div>
+              ${
+                data.percentage < 60
+                  ? `
+                <div class="alert alert-info mb-3">
+                  <p>你的測驗分數顯示你可能需要更多時間來掌握這個主題。你想要：</p>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-warning" id="retry-module">重新學習這個章節</button>
+                    <button class="btn btn-primary" id="submit-learning-log">繼續下一個章節</button>
+                  </div>
+                </div>
+              `
+                  : `
+                <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
+              `
+              }
+            </div>
+          `;
+          document.getElementById("test-questions").innerHTML = resultsHtml;
+          submitTestBtn.style.display = "none";
+
+          // Add event listener for retry button if it exists
+          const retryButton = document.getElementById("retry-module");
+          if (retryButton) {
+            retryButton.addEventListener("click", function () {
+              // Submit learning log first
+              const logContent = document
+                .getElementById("learning-log-content")
+                .value.trim();
+              if (!logContent) {
+                alert("請填寫學習日誌內容");
                 return;
               }
 
-              // After successful log submission, proceed to next module
-              fetch("/api/update-module-index", {
+              // Submit learning log with retry flag
+              fetch(`/api/learning-log/${moduleIndex}`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  module_index: moduleIndex + 1,
+                  content: logContent,
+                  retry: true,
                 }),
               })
                 .then((response) => response.json())
                 .then((data) => {
-                  if (data.success) {
-                    // Check if we've reached the end of the modules
-                    if (data.finished) {
-                      alert("恭喜！你已經完成所有模組的學習！");
-                      window.location.href = "/summary";
-                    } else {
-                      // Reload the page to show the next module
-                      window.location.reload();
-                    }
-                  } else {
-                    // Show more detailed error message
-                    const errorMsg = data.error || "切換模組時發生錯誤";
-                    alert(errorMsg);
-                    console.error("Module update error:", data);
+                  if (data.error) {
+                    alert(data.error);
+                    return;
                   }
+                  // Reload the page to retry the module
+                  window.location.reload();
                 })
                 .catch((error) => {
                   console.error("Error:", error);
-                  alert("切換模組時發生錯誤，請重新整理頁面再試一次");
+                  alert("提交學習日誌時發生錯誤");
                 });
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-              alert("提交學習日誌時發生錯誤");
             });
+          }
+
+          // Add event listener for learning log submission
+          document
+            .getElementById("submit-learning-log")
+            .addEventListener("click", function () {
+              const logContent = document
+                .getElementById("learning-log-content")
+                .value.trim();
+
+              if (!logContent) {
+                alert("請填寫學習日誌內容");
+                return;
+              }
+
+              // Submit learning log
+              fetch(`/api/learning-log/${moduleIndex}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  content: logContent,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  if (data.error) {
+                    alert(data.error);
+                    return;
+                  }
+
+                  // After successful log submission, proceed to next module
+                  fetch("/api/update-module-index", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      module_index: moduleIndex + 1,
+                    }),
+                  })
+                    .then((response) => response.json())
+                    .then((data) => {
+                      if (data.success) {
+                        // Check if we've reached the end of the modules
+                        if (data.finished) {
+                          alert("恭喜！你已經完成所有模組的學習！");
+                          window.location.href = "/summary";
+                        } else {
+                          // Reload the page to show the next module
+                          window.location.reload();
+                        }
+                      } else {
+                        // Show more detailed error message
+                        const errorMsg = data.error || "切換模組時發生錯誤";
+                        alert(errorMsg);
+                        console.error("Module update error:", data);
+                      }
+                    })
+                    .catch((error) => {
+                      console.error("Error:", error);
+                      alert("切換模組時發生錯誤，請重新整理頁面再試一次");
+                    });
+                })
+                .catch((error) => {
+                  console.error("Error:", error);
+                  alert("提交學習日誌時發生錯誤");
+                });
+            });
+        })
+        .catch((error) => {
+          console.error("Error loading wrong questions stats:", error);
+          // Fallback: show results without detailed explanation buttons
+          const resultsHtml = `
+            <div class="alert ${
+              data.percentage >= 80 ? "alert-success" : "alert-warning"
+            }">
+              <h4>測驗結果</h4>
+              <p>得分: ${data.score}/${data.total} (${data.percentage}%)</p>
+              <p>知識水平: ${data.new_level}</p>
+            </div>
+            <div class="mt-3">
+              <h5>詳細解答</h5>
+              ${data.results
+                .map(
+                  (result, idx) => `
+                <div class="mb-3">
+                  <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
+                  <p>你的答案: ${result.student_answer} ${
+                    result.is_correct ? "✓" : "✗"
+                  }</p>
+                  <p>正確答案: ${result.correct_answer}</p>
+                  <p>解釋: ${result.explanation}</p>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+            <div class="mt-4">
+              <h5>學習日誌</h5>
+              <p>請分享你對這個模組的學習心得：</p>
+              <div class="mb-3">
+                <textarea class="form-control" id="learning-log-content" rows="5" 
+                  placeholder="請分享：&#10;1. 你學到了什麼？&#10;2. 有什麼地方還需要加強？&#10;3. 你對這個主題有什麼想法？"></textarea>
+              </div>
+              ${
+                data.percentage < 60
+                  ? `
+                <div class="alert alert-info mb-3">
+                  <p>你的測驗分數顯示你可能需要更多時間來掌握這個主題。你想要：</p>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-warning" id="retry-module">重新學習這個章節</button>
+                    <button class="btn btn-primary" id="submit-learning-log">繼續下一個章節</button>
+                  </div>
+                </div>
+              `
+                  : `
+                <button class="btn btn-primary" id="submit-learning-log">提交學習日誌並進入下一個模組</button>
+              `
+              }
+            </div>
+          `;
+          document.getElementById("test-questions").innerHTML = resultsHtml;
+          submitTestBtn.style.display = "none";
         });
     }
 
@@ -965,6 +1158,100 @@
 
   .bot-message em {
     font-style: italic;
+  }
+
+  /* Detailed explanation styles */
+  .detailed-explanation-content {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    border-left: 4px solid #28a745;
+    margin: 0.5rem 0;
+  }
+
+  .detailed-explanation-content h1,
+  .detailed-explanation-content h2,
+  .detailed-explanation-content h3,
+  .detailed-explanation-content h4,
+  .detailed-explanation-content h5,
+  .detailed-explanation-content h6 {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .detailed-explanation-content h1 {
+    font-size: 1.2rem;
+  }
+  .detailed-explanation-content h2 {
+    font-size: 1.1rem;
+  }
+  .detailed-explanation-content h3 {
+    font-size: 1rem;
+  }
+
+  .detailed-explanation-content p {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .detailed-explanation-content ul,
+  .detailed-explanation-content ol {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .detailed-explanation-content li {
+    margin-bottom: 0.25rem;
+  }
+
+  .detailed-explanation-content code {
+    background-color: #e9ecef;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.9em;
+  }
+
+  .detailed-explanation-content pre {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+  }
+
+  .detailed-explanation-content pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+
+  .detailed-explanation-content blockquote {
+    border-left: 3px solid #007bff;
+    padding-left: 0.5rem;
+    margin-left: 0;
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  .detailed-explanation-content strong {
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .detailed-explanation-content em {
+    font-style: italic;
+  }
+
+  /* Wrong question indicator */
+  .wrong-question-indicator {
+    display: inline-block;
+    background-color: #dc3545;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
   }
 </style>
 {% endblock %}
