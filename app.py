@@ -1281,33 +1281,48 @@ def analyze_learning_log(student_name, topic, log_content):
     })
 
 def get_detailed_explanation_for_wrong_question(session_id, wrong_question, module_topic):
-    """Generate detailed explanation for a wrong question using RAG"""
+    """Generate detailed explanation for a wrong question using ColBERT reranker + HYDE RAG"""
     vectorstore = get_vectorstore(session_id)
     
-    # 使用兩種檢索策略
-    # 1. 相關性檢索 - 針對問題內容
-    relevance_retriever = vectorstore.as_retriever(
-        search_kwargs={
-            "k": 15
-        }
-    )
+    # Initialize retriever
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
     
-    # 2. 全面檢索 - 獲取所有文檔
-    all_docs_data = vectorstore.get()
-    all_docs = []
-    for i, doc in enumerate(all_docs_data["documents"]):
-        metadata = all_docs_data["metadatas"][i] if i < len(all_docs_data["metadatas"]) else {}
-        all_docs.append({
-            "page_content": doc,
-            "metadata": metadata
-        })
+    # Get ColBERT model (global initialization)
+    tokenizer, model = get_colbert_model()
     
-    chat_model = ChatGoogleGenerativeAI(
-        google_api_key=api_key,
-        model="gemini-2.0-flash"
-    )
+    def colbert_embed(text):
+        if tokenizer is None or model is None:
+            return None
+        try:
+            inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+            with torch.no_grad():
+                outputs = model(**inputs)
+            return outputs.last_hidden_state.mean(dim=1).numpy()
+        except Exception as e:
+            app.logger.error(f"Error in colbert_embed: {str(e)}")
+            return None
     
-    prompt = ChatPromptTemplate.from_messages([
+    def colbert_rerank_with_query(query, docs, top_k=10):
+        q_embed = colbert_embed(query)
+        if q_embed is None:
+            # Fallback: return first top_k docs
+            return docs[:top_k]
+        
+        scored = []
+        for doc in docs:
+            d_embed = colbert_embed(doc.page_content)
+            if d_embed is not None:
+                score = cosine_similarity(q_embed, d_embed)[0][0]
+                scored.append((score, doc))
+            else:
+                # If embedding fails, give low score
+                scored.append((0.0, doc))
+        
+        sorted_docs = sorted(scored, key=lambda x: x[0], reverse=True)
+        return [doc for _, doc in sorted_docs[:top_k]]
+    
+    # Explanation prompt template
+    explanation_template = ChatPromptTemplate.from_messages([
         SystemMessage(content="""您是一位專業的教育輔導老師，專門幫助學生理解他們答錯的問題。
         
         學生已經多次答錯這個問題，這表示他們對相關概念存在持續的誤解。
@@ -1316,15 +1331,12 @@ def get_detailed_explanation_for_wrong_question(session_id, wrong_question, modu
         1. **詳細的概念解釋**：深入解釋問題涉及的核心概念
         2. **常見誤解分析**：分析學生可能的錯誤理解
         3. **具體例子**：提供更多相關的例子來幫助理解
-        4. **學習建議**：給出具體的學習建議和練習方法
-        5. **相關概念連結**：將這個概念與其他相關概念連結起來
         
         請使用友善、鼓勵的語氣，幫助學生建立信心。
         格式要求：
         - 使用markdown格式
         - 結構清晰，分段落說明
         - 包含具體的例子和類比
-        - 提供實用的學習建議
         
         重要：請根據context的內容標註來源，格式為：
         [來源: 檔名.pdf, 頁碼: X]
@@ -1341,33 +1353,108 @@ def get_detailed_explanation_for_wrong_question(session_id, wrong_question, modu
         答錯次數：{attempt_count}
         
         相關教材內容：
-        {relevant_context}
-        
-        完整教材：
-        {all_context}
+        {context}
         """)
     ])
     
-    # Create the chain
-    explanation_chain = (
-        RunnablePassthrough()
-        | (lambda _: {
-            "module_topic": module_topic,
-            "question_text": wrong_question['question_text'],
-            "student_answer": wrong_question['student_answer'],
-            "correct_answer": wrong_question['correct_answer'],
-            "original_explanation": wrong_question['explanation'],
-            "difficulty": wrong_question['difficulty'],
-            "attempt_count": wrong_question['attempt_count'],
-            "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(wrong_question['question_text'])]),
-            "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
-        })
-        | prompt
-        | chat_model
-        | StrOutputParser()
+    output_parser = StrOutputParser()
+    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.0-flash")
+    
+    # HyDE prompt template
+    hyde_prompt = ChatPromptTemplate.from_template(
+        "請寫一段文字來回答這個問題。\n問題：{question}\n回答："
     )
     
-    return explanation_chain.invoke("")
+    def generate_hypothetical_answer(query):
+        try:
+            time.sleep(0.5)  # Reduced sleep time for better UX
+            chain = (
+                {"question": lambda _: query}
+                | hyde_prompt
+                | chat_model
+                | StrOutputParser()
+            )
+            return chain.invoke(query)
+        except Exception as e:
+            app.logger.error(f"Error generating hypothetical answer: {str(e)}")
+            return query  # Fallback to original query
+    
+    def format_docs(docs):
+        return "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in docs])
+    
+    # HyDE + ColBERT RAG Chain
+    def rag_hyde_colbert_explanation(wrong_question, module_topic):
+        try:
+            # Create query for wrong question explanation
+            query = f"解釋這個問題：{wrong_question['question_text']}，正確答案是：{wrong_question['correct_answer']}，學生答錯了：{wrong_question['student_answer']}"
+            
+            # Generate hypothetical answer
+            hypo_answer = generate_hypothetical_answer(query)
+            
+            # Get candidate documents
+            candidate_docs = retriever.invoke(module_topic)
+            
+            if not candidate_docs:
+                app.logger.warning("No documents found for module topic")
+                return "抱歉，我沒有找到相關的學習內容來解釋這個問題。請確認問題是否在學習範圍內。"
+            
+            # Rerank with ColBERT
+            top_docs = colbert_rerank_with_query(hypo_answer, candidate_docs, top_k=10)
+            
+            # Format context
+            context = format_docs(top_docs)
+            
+            # Generate final explanation
+            chain = (
+                {
+                    "module_topic": lambda _: module_topic,
+                    "question_text": lambda _: wrong_question['question_text'],
+                    "student_answer": lambda _: wrong_question['student_answer'],
+                    "correct_answer": lambda _: wrong_question['correct_answer'],
+                    "original_explanation": lambda _: wrong_question['explanation'],
+                    "difficulty": lambda _: wrong_question['difficulty'],
+                    "attempt_count": lambda _: wrong_question['attempt_count'],
+                    "context": lambda _: context
+                }
+                | explanation_template
+                | chat_model
+                | output_parser
+            )
+            explanation = chain.invoke("")
+            
+            return explanation
+            
+        except Exception as e:
+            app.logger.error(f"Error in rag_hyde_colbert_explanation: {str(e)}")
+            # Fallback to simple retrieval
+            try:
+                docs = retriever.invoke(module_topic)
+                if docs:
+                    context = format_docs(docs[:5])
+                    chain = (
+                        {
+                            "module_topic": lambda _: module_topic,
+                            "question_text": lambda _: wrong_question['question_text'],
+                            "student_answer": lambda _: wrong_question['student_answer'],
+                            "correct_answer": lambda _: wrong_question['correct_answer'],
+                            "original_explanation": lambda _: wrong_question['explanation'],
+                            "difficulty": lambda _: wrong_question['difficulty'],
+                            "attempt_count": lambda _: wrong_question['attempt_count'],
+                            "context": lambda _: context
+                        }
+                        | explanation_template
+                        | chat_model
+                        | output_parser
+                    )
+                    return chain.invoke("")
+                else:
+                    return "抱歉，我無法找到相關的學習內容來解釋這個問題。請稍後再試。"
+            except Exception as fallback_error:
+                app.logger.error(f"Fallback also failed: {str(fallback_error)}")
+                return "抱歉，系統暫時無法生成詳細解釋。請稍後再試。"
+    
+    # Execute the RAG chain
+    return rag_hyde_colbert_explanation(wrong_question, module_topic)
 
 # Routes
 @app.route('/')
