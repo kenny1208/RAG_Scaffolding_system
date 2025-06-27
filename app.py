@@ -816,7 +816,7 @@ def generate_module_content(session_id, module, profile):
            [來源: 檔名.pdf, 頁碼: X]
            
            如果有多個來源，請列出主要的第1個來源。
-           如果超過一個頁碼，請列出第1個頁碼。
+           如果超過一個頁碼，只列出第1個頁碼。
         
         使用markdown格式化您的內容，以提高可讀性。
         
