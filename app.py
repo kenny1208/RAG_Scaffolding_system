@@ -749,7 +749,7 @@ def generate_module_content(session_id, module, profile):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flas-lite"
+        model="gemini-2.0-flash"
     )
     
     # Get module topic and content scope
