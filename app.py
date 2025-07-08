@@ -530,7 +530,7 @@ def generate_learning_path(session_id, profile, test_results):
     # 1. 相關性檢索
     relevance_retriever = vectorstore.as_retriever(
         search_kwargs={
-            "k": 20
+            "k": 10
         }
     )
     
@@ -572,7 +572,6 @@ def generate_learning_path(session_id, profile, test_results):
         您的學習路徑必須：
         1. 建立清晰的章節分工，每個章節專注於特定主題
         2. 確保章節之間有邏輯順序和知識遞進
-        3. 針對學生的學習風格、知識水平進行量身調整
         5. Take into account any specific requirements or preferences expressed by the student{requirements_prompt}
         
         您的回應必須遵循這個精確的 JSON 格式：
@@ -750,7 +749,7 @@ def generate_module_content(session_id, module, profile):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash"
+        model="gemini-2.0-flas-lite"
     )
     
     # Get module topic and content scope
@@ -787,6 +786,26 @@ def generate_module_content(session_id, module, profile):
     else:
         scaffolding_level = "high"
     
+    if scaffolding_level == "high":
+        scaffolding_instructions = (
+            "每個步驟都要詳細拆解，並給出具體範例。"
+            "有多個例子"
+            "每個重點後面都要有引導性問題。"
+            "每個小節都要有提示語。"
+        )
+    elif scaffolding_level == "medium":
+        scaffolding_instructions = (
+            "針對較難的部分給出提示。"
+            "每個章節只需一個例子。"
+            "思考問題以開放式為主。"
+        )
+    else:  # low
+        scaffolding_instructions = (
+            "只列出重點與核心概念，不給提示。"
+            "例子減少到最少，鼓勵學生自己探索。"
+            "結尾加一句鼓勵自主思考的話。"
+        )
+    
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
         根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
@@ -795,25 +814,25 @@ def generate_module_content(session_id, module, profile):
         
         您的內容應該：
         1. 專注於章節的特定內容範圍：{content_scope}
-        2. 針對學生的學習風格進行量身定制{learning_style}(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)
-        3. 適合學生的知識水平
+        2. 針對學生的學習風格進行量身定制{learning_style}(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)(如果學生是Verbal Learner，就不要使用圖例)
         4. 包含清晰的關鍵概念解釋
-        5. 使用例子和比喻來闡明觀點
         6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
            - 高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
            - 中鷹架支持：提供適中的解釋和例子，加入一些思考問題
            - 低鷹架支持：提供基本概念，鼓勵自主探索和思考
         
-        7. 結構清晰，包含以下部分：
-           - 學習目標（基於learning_outcomes）
-           - 前置知識提醒（基於prerequisites）
-           - 主要內容（專注於content_scope）
+        7. 鷹架指引：{scaffolding_instructions}
+           
+        8. 結構清晰，包含以下部分（鷹架指引適用於每個部分）：
+           - 學習目標（基於{learning_outcomes}）
+           - 前置知識提醒（基於{prerequisites}）
+           - 主要內容（專注於{content_scope}）
            - 關鍵概念總結
            - 自我檢查問題
            - 延伸思考問題
            - 與下一章節的連接提示
         
-        8. 【強制要求】每個章節都必須根據context的內容標註來源(source)，格式為：
+        9. 【強制要求】每個章節都必須根據context的內容標註來源(source)，格式為：
            [來源: 檔名.pdf, 頁碼: X]
            
            如果有多個來源，請列出主要的第1個來源。
@@ -1328,9 +1347,9 @@ def get_detailed_explanation_for_wrong_question(session_id, wrong_question, modu
         學生已經多次答錯這個問題，這表示他們對相關概念存在持續的誤解。
         請根據提供的教材內容，為學生提供：
         
-        1. **詳細的概念解釋**：深入解釋問題涉及的核心概念
-        2. **常見誤解分析**：分析學生可能的錯誤理解
-        3. **具體例子**：提供更多相關的例子來幫助理解
+        1. 詳細的概念解釋：深入解釋問題涉及的核心概念
+        2. 常見誤解分析：分析學生可能的錯誤理解
+        3. 具體例子：提供更多相關的例子來幫助理解
         
         請使用友善、鼓勵的語氣，幫助學生建立信心。
         格式要求：
@@ -1358,7 +1377,7 @@ def get_detailed_explanation_for_wrong_question(session_id, wrong_question, modu
     ])
     
     output_parser = StrOutputParser()
-    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.0-flash")
+    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.0-flash-lite")
     
     # HyDE prompt template
     hyde_prompt = ChatPromptTemplate.from_template(
@@ -1481,35 +1500,21 @@ def select_user():
 def select_profile(profile_id):
     # Set the student_id in session
     session['student_id'] = profile_id
-    
+
     # Load student profile
     profile_path = os.path.join('student_profiles', f"{profile_id}.json")
     if not os.path.exists(profile_path):
         return redirect(url_for('select_user'))
-    
+
     with open(profile_path, 'r', encoding='utf-8') as f:
         profile = json.load(f)
-    
-    # Get or create session_id
-    if 'session_id' not in session:
-        # Try to find existing session_id from profile
-        if 'current_session_id' in profile:
-            session['session_id'] = profile['current_session_id']
-        else:
-            # Create new session_id
-            session['session_id'] = str(uuid.uuid4())
-            profile['current_session_id'] = session['session_id']
-            # Save updated profile
-            with open(profile_path, 'w', encoding='utf-8') as f:
-                json.dump(profile, f, ensure_ascii=False, indent=4)
-    
-    # Check if the profile has a learning path
-    if profile.get('learning_path'):
-        # If student has a learning path, redirect to learning page
-        return redirect(url_for('learning'))
+
+    # 如果有課程，導向課程選擇頁
+    if profile.get('courses'):
+        return redirect(url_for('course_selection'))
     else:
-        # If no learning path exists, redirect to upload PDF
-        return redirect(url_for('upload_pdf'))
+        # 沒有課程，導向建立課程頁
+        return redirect(url_for('create_course'))
 
 @app.route('/create_user', methods=['GET', 'POST'])
 def create_user():
@@ -1831,7 +1836,6 @@ def learning():
         style_profile = profile.felder_silverman_profile
         style_parts = []
         
-        # Convert English to Chinese
         style_mapping = {
             "Active": "主動",
             "Reflective": "反思", 
