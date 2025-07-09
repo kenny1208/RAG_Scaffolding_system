@@ -82,7 +82,7 @@ class StudentProfile(BaseModel):
     interests: List[str] = Field(description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
-    current_module_index: Optional[int] = Field(default=1, description="Current module index (1-based)")
+    current_module_index: Optional[int] = Field(default=0, description="Current module index (0-based)")
     learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
 
 class CourseProfile(BaseModel):
@@ -97,7 +97,7 @@ class CourseProfile(BaseModel):
     interests: List[str] = Field(default_factory=list, description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(default_factory=list, description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
-    current_module_index: Optional[int] = Field(default=1, description="Current module index (1-based)")
+    current_module_index: Optional[int] = Field(default=0, description="Current module index (0-based)")
     learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
     session_id: Optional[str] = Field(default=None, description="Current session ID for this course")
     learning_completed: Optional[bool] = Field(default=False, description="Whether the course has been completed")
@@ -294,7 +294,7 @@ def create_or_get_student_profile(name=None):
         interests=[],
         learning_history=[],
         learning_path=None,
-        current_module_index=1,
+        current_module_index=0,
         learning_path_confirmed=False
     )
     
@@ -316,7 +316,7 @@ def create_new_course(student_id, title, description):
         created_at=datetime.datetime.now().isoformat(),
         current_knowledge_level="",
         learning_path=None,
-        current_module_index=1,
+        current_module_index=0,
         learning_path_confirmed=False
     )
     
@@ -1528,7 +1528,7 @@ def create_user():
             interests=[],
             learning_history=[],
             learning_path=None,
-            current_module_index=1,
+            current_module_index=0,
             learning_path_confirmed=False
         )
         save_student_profile(profile)
@@ -1778,14 +1778,14 @@ def learning():
         return redirect(url_for('pretest'))
     
     # Get current module index
-    current_module_index = course.current_module_index or 1
+    current_module_index = course.current_module_index or 0
     
-    # Validate current module index (1-based)
-    if current_module_index > len(course.learning_path['modules']):
+    # Validate current module index (0-based)
+    if current_module_index >= len(course.learning_path['modules']):
         return redirect(url_for('summary'))
     
-    # Get current module (1-based)
-    current_module = course.learning_path['modules'][current_module_index-1]
+    # Get current module (0-based)
+    current_module = course.learning_path['modules'][current_module_index]
     
     # Calculate scaffolding level for display
     retry_count = current_module.get('retry_count', 0)
@@ -1848,7 +1848,7 @@ def learning():
     # Get next module for transition content
     next_module = None
     if current_module_index + 1 < len(course.learning_path['modules']):
-        next_module = course.learning_path['modules'][current_module_index]
+        next_module = course.learning_path['modules'][current_module_index + 1]
     
     # Generate module content if not already present
     if 'content' not in current_module:
@@ -1863,7 +1863,7 @@ def learning():
     # Calculate progress percentage
     progress_percentage = 0
     if course.learning_path and course.learning_path['modules']:
-        progress_percentage = ((current_module_index-1) / len(course.learning_path['modules']) * 100)
+        progress_percentage = (current_module_index / len(course.learning_path['modules']) * 100)
     
     return render_template('learning.html', 
                          student_profile=profile.model_dump(),
@@ -2353,16 +2353,16 @@ def update_module_index():
     
     total_modules = len(course.learning_path['modules'])
     
-    # Validate the new module index (1-based)
-    if not isinstance(new_module_index, int) or new_module_index < 1 or new_module_index > total_modules:
+    # Validate the new module index (0-based)
+    if not isinstance(new_module_index, int) or new_module_index < 0 or new_module_index > total_modules:
         return jsonify({
-            'error': f'Invalid module index. Must be between 1 and {total_modules}',
+            'error': f'Invalid module index. Must be between 0 and {total_modules}',
             'current_index': course.current_module_index,
             'total_modules': total_modules
         }), 400
     
     # Check if the student has completed all modules
-    if new_module_index > total_modules:
+    if new_module_index == total_modules:
         course.current_module_index = total_modules
         course.learning_completed = True
         course.completion_date = datetime.datetime.now().isoformat()
@@ -2376,6 +2376,8 @@ def update_module_index():
     
     # Update the module index
     course.current_module_index = new_module_index
+    course.learning_completed = False
+    course.completion_date = None
     
     # Save the updated course profile
     save_course_profile(course)
@@ -2438,8 +2440,8 @@ def restart_learning():
     if not course:
         return redirect(url_for('course_selection'))
     
-    # Reset current module index to 1 (first module)
-    course.current_module_index = 1
+    # Reset current module index to 0 (first module)
+    course.current_module_index = 0
     course.learning_completed = False
     course.completion_date = None
     

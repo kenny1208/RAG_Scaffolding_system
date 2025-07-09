@@ -407,7 +407,7 @@
     // Initialize the module content
     initializeModuleContent();
 
-    // eslint-disable-next-line
+    // 取得 moduleIndex 時不用再 -1，API 請求直接用 moduleIndex
     const moduleIndex = parseInt(
       document.getElementById("learning-page").dataset.moduleIndex,
       10
