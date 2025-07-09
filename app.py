@@ -82,7 +82,7 @@ class StudentProfile(BaseModel):
     interests: List[str] = Field(description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
-    current_module_index: Optional[int] = Field(default=0, description="Current module index")
+    current_module_index: Optional[int] = Field(default=1, description="Current module index (1-based)")
     learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
 
 class CourseProfile(BaseModel):
@@ -97,7 +97,7 @@ class CourseProfile(BaseModel):
     interests: List[str] = Field(default_factory=list, description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(default_factory=list, description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
-    current_module_index: Optional[int] = Field(default=0, description="Current module index")
+    current_module_index: Optional[int] = Field(default=1, description="Current module index (1-based)")
     learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
     session_id: Optional[str] = Field(default=None, description="Current session ID for this course")
     learning_completed: Optional[bool] = Field(default=False, description="Whether the course has been completed")
@@ -287,7 +287,15 @@ def create_or_get_student_profile(name=None):
         name=name,
         felder_silverman_profile=None,
         courses=[],
-        created_at=datetime.datetime.now().isoformat()
+        created_at=datetime.datetime.now().isoformat(),
+        current_knowledge_level="",
+        strengths=[],
+        areas_for_improvement=[],
+        interests=[],
+        learning_history=[],
+        learning_path=None,
+        current_module_index=1,
+        learning_path_confirmed=False
     )
     
     # Save the profile
@@ -308,7 +316,7 @@ def create_new_course(student_id, title, description):
         created_at=datetime.datetime.now().isoformat(),
         current_knowledge_level="",
         learning_path=None,
-        current_module_index=0,
+        current_module_index=1,
         learning_path_confirmed=False
     )
     
@@ -323,23 +331,6 @@ def create_new_course(student_id, title, description):
     
     return course
 
-def process_learning_style_answers(survey, answers):
-    """Process learning style survey answers and determine the dominant style"""
-    styles = {"visual": 0, "auditory": 0, "kinesthetic": 0}
-    
-    for i, answer in enumerate(answers):
-        question = survey["questions"][i]
-        answer_index = ord(answer.upper()) - ord('A')
-        
-        if answer_index == question["visual_index"]:
-            styles["visual"] += 1
-        elif answer_index == question["auditory_index"]:
-            styles["auditory"] += 1
-        elif answer_index == question["kinesthetic_index"]:
-            styles["kinesthetic"] += 1
-    
-    dominant_style = max(styles, key=styles.get)
-    return dominant_style
 
 def create_pretest(session_id, topic=""):
     """Generate a pretest based on the uploaded documents，並且嚴格遵守4選1單選的題型"""
@@ -805,7 +796,10 @@ def generate_module_content(session_id, module, profile):
             "例子減少到最少，鼓勵學生自己探索。"
             "結尾加一句鼓勵自主思考的話。"
         )
-    
+
+    # 這裡定義 learning_style 變數
+    learning_style = json.dumps(profile.felder_silverman_profile) if profile.felder_silverman_profile else "未完成學習風格問卷"
+    print("DEBUG learning_style:", learning_style)
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
         根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
@@ -814,7 +808,7 @@ def generate_module_content(session_id, module, profile):
         
         您的內容應該：
         1. 專注於章節的特定內容範圍：{content_scope}
-        2. 針對學生的學習風格進行量身定制{learning_style}(盡量不要使用圖片，如果需要圖例，請使用markdown或者mermaid格式化)(如果學生是Verbal Learner，就不要使用圖例)
+        2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(label 內不要用括號或分號)
         4. 包含清晰的關鍵概念解釋
         6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
            - 高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
@@ -870,7 +864,7 @@ def generate_module_content(session_id, module, profile):
             "prerequisites": ", ".join(prerequisites) if prerequisites else "無",
             "learning_outcomes": ", ".join(learning_outcomes) if learning_outcomes else "理解本章節內容",
             "module_index": module_index,
-            "learning_style": json.dumps(profile.felder_silverman_profile) if profile.felder_silverman_profile else "未完成學習風格問卷",
+            "learning_style": learning_style,
             "knowledge_level": profile.current_knowledge_level,
             "scaffolding_level": scaffolding_level,
             "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(content_scope)]),
@@ -1521,30 +1515,25 @@ def create_user():
     if request.method == 'POST':
         name = request.form['name']
         student_id = str(uuid.uuid4())[:8]
-        
-        # Create basic profile
-        profile = {
-            'id': student_id,
-            'name': name,
-            'learning_style': '',
-            'current_knowledge_level': '',
-            'strengths': [],
-            'areas_for_improvement': [],
-            'interests': [],
-            'learning_history': [],
-            'current_module_index': 0,
-            'learning_path_confirmed': False
-        }
-        
-        # Save profile
-        os.makedirs('student_profiles', exist_ok=True)
-        with open(f'student_profiles/{student_id}.json', 'w', encoding='utf-8') as f:
-            json.dump(profile, f, ensure_ascii=False, indent=4)
-        
+        # 用 StudentProfile 建立
+        profile = StudentProfile(
+            id=student_id,
+            name=name,
+            felder_silverman_profile=None,
+            courses=[],
+            created_at=datetime.datetime.now().isoformat(),
+            current_knowledge_level="",
+            strengths=[],
+            areas_for_improvement=[],
+            interests=[],
+            learning_history=[],
+            learning_path=None,
+            current_module_index=1,
+            learning_path_confirmed=False
+        )
+        save_student_profile(profile)
         session['student_id'] = student_id
-        # Redirect to learning style survey instead of upload_pdf
         return redirect(url_for('learning_style_survey'))
-    
     return render_template('create_user.html')
 
 @app.route('/upload_pdf', methods=['GET', 'POST'])
@@ -1789,15 +1778,14 @@ def learning():
         return redirect(url_for('pretest'))
     
     # Get current module index
-    current_module_index = course.current_module_index or 0
+    current_module_index = course.current_module_index or 1
     
-    # Validate current module index
-    if current_module_index >= len(course.learning_path['modules']):
-        # If student has completed all modules, redirect to summary
+    # Validate current module index (1-based)
+    if current_module_index > len(course.learning_path['modules']):
         return redirect(url_for('summary'))
     
-    # Get current module
-    current_module = course.learning_path['modules'][current_module_index]
+    # Get current module (1-based)
+    current_module = course.learning_path['modules'][current_module_index-1]
     
     # Calculate scaffolding level for display
     retry_count = current_module.get('retry_count', 0)
@@ -1860,7 +1848,7 @@ def learning():
     # Get next module for transition content
     next_module = None
     if current_module_index + 1 < len(course.learning_path['modules']):
-        next_module = course.learning_path['modules'][current_module_index + 1]
+        next_module = course.learning_path['modules'][current_module_index]
     
     # Generate module content if not already present
     if 'content' not in current_module:
@@ -1875,7 +1863,7 @@ def learning():
     # Calculate progress percentage
     progress_percentage = 0
     if course.learning_path and course.learning_path['modules']:
-        progress_percentage = (current_module_index / len(course.learning_path['modules']) * 100)
+        progress_percentage = ((current_module_index-1) / len(course.learning_path['modules']) * 100)
     
     return render_template('learning.html', 
                          student_profile=profile.model_dump(),
@@ -1897,29 +1885,6 @@ def profile():
         profile = create_or_get_student_profile()
         return jsonify(profile.model_dump())
 
-@app.route('/api/learning-style-survey', methods=['GET', 'POST'])
-def learning_style():
-    if request.method == 'POST':
-        data = request.json
-        survey = data.get('survey', {})
-        answers = data.get('answers', [])
-        
-        if not survey or not answers:
-            return jsonify({'error': 'Survey and answers are required'}), 400
-        
-        dominant_style = process_learning_style_answers(survey, answers)
-        
-        # Update student profile
-        profile = create_or_get_student_profile()
-        profile.learning_style = dominant_style
-        save_student_profile(profile)
-        
-        return jsonify({
-            'learning_style': dominant_style,
-            'profile': profile.model_dump()
-        })
-    else:
-        return jsonify(survey)
 
 @app.route('/api/learning-path', methods=['GET'])
 def get_learning_path():
@@ -2388,30 +2353,26 @@ def update_module_index():
     
     total_modules = len(course.learning_path['modules'])
     
+    # Validate the new module index (1-based)
+    if not isinstance(new_module_index, int) or new_module_index < 1 or new_module_index > total_modules:
+        return jsonify({
+            'error': f'Invalid module index. Must be between 1 and {total_modules}',
+            'current_index': course.current_module_index,
+            'total_modules': total_modules
+        }), 400
+    
     # Check if the student has completed all modules
-    if new_module_index >= total_modules:
-        # Update the course profile to mark completion
-        course.current_module_index = total_modules - 1
+    if new_module_index > total_modules:
+        course.current_module_index = total_modules
         course.learning_completed = True
         course.completion_date = datetime.datetime.now().isoformat()
-        
-        # Save the updated course profile
         save_course_profile(course)
-        
         return jsonify({
             'success': True,
             'new_index': new_module_index,
             'total_modules': total_modules,
             'finished': True
         })
-    
-    # Validate the new module index
-    if not isinstance(new_module_index, int) or new_module_index < 0:
-        return jsonify({
-            'error': f'Invalid module index. Must be between 0 and {total_modules-1}',
-            'current_index': course.current_module_index,
-            'total_modules': total_modules
-        }), 400
     
     # Update the module index
     course.current_module_index = new_module_index
@@ -2477,8 +2438,8 @@ def restart_learning():
     if not course:
         return redirect(url_for('course_selection'))
     
-    # Reset current module index to 0 (first module)
-    course.current_module_index = 0
+    # Reset current module index to 1 (first module)
+    course.current_module_index = 1
     course.learning_completed = False
     course.completion_date = None
     
