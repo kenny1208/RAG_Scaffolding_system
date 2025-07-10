@@ -79,7 +79,6 @@ class StudentProfile(BaseModel):
     current_knowledge_level: str = Field(description="Beginner, intermediate, or advanced")
     strengths: List[str] = Field(description="Academic strengths")
     areas_for_improvement: List[str] = Field(description="Areas that need improvement")
-    interests: List[str] = Field(description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
     current_module_index: Optional[int] = Field(default=0, description="Current module index (0-based)")
@@ -94,7 +93,6 @@ class CourseProfile(BaseModel):
     current_knowledge_level: str = Field(description="Beginner, intermediate, or advanced")
     strengths: List[str] = Field(default_factory=list, description="Academic strengths")
     areas_for_improvement: List[str] = Field(default_factory=list, description="Areas that need improvement")
-    interests: List[str] = Field(default_factory=list, description="Academic interests")
     learning_history: List[Dict[str, Any]] = Field(default_factory=list, description="History of learning activities")
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
     current_module_index: Optional[int] = Field(default=0, description="Current module index (0-based)")
@@ -291,7 +289,6 @@ def create_or_get_student_profile(name=None):
         current_knowledge_level="",
         strengths=[],
         areas_for_improvement=[],
-        interests=[],
         learning_history=[],
         learning_path=None,
         current_module_index=0,
@@ -591,7 +588,6 @@ def generate_learning_path(session_id, profile, test_results):
         請確保：
         1. 每個章節的content_scope明確且不重複
         2. 章節之間有清晰的prerequisites關係
-        3. 學習成果逐步遞進
         """),
         HumanMessagePromptTemplate.from_template("""根據以下內容生成個人化學習路徑：
         
@@ -613,8 +609,7 @@ def generate_learning_path(session_id, profile, test_results):
     profile_json = json.dumps({
         "name": student_profile.name if student_profile else "Student",
         "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile and student_profile.felder_silverman_profile else "未完成學習風格問卷",
-        "current_knowledge_level": profile.current_knowledge_level,
-        "interests": student_profile.interests if student_profile else []
+        "current_knowledge_level": profile.current_knowledge_level
     })
     
     # Create the chain
@@ -780,7 +775,7 @@ def generate_module_content(session_id, module, profile):
     if scaffolding_level == "high":
         scaffolding_instructions = (
             "每個步驟都要詳細拆解，並給出具體範例。"
-            "有多個例子"
+            "有多個例子。"
             "每個重點後面都要有引導性問題。"
             "每個小節都要有提示語。"
         )
@@ -800,6 +795,9 @@ def generate_module_content(session_id, module, profile):
     # 這裡定義 learning_style 變數
     learning_style = json.dumps(profile.felder_silverman_profile) if profile.felder_silverman_profile else "未完成學習風格問卷"
     print("DEBUG learning_style:", learning_style)
+    print("content_scope:", content_scope)
+    print("learning_outcomes:", learning_outcomes)
+    print("prerequisites:", prerequisites)
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
         根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
@@ -811,9 +809,9 @@ def generate_module_content(session_id, module, profile):
         2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(label 內不要用括號或分號)
         4. 包含清晰的關鍵概念解釋
         6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
-           - 高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
-           - 中鷹架支持：提供適中的解釋和例子，加入一些思考問題
-           - 低鷹架支持：提供基本概念，鼓勵自主探索和思考
+           高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
+           中鷹架支持：提供適中的解釋和例子，加入一些思考問題
+           低鷹架支持：提供基本概念，鼓勵自主探索和思考
         
         7. 鷹架指引：{scaffolding_instructions}
            
@@ -834,7 +832,7 @@ def generate_module_content(session_id, module, profile):
         
         使用markdown格式化您的內容，以提高可讀性。
         
-        【重要提醒】：請務必包含資料來源標註，這是必須的格式要求。
+        【重要提醒】：請務必包含資料來源標註，並且必須符合格式，這是必須的格式要求。
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
@@ -1073,7 +1071,7 @@ def create_posttest(session_id, module, profile):
     
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育評估設計師。
-        根據章節的特定內容範圍和學生的當前知識水平，設計一份後測，包含多選題，以評估學生的學習成果。
+        根據章節的特定內容範圍和學生的當前知識水平，設計一份後測，只有單選題，以評估學生的學習成果。
         
         重要：您必須專注於此章節的特定內容範圍：{content_scope}
         不要測試其他章節的內容，確保題目與章節的學習成果相關。
@@ -1101,7 +1099,7 @@ def create_posttest(session_id, module, profile):
         
         每個問題應該包含：
         1. 問題文字
-        2. 四個多選題選項 (A, B, C, D)
+        2. 四個單選題選項 (A, B, C, D)
         3. 正確答案
         4. 為什麼它是正確的解釋
         5. 難度等級
@@ -1525,7 +1523,6 @@ def create_user():
             current_knowledge_level="",
             strengths=[],
             areas_for_improvement=[],
-            interests=[],
             learning_history=[],
             learning_path=None,
             current_module_index=0,
