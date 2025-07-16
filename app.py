@@ -750,7 +750,10 @@ def generate_module_content(session_id, module, profile):
     retry_count = module.get('retry_count', 0)
     
     # Determine scaffolding level based on multiple factors
-    knowledge_level = profile.current_knowledge_level
+    knowledge_level = module.get('current_knowledge_level') or \
+                      getattr(profile, 'current_knowledge_level', None) or \
+                      (profile.get('current_knowledge_level') if isinstance(profile, dict) else None) or \
+                      'beginner'
     emotional_state = module.get('emotional_analysis', {})
     base_scaffolding_level = module.get('scaffolding_level', 'medium')
     
@@ -761,8 +764,8 @@ def generate_module_content(session_id, module, profile):
         elif emotional_state.get('engagement_level') == 'high' and emotional_state.get('confidence_level') == 'high':
             base_scaffolding_level = 'low'
     
-    # Further adjust based on knowledge level and retry count
-    if knowledge_level == "advanced" and base_scaffolding_level != 'high':
+    # 強制 advanced 一律 low
+    if knowledge_level == "advanced":
         scaffolding_level = "low"
     elif knowledge_level == "intermediate":
         if retry_count == 0 and base_scaffolding_level != 'high':
@@ -798,6 +801,10 @@ def generate_module_content(session_id, module, profile):
     print("content_scope:", content_scope)
     print("learning_outcomes:", learning_outcomes)
     print("prerequisites:", prerequisites)
+    print("knowledge_level:", knowledge_level)
+    print("base_scaffolding_level:", base_scaffolding_level)
+    print("emotional_state:", emotional_state)
+    print("scaffolding_level:", scaffolding_level)
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=f"""您是一位專業的教育內容創作者，專精於鷹架學習理論。
         根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
@@ -829,6 +836,8 @@ def generate_module_content(session_id, module, profile):
            
            如果有多個來源，請列出主要的第1個來源。
            如果超過一個頁碼，只列出第1個頁碼。
+
+        10. 【強制要求】描述現在的鷹架等級。
         
         使用markdown格式化您的內容，以提高可讀性。
         
@@ -863,7 +872,7 @@ def generate_module_content(session_id, module, profile):
             "learning_outcomes": ", ".join(learning_outcomes) if learning_outcomes else "理解本章節內容",
             "module_index": module_index,
             "learning_style": learning_style,
-            "knowledge_level": profile.current_knowledge_level,
+            "knowledge_level": knowledge_level,
             "scaffolding_level": scaffolding_level,
             "relevant_context": "\n\n".join([f"來源: {doc.metadata.get('source', 'unknown')}, 頁碼: {doc.metadata.get('page', 'unknown')}\n{doc.page_content}" for doc in relevance_retriever.invoke(content_scope)]),
             "all_context": "\n\n".join([f"來源: {doc['metadata'].get('source', 'unknown')}, 頁碼: {doc['metadata'].get('page', 'unknown')}\n{doc['page_content']}" for doc in all_docs])
@@ -1850,6 +1859,7 @@ def learning():
     # Generate module content if not already present
     if 'content' not in current_module:
         try:
+            current_module['current_knowledge_level'] = course.current_knowledge_level
             content = generate_module_content(course.session_id, current_module, profile)
             current_module['content'] = content
             # Save the updated course profile with content
