@@ -1,88 +1,187 @@
-{% extends "base.html" %} {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="card-title text-center mb-4">Upload Learning Materials</h2>
+{% extends "base.html" %}
+{% block content %}
 
-        <form
-          method="POST"
-          action="{{ url_for('upload_pdf') }}"
-          enctype="multipart/form-data"
-          class="dropzone"
-          id="pdf-upload"
-        >
-          <div class="text-center mb-4">
-            <i class="fas fa-file-pdf fa-3x text-primary mb-3"></i>
-            <h3 class="h5">Drag & Drop PDF Files Here</h3>
-            <p class="text-muted">or</p>
-            <div class="d-grid gap-2 col-6 mx-auto">
-              <input
-                type="file"
-                name="pdfs"
-                id="pdf-input"
-                class="form-control"
-                accept=".pdf"
-                multiple
-                required
-              />
-            </div>
-          </div>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Arial', sans-serif;
+    background-color: #fff;
+    overflow-x: hidden;
+  }
 
-          <div id="file-list" class="mb-3">
-            <!-- File list will be populated here -->
-          </div>
+  /* ✅ Vanta 背景：全畫面固定 */
+  #vanta-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+  }
 
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-upload me-2"></i>
-              Upload and Start Learning
-            </button>
+  /* ✅ 卡片內容：真正畫面置中 */
+  .vanta-content-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .vanta-content-wrapper * {
+    pointer-events: auto;
+  }
+
+  .card {
+    max-width: 400px;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.46);
+    border-radius: 15px;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.438);
+    overflow-y: auto;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .card-title {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+  }
+
+  .card-body i.fas {
+    font-size: 2rem;
+    margin-bottom: 12px;
+  }
+
+  h3.h5 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  p {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+
+  .form-control {
+    background-color: rgb(255, 255, 255);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    border-color: black;
+  }
+
+  .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+
+  .btn {
+    border-radius: 8px;
+    font-size: 0.95rem;
+    padding: 6px 12px;
+  }
+
+  .text-muted {
+    color:#fff !important;
+    font-weight: bold !important;
+  }
+
+  .below-section {
+    margin-top: 100vh;
+    padding: 100px 20px;
+    background-color: #fff !important ;
+    text-align: center;
+    color: #333;
+    font-size: 1.2rem;
+  }
+</style>
+
+<!-- ✅ Vanta 背景動畫區 -->
+<div id="vanta-bg"></div>
+
+<!-- ✅ 上傳卡片置中顯示 -->
+<div class="vanta-content-wrapper">
+  <div class="card">
+    <div class="card-body">
+      <h2 class="card-title text-center mb-3">上傳學習資料</h2>
+
+      <form
+        method="POST"
+        action="{{ url_for('upload_pdf') }}"
+        enctype="multipart/form-data"
+        class="dropzone"
+        id="pdf-upload"
+      >
+        <div class="text-center mb-3">
+          <i class="fas fa-file-pdf text-primary mb-2"></i>
+          <h3 class="h5" style="font-weight: bold;">	拖曳 PDF 檔案於此處</h3>
+          <p class="text-muted">or</p>
+          <div class="d-grid gap-2 col-10 mx-auto">
+            <input
+              type="file"
+              name="pdfs"
+              id="pdf-input"
+              class="form-control"
+              accept=".pdf"
+              multiple
+              required
+            />
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div id="file-list" class="mb-2"></div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i>
+            	上傳並開始學習
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
-{% endblock %} {% block scripts %}
+
+
+{% endblock %}
+
+{% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const dropzone = document.getElementById("pdf-upload");
     const fileInput = document.getElementById("pdf-input");
     const fileList = document.getElementById("file-list");
 
-    // Prevent default drag behaviors
     ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
       dropzone.addEventListener(eventName, preventDefaults, false);
       document.body.addEventListener(eventName, preventDefaults, false);
     });
 
-    // Highlight drop zone when item is dragged over it
     ["dragenter", "dragover"].forEach((eventName) => {
-      dropzone.addEventListener(eventName, highlight, false);
+      dropzone.classList.add("bg-light");
     });
 
     ["dragleave", "drop"].forEach((eventName) => {
-      dropzone.addEventListener(eventName, unhighlight, false);
+      dropzone.classList.remove("bg-light");
     });
 
-    // Handle dropped files
     dropzone.addEventListener("drop", handleDrop, false);
-
-    // Handle file input change
     fileInput.addEventListener("change", updateFileList);
 
     function preventDefaults(e) {
       e.preventDefault();
       e.stopPropagation();
-    }
-
-    function highlight(e) {
-      dropzone.classList.add("bg-light");
-    }
-
-    function unhighlight(e) {
-      dropzone.classList.remove("bg-light");
     }
 
     function handleDrop(e) {
@@ -130,5 +229,24 @@
     }
   });
 </script>
+
+<!-- ✅ Vanta 背景動畫 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.net.min.js"></script>
+<script>
+  VANTA.NET({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    scale: 1.0,
+    scaleMobile: 1.0,
+    color: 0x5bff,
+    backgroundColor: 0x52,
+    points: 10,
+    maxDistance: 20,
+    spacing: 15,
+    showDots: true
+  });
+</script>
 {% endblock %}
-<!-- 註解-->

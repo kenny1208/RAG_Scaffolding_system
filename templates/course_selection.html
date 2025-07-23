@@ -1,11 +1,17 @@
-{% extends "base.html" %} {% block content %}
-<div class="container mt-5">
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 背景容器 -->
+<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+
+<!-- 主內容容器 -->
+<div class="container mt-5" style="position: relative; z-index: 1;">
   <div class="row mb-4">
     <div class="col">
-      <h1 class="display-4">我的課程</h1>
-      <p class="lead">選擇一個現有課程或創建新課程</p>
+      <h1 class="display-5 fw-bold mb-2" style="margin-top: 2rem;">我的課程</h1>
+      <p class="lead fw-semibold text-dark mb-4">選擇一個現有課程或創建新課程</p>
     </div>
-    <div class="col-auto">
+    <div class="col-auto create-btn-box">
       <a href="{{ url_for('create_course') }}" class="btn btn-primary btn-lg">
         <i class="fas fa-plus"></i> 創建新課程
       </a>
@@ -16,14 +22,25 @@
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for course in courses %}
     <div class="col">
-      <div class="card h-100 shadow-sm position-relative">
+      <div class= "card shadow-sm position-relative">
         <button
           type="button"
-          class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 delete-course-btn"
+          class="bin-button position-absolute top-0 end-0 m-2 delete-course-btn"
           data-course-id="{{ course.id }}"
           title="刪除課程"
         >
-          <i class="fas fa-trash"></i>
+          <svg class="bin-top" viewBox="0 0 39 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line y1="5" x2="39" y2="5" stroke="white" stroke-width="4"></line>
+            <line x1="12" y1="1.5" x2="26.0357" y2="1.5" stroke="white" stroke-width="3"></line>
+          </svg>
+          <svg class="bin-bottom" viewBox="0 0 33 39" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <mask id="path-1-inside-1_8_19" fill="white">
+              <path d="M0 0H33V35C33 37.2091 31.2091 39 29 39H4C1.79086 39 0 37.2091 0 35V0Z" />
+            </mask>
+            <path d="M0 0H33H0ZM37 35C37 39.4183 33.4183 43 29 43H4C-0.418278 43 -4 39.4183 -4 35H4H29H37ZM4 43C-0.418278 43 -4 39.4183 -4 35V0H4V35V43ZM37 0V35C37 39.4183 33.4183 43 29 43V35V0H37Z" fill="white" mask="url(#path-1-inside-1_8_19)" />
+            <path d="M12 6L12 29" stroke="white" stroke-width="4" />
+            <path d="M21 6V29" stroke="white" stroke-width="4" />
+          </svg>
         </button>
         <div class="card-body">
           <h5 class="card-title">{{ course.title }}</h5>
@@ -32,26 +49,29 @@
             <small class="text-muted">
               創建於: {{ course.created_at.split('T')[0] }}
             </small>
-            <a
-              href="{{ url_for('select_course', course_id=course.id) }}"
-              class="btn btn-outline-primary"
-            >
-              進入課程
-            </a>
+            <div class="btn-conteiner">
+  <a class="btn-content" href="{{ url_for('select_course', course_id=course.id) }}">
+    <span class="btn-title">進入課程</span>
+    <span class="icon-arrow">
+      <svg width="66px" height="43px" viewBox="0 0 66 43" xmlns="http://www.w3.org/2000/svg">
+        <g id="arrow" fill="none" fill-rule="evenodd">
+          <path id="arrow-icon-one" d="M40.15,3.89 L43.97,0.13 C44.17,-0.05 44.48,-0.05 44.68,0.13 L65.69,20.78 C66.09,21.17 66.09,21.80 65.70,22.20 L44.68,42.86 C44.48,43.05 44.17,43.05 43.98,42.86 L40.15,39.10 C39.95,38.91 39.95,38.59 40.15,38.39 L56.99,21.85 C57.19,21.66 57.19,21.34 57.00,21.14 L40.15,4.60 C39.95,4.41 39.95,4.10 40.15,3.89 Z" fill="#FFFFFF"/>
+          <path id="arrow-icon-two" d="M20.15,3.89 L23.97,0.13 C24.17,-0.05 24.48,-0.05 24.68,0.13 L45.69,20.78 C46.09,21.17 46.09,21.80 45.70,22.20 L24.68,42.86 C24.48,43.05 24.17,43.05 23.98,42.86 L20.15,39.10 C19.95,38.91 19.95,38.59 20.15,38.39 L36.99,21.85 C37.19,21.66 37.19,21.34 37.00,21.14 L20.15,4.60 C19.95,4.41 19.95,4.10 20.15,3.89 Z" fill="#FFFFFF"/>
+          <path id="arrow-icon-three" d="M0.15,3.89 L3.97,0.13 C4.17,-0.05 4.48,-0.05 4.68,0.13 L25.69,20.78 C26.09,21.17 26.09,21.80 25.70,22.20 L4.68,42.86 C4.48,43.05 4.17,43.05 3.98,42.86 L0.15,39.10 C-0.04,38.91 -0.04,38.59 0.15,38.39 L16.99,21.85 C17.19,21.66 17.19,21.34 17.00,21.14 L0.15,4.60 C-0.04,4.41 -0.04,4.10 0.15,3.89 Z" fill="#FFFFFF"/>
+        </g>
+      </svg>
+    </span>
+  </a>
+</div>
           </div>
         </div>
         <div class="card-footer bg-transparent">
           {% if course.learning_path %}
           <div class="progress" style="height: 5px">
-            <div
-              class="progress-bar"
-              role="progressbar"
-              style="width: '{{ (course.current_module_index / course.learning_path.modules|length * 100)|round }}%'"
-            ></div>
+            <div class="progress-bar" role="progressbar" style="width: '{{ (course.current_module_index / course.learning_path.modules|length * 100)|round }}%'"></div>
           </div>
           <small class="text-muted mt-2 d-block">
-            進度: {{ course.current_module_index + 1 }}/{{
-            course.learning_path.modules|length }} 單元
+            進度: {{ course.current_module_index + 1 }}/{{ course.learning_path.modules|length }} 單元
           </small>
           {% else %}
           <small class="text-muted">尚未開始學習</small>
@@ -60,7 +80,7 @@
       </div>
     </div>
     {% endfor %}
-  </div>
+  </div>  
   {% else %}
   <div class="text-center py-5">
     <div class="mb-4">
@@ -72,51 +92,272 @@
   {% endif %}
 </div>
 
+<!-- 自訂刪除確認卡片 -->
+<div id="custom-confirm" class="card" style="display: none;">
+  <div class="card-content">
+    <p class="card-heading">確定要刪除課程？</p>
+    <p class="card-description">刪除後將無法恢復。</p>
+  </div>
+  <div class="card-button-wrapper">
+    <button class="card-button secondary" id="cancel-delete">取消</button>
+    <button class="card-button primary" id="confirm-delete">刪除</button>
+  </div>
+  <button class="exit-button" id="close-confirm">
+    <svg height="20px" viewBox="0 0 384 512">
+      <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"></path>
+    </svg>
+  </button>
+</div>
+
 <style>
+  .bin-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 15px;
+    background-color: rgb(255, 95, 95);
+    cursor: pointer;
+    border: 3px solid rgb(255, 201, 201);
+    transition-duration: 0.3s;
+  }
+  .bin-bottom { width: 15px; }
+  .bin-top { width: 17px; transform-origin: right; transition-duration: 0.3s; }
+  .bin-button:hover .bin-top { transform: rotate(45deg); }
+  .bin-button:hover { background-color: rgb(255, 0, 0); }
+  .bin-button:active { transform: scale(0.9); }
+
+  .col-auto.create-btn-box { margin-top: -50px; margin-right: -100px; }
+  .col-auto.create-btn-box a.btn {
+    padding: 10px 30px;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
   .card {
-    transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s;
+  background-color: #0000002f;
+  color: #333;
+}
+.card-body {
+  flex-grow: 1;
+  padding-bottom: 0.5rem;
+}
+
+  .card-title { font-weight: 1000 !important; }
+  .card-text {
+  max-height: 4.5em;        /* 限制最多顯示約 3 行 */
+  width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;    /* 限制顯示 3 行 */
+  -webkit-box-orient: vertical;
+}
+  .card:hover { transform: translateY(-5px); }
+.card-footer {
+  margin-top: 0;
+  padding: 0.75rem 1rem;
+  background-color: #ffffff !important;
+  font-weight: 600;
+}
+  .progress { background-color: #ffffff; }
+  .progress-bar { background-color: #007bff; }
+
+  #custom-confirm {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  width: 320px;
+  max-width: 90vw;
+  height: 200px;
+  padding: 20px;
+  border-radius: 20px;
+
+  background: rgba(0, 0, 0, 0.611);  /* 半透明白底 */
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  z-index: 9999;
+}
+
+  .card-content { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+  .card-heading { font-size: 20px; font-weight: 700; color: #ffffff; }
+  .card-description { font-weight: 100; color: #ffffff; }
+  .card-button-wrapper { width: 100%; display: flex; justify-content: center; gap: 10px; }
+  .card-button { width: 50%; height: 35px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; }
+  .primary { background-color: rgb(255, 114, 109); color: white; }
+  .primary:hover { background-color: rgb(255, 73, 66); }
+  .secondary { background-color: #ddd; }
+  .secondary:hover { background-color: rgb(197, 197, 197); }
+  .exit-button { border: none; background: transparent; position: absolute; top: 20px; right: 20px; cursor: pointer; }
+  .exit-button svg { fill: rgb(175, 175, 175); }
+  .exit-button:hover svg { fill: black; }
+  
+  /* ...你原本的CSS... */
+
+  .btn-conteiner {
+    display: flex;
+    justify-content: center;
+    --color-text: #ffffff;
+    --color-background: #007bff;
+    --color-outline: #ff145b80;
+    --color-shadow: #00000080;
   }
-  .card:hover {
-    transform: translateY(-5px);
+
+  .btn-content {
+    display: flex;
+    align-items: center;
+    padding: 5px 16px;
+    text-decoration: none;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--color-text);
+    background: var(--color-background);
+    transition: 1s;
+    border-radius: 50px;
+    box-shadow: 0 0 0.2em 0 var(--color-background);
+    gap: 5px;
   }
-  .progress {
-    background-color: #e9ecef;
+
+  .btn-content:hover, .btn-content:focus {
+    transition: 0.5s;
+    animation: btn-content 1s;
+    outline: 0.1em solid transparent;
+    outline-offset: 0.2em;
+    box-shadow: 0 0 0.4em 0 var(--color-background);
   }
-  .progress-bar {
-    background-color: #007bff;
+
+  .btn-content .icon-arrow {
+    transition: 0.5s;
+    margin-right: 0px;
+    transform: scale(0.6);
+  }
+
+  .btn-content:hover .icon-arrow {
+    margin-right: 25px;
+  }
+
+  .icon-arrow {
+    transform: scale(0.45);  
+    width: 10px;
+    margin-left: 10px;
+    position: relative;
+    top: 6%;
+  }
+
+  #arrow-icon-one {
+    transition: 0.4s;
+    transform: translateX(-60%);
+  }
+
+  #arrow-icon-two {
+    transition: 0.5s;
+    transform: translateX(-30%);
+  }
+
+  .btn-content:hover #arrow-icon-three {
+    animation: color_anim 1s infinite 0.2s;
+  }
+
+  .btn-content:hover #arrow-icon-one {
+    transform: translateX(0%);
+    animation: color_anim 1s infinite 0.6s;
+  }
+
+  .btn-content:hover #arrow-icon-two {
+    transform: translateX(0%);
+    animation: color_anim 1s infinite 0.4s;
+  }
+
+  @keyframes color_anim {
+    0% { fill: white; }
+    50% { fill: var(--color-background); }
+    100% { fill: white; }
+  }
+
+  @keyframes btn-content {
+    0% {
+      outline: 0.2em solid var(--color-background);
+      outline-offset: 0;
+    }
   }
 </style>
-{% endblock %} {% block scripts %} {{ super() }}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".delete-course-btn").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.preventDefault();
-        const courseId = btn.getAttribute("data-course-id");
-        if (confirm("確定要刪除此課程嗎？此操作無法還原。")) {
-          fetch(`/api/delete_course/${courseId}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success) {
-                // 移除卡片或重新整理
-                btn.closest(".col").remove();
-                // 若全部刪光，重新整理顯示空狀態
-                if (
-                  document.querySelectorAll(".delete-course-btn").length === 0
-                ) {
-                  location.reload();
-                }
-              } else {
-                alert("刪除失敗: " + (data.error || "未知錯誤"));
-              }
-            })
-            .catch(() => alert("刪除失敗，請稍後再試。"));
+let targetDeleteId = null;
+
+// 綁定點擊垃圾桶按鈕
+document.querySelectorAll(".delete-course-btn").forEach((btn) => {
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+    targetDeleteId = btn.getAttribute("data-course-id");
+    document.getElementById("custom-confirm").style.display = "flex";
+  });
+});
+
+function closeConfirm() {
+  document.getElementById("custom-confirm").style.display = "none";
+  targetDeleteId = null;
+}
+
+document.getElementById("cancel-delete").onclick = closeConfirm;
+document.getElementById("close-confirm").onclick = closeConfirm;
+
+document.getElementById("confirm-delete").onclick = function () {
+  if (!targetDeleteId) return;
+  fetch(`/api/delete_course/${targetDeleteId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        document.querySelector(`[data-course-id="${targetDeleteId}"]`).closest(".col").remove();
+        closeConfirm();
+        if (document.querySelectorAll(".delete-course-btn").length === 0) {
+          location.reload();
         }
-      });
-    });
+      } else {
+        alert("刪除失敗: " + (data.error || "未知錯誤"));
+      }
+    })
+    .catch(() => alert("刪除失敗，請稍後再試。"));
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0x0babea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
   });
 </script>
 {% endblock %}

@@ -1,10 +1,13 @@
 {% extends "base.html" %} {% block content %}
+
+<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+
 <div class="container mt-5">
   <div class="row justify-content-center">
     <div class="col-md-8">
       <div class="card shadow">
         <div class="card-body">
-          <h2 class="card-title text-center mb-4">創建新課程</h2>
+          <h2 class="card-title text-center mb-4" style="font-weight: bold;">創建新課程</h2>
           <form id="createCourseForm">
             <div class="mb-3">
               <label for="title" class="form-label">課程名稱</label>
@@ -16,7 +19,7 @@
                 required
                 placeholder="請輸入課程名稱"
               />
-              <div class="form-text">為您的課程取一個有意義的名稱</div>
+              <div class="form-text">為您的課程取一個有意義的名稱 (30字內)</div>
             </div>
 
             <div class="mb-3">
@@ -28,19 +31,37 @@
                 rows="3"
                 placeholder="請描述這個課程的主要內容和目標"
               ></textarea>
-              <div class="form-text">簡要描述這個課程的內容和學習目標</div>
+              <div class="form-text">簡要描述這個課程的內容和學習目標 (30字內)</div>
             </div>
 
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary btn-lg">
-                <i class="fas fa-plus"></i> 創建課程
-              </button>
-              <a
-                href="{{ url_for('course_selection') }}"
-                class="btn btn-outline-secondary"
-              >
+            <div class="d-flex justify-content-between mt-4">
+              <!-- 左側：返回課程列表 -->
+              <a href="{{ url_for('course_selection') }}" class="cssbuttons-io-button">
                 返回課程列表
+                <div class="icon">
+                  <svg height="24" width="24" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                      d="M8 13H20v-2H8l5.364-5.364L11.95 4.222 4.172 12l7.778 7.778 1.414-1.414L8 13z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </div>
               </a>
+
+              <!-- 右側：創建課程 -->
+              <button type="submit" class="cssbuttons-io-button">
+                創建課程
+                <div class="icon">
+                  <svg height="24" width="24" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                      d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </div>
+              </button>
             </div>
           </form>
         </div>
@@ -86,18 +107,127 @@
 
 <style>
   .card {
-    border: none;
-    border-radius: 15px;
+    background: rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-weight: bold;  
   }
   .form-control {
     border-radius: 8px;
+    background-color: rgba(11, 0, 83, 0.163) !important;
+    color: #ffffff !important;
   }
+
+  .form-label {
+    font-size: 1.5rem;
+  }
+
+  .form-control::placeholder {
+    color: #ffffff !important;
+    opacity: 0.6; /* 依需要可調亮度 */
+  }
+
+  input.form-control,
+  textarea.form-control {
+    color: #ffffff !important;
+  }
+
+  .form-text {
+    color: #ffffff;
+  }
+
   .form-control:focus {
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
   }
+
   .btn {
     border-radius: 8px;
     padding: 10px 20px;
   }
+
+ .cssbuttons-io-button {
+  background: linear-gradient(135deg, #3a8ef5, #9603ff); /* 淺藍到深藍 */
+  color: white;
+  font-family: inherit;
+  padding: 0.35em;
+  padding-left: 1.2em;
+  font-size: 17px;
+   font-weight: bold;
+  border-radius: 0.9em;
+  border: none;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 0 1.6em -0.6em #0a1d66;
+  overflow: hidden;
+  position: relative;
+  height: 2.8em;
+  padding-right: 3.3em;
+  cursor: pointer;
+  text-decoration: none;
+  justify-content: center;
+}
+
+
+.cssbuttons-io-button .icon {
+  background: white;
+  margin-left: 1em;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.2em;
+  width: 2.2em;
+  border-radius: 0.7em;
+  box-shadow: 0.1em 0.1em 0.6em 0.2em #7b52b9;
+  right: 0.3em;
+  transition: all 0.3s;
+}
+
+.cssbuttons-io-button:hover .icon {
+  width: calc(100% - 0.6em);
+}
+
+.cssbuttons-io-button .icon svg {
+  width: 1.1em;
+  transition: transform 0.3s;
+  color: #7b52b9;
+}
+
+.cssbuttons-io-button:hover .icon svg {
+  transform: translateX(0.1em);
+}
+
+.cssbuttons-io-button:active .icon {
+  transform: scale(0.95);
+}
+
+.cssbuttons-io-button {
+  min-width: 180px;
+  justify-content: center;
+}
+
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0x0babea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
+  });
+</script>
 {% endblock %}
