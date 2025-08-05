@@ -1,87 +1,571 @@
-{% set fullscreen = true %}
-{% extends "base.html" %}
-{% block content %}
+  {% set fullscreen = true %}
+  {% extends "base.html" %}
+  {% block content %}
 
-<div id="vanta-bg">
+  <!-- Hero Banner Section -->
+  <div id="vanta-bg">
+    <!-- 🔵 右上角登入按鈕 -->
+    <div
+      aria-label="User Login Button"
+      tabindex="0"
+      role="button"
+      class="user-profile"
+      onclick="window.location.href='{{ url_for('select_user') }}'"
+    >
+      <div class="user-profile-inner">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <g data-name="Layer 2" id="Layer_2">
+            <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z"></path>
+          </g>
+        </svg>
+        <p>Log In</p>
+      </div>
+    </div>
 
-  <!-- 🔵 右上角登入按鈕 -->
-  <div
-    aria-label="User Login Button"
-    tabindex="0"
-    role="button"
-    class="user-profile"
-    onclick="window.location.href='{{ url_for('select_user') }}'"
-  >
-    <div class="user-profile-inner">
-      <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <g data-name="Layer 2" id="Layer_2">
-          <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z"></path>
-        </g>
-      </svg>
-      <p>Log In</p>
+    <!-- 中央標題 -->
+    <div class="center-title">
+      <div class="button" data-text="Awesome">
+        <span aria-hidden="true" class="hover-text">&nbsp;RAG_SCAFFOLDING&nbsp;</span>
+      </div>
+
+      <div class="button subtitle-button" data-text="Awesome">
+        <span aria-hidden="true" class="hover-text">&nbsp;RAG 鷹架式學習系統&nbsp;</span>
+      </div>
     </div>
   </div>
 
-<div class="center-title">
-
-  <div class="button" data-text="Awesome">
-    <span aria-hidden="true" class="hover-text">&nbsp;RAG_SCAFFOLDING&nbsp;</span>
+  <!-- Introduction Section -->
+  <div class="intro-section fade-in-on-scroll">
+    <h2>Introduction</h2> 
+    <p>cfsdvfsdddddddddddddddddddddddddddddddddddddddddddddddddddddddd</p>
+    <p>dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd</p>
+    <p>ddfdfsdfdddddddddddddddddddddddddddddddddddddddddd</p>
+    <p>dddddddddddddd</p>
   </div>
 
-  <div class="button subtitle-button" data-text="Awesome">
-    <span aria-hidden="true" class="hover-text">&nbsp;RAG 鷹架式學習系統&nbsp;</span>
+  <!-- Function Cards Section -->
+  <div class="function-section">
+  <h2 class="fade-in-only">Functions</h2>
+  <div class="function-card-container">
+    <div class="card fade-up-on-scroll">
+  <div class="card-inner">
+    <div class="card-box">
+      <p class="heading">Popular This Month</p>
+      <p>Powered By</p>
+      <p class="source">Uiverse</p>
+    </div>
+  </div>
+</div>
+    <div class="card fade-up-on-scroll">
+  <div class="card-inner">
+    <div class="card-box">
+      <p class="heading">Popular This Month</p>
+      <p>Powered By</p>
+      <p class="source">Uiverse</p>
+    </div>
+  </div>
+</div>
+    <div class="card fade-up-on-scroll">
+  <div class="card-inner">
+    <div class="card-box">
+      <p class="heading">Popular This Month</p>
+      <p>Powered By</p>
+      <p class="source">Uiverse</p>
+    </div>
+  </div>
+</div>
   </div>
 </div>
 
+<!-- Scaffolding Explanation Section -->
+<div class="scaffolding-explanation">
+  <div class="left fade-right-on-scroll">
+    <img src="{{ url_for('static', filename='images/螢幕擷取畫面_2025-07-29_174024-removebg-preview.png') }}" 
+         alt="You may say What is the Scaffolding?" 
+         class="scaffold-image">
+  </div>
+  <div class="right fade-left-on-scroll">
+    <p>
+      Scaffolding is an educational method that provides students with temporary support to help them achieve deeper learning. This approach gradually removes the support as students gain confidence and mastery of the subject matter. It’s like giving them just enough help to climb on their own.
+    </p>
+  </div>
 </div>
 
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+<!-- Call to Action Section -->
+<div class="cta-section">
+  <p class="cta-text fade-in-only">If you want to know more about us</p>
+  
+  <button class="learn-more fade-in-only">
+    <span class="circle" aria-hidden="true">
+      <span class="icon arrow"></span>
+    </span>
+    <span class="button-text">Learn More</span>
+  </button>
+</div>
+
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #vanta-bg {
+      width: 100vw;
+      max-height: 80vh;
+      height: 100vh;
+      position: relative;
+    }
+
+    .button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+
+    .intro-section {
+      text-align: center;
+      padding: 60px 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .intro-section h2 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .intro-section p {
+      line-height: 2;
+      font-size: 16px;
+      color: #000;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+.function-section {
+  background: #000;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.function-section h2 {
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 70px;
+}
+
+.function-card-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 60px 55px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.card {
+  position: relative;
+  max-width: 220px;
+  width: 100%;
+  height: 254px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 12px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  z-index: 0;
+  transition: transform 0.3s ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  z-index: -1;
+  border-radius: 14px;
+  background: linear-gradient(45deg, #00ffff, #a000ff, #ff00ff);
+  background-size: 400% 400%;
+  animation: borderGradient 8s ease infinite;
+}
+
+
+.card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+.card-box {
+  width: 200px;
+  height: 230px;
+  background-color: #000;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+@keyframes borderAnim {
+  0% {
+    background-position: 0% 50%;
   }
-
-  #vanta-bg {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
+  50% {
+    background-position: 100% 50%;
   }
-
-  .button {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
+  100% {
+    background-position: 0% 50%;
   }
-</style>
+}
 
-{% endblock %}
+@media (max-width: 768px) {
+  .function-card-container {
+    flex-direction: column;
+    align-items: center;
+  }
+}
 
-{% block scripts %}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.birds.min.js"></script>
-  <script>
-    VANTA.BIRDS({
-      el: "#vanta-bg",
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      minHeight: 200.00,
-      minWidth: 200.00,
-      scale: 1.00,
-      scaleMobile: 1.00,
-      backgroundColor: 0x80231,
-      color1: 0xb5ff,
-      color2: 0xfffd79,
-      quantity: 5,
-      birdSize: 1,
-      wingSpan: 40,
-      speedLimit: 3,
-      separation: 64,
-      alignment: 20,
-      cohesion: 8
-    });
-  </script>
-{% endblock %}
+
+.card .heading {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.card p:not(.heading) {
+  font-size: 14px;
+  margin: 0;
+}
+
+.card .source {
+  color: #ff00ff;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.scaffolding-explanation {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;        /* ✅ 垂直置中 */
+  gap: 40px;
+  min-height: 50vh;          /* ✅ 高度與螢幕一樣高 */
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.scaffolding-explanation .left,
+.scaffolding-explanation .right {
+  flex: 1 1 400px;
+  max-width: 500px;
+}
+
+.scaffold-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.scaffolding-explanation .right p {
+  font-size: 20px;
+  line-height: 1.8;
+  color: #111;
+  margin: 0;
+}
+
+/* 🔲 背景區塊樣式 */
+.cta-section {
+  background-color: #000000;
+  color: #fff;
+  padding: 25px 20px;
+  text-align: center;
+}
+
+.cta-text {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* ✅ Button 基礎樣式 */
+button {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  outline: none;
+  border: 0;
+  vertical-align: middle;
+  text-decoration: none;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+button.learn-more {
+  width: 12rem;
+  height: auto;
+}
+
+button.learn-more .circle {
+  transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+  position: relative;
+  display: block;
+  margin: 0;
+  width: 3rem;
+  height: 3rem;
+  background: #505158;
+  border-radius: 1.625rem;
+}
+
+button.learn-more .circle .icon {
+  transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  background: #fff;
+}
+
+button.learn-more .circle .icon.arrow {
+  transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+  left: 0.625rem;
+  width: 1.125rem;
+  height: 0.125rem;
+  background: none;
+}
+
+button.learn-more .circle .icon.arrow::before {
+  position: absolute;
+  content: "";
+  top: -0.29rem;
+  right: 0.0625rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-top: 0.125rem solid #fff;
+  border-right: 0.125rem solid #fff;
+  transform: rotate(45deg);
+}
+
+button.learn-more .button-text {
+  transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.75rem 0;
+  margin: 0 0 0 1.85rem;
+  color: #ffffff;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+button:hover .circle {
+  width: 100%;
+}
+
+button:hover .circle .icon.arrow {
+  background: #fff;
+  transform: translate(1rem, 0);
+}
+
+button:hover .button-text {
+  color: #fff;
+}
+
+.center-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+}
+
+.center-title .hover-text {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 1s ease-out;
+  will-change: transform, opacity;
+}
+
+.center-title.visible .hover-text {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.center-title.visible .subtitle-button .hover-text {
+  transition-delay: 0.3s;
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-on-scroll {
+  opacity: 0;
+  transition: opacity 1.75s ease-in-out;
+  transition-delay: 0.3s;
+}
+
+.fade-in-on-scroll.visible {
+  opacity: 1.75;
+  transition-delay: 0.3s; 
+}
+
+.fade-in-only {
+  opacity: 0;
+  transition: opacity 1.75s ease-in-out;
+}
+
+.fade-in-only.visible {
+  opacity: 1.75;
+}
+
+.fade-up-on-scroll {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.fade-up-on-scroll.visible {
+  opacity: 1.75;
+  transition-delay: 0.3s;
+  transform: translateY(0);
+}
+
+.fade-right-on-scroll {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.fade-right-on-scroll.visible {
+  opacity: 1.75;
+  transition-delay: 0.3s;
+  transform: translateX(0);
+}
+
+.fade-left-on-scroll {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.fade-left-on-scroll.visible {
+  opacity: 1.75;
+  transition-delay: 0.3s;
+  transform: translateX(0);
+}
+
+
+  </style>
+
+  {% endblock %}
+
+  {% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.birds.min.js"></script>
+    <script>
+      
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          } else {
+            entry.target.classList.remove('visible'); // 離開時移除動畫
+          }
+        });
+      }, {
+        threshold: 0.5
+      });
+
+      const title = document.querySelector('.center-title');
+      if (title) {
+        observer.observe(title);
+      }
+
+      const fadeInObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    } else {
+      entry.target.classList.remove('visible'); // 每次進入時重新觸發
+    }
+  });
+}, {
+  threshold: 0.4
+});
+
+document.querySelectorAll('.fade-in-on-scroll').forEach(el => {
+  fadeInObserver.observe(el);
+});
+
+// 功能區標題
+document.querySelectorAll('.fade-in-only').forEach(el => {
+  fadeInObserver.observe(el);
+});
+
+// 功能區卡片
+document.querySelectorAll('.fade-up-on-scroll').forEach(el => {
+  fadeInObserver.observe(el);
+});
+
+document.querySelectorAll('.fade-left-on-scroll').forEach(el => {
+  fadeInObserver.observe(el);
+});
+document.querySelectorAll('.fade-right-on-scroll').forEach(el => {
+  fadeInObserver.observe(el);
+});
+
+
+      VANTA.BIRDS({
+        el: "#vanta-bg",
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        scale: 1.00,
+        scaleMobile: 1.00,
+        backgroundColor: 0x80231,
+        color1: 0xb5ff,
+        color2: 0xfffd79, 
+        quantity: 5,
+        birdSize: 0.75,
+        wingSpan: 40,
+        speedLimit: 3,
+        separation: 64,
+        alignment: 20,
+        cohesion: 8
+      });
+    </script>
+  {% endblock %}

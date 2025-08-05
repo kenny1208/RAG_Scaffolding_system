@@ -5,6 +5,24 @@
 <!-- ✅ 套用 VANTA 背景在 wrapper 外層 -->
 <div id="vanta-bg"></div>
 
+<div id="timer-box">
+  <span id="countdown">02:00</span>
+</div>
+
+<div class="card hidden" id="timeout-message">
+  <div class="icon-container">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13 7.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-3 3.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v4.25h.75a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5h.75V12h-.75a.75.75 0 0 1-.75-.75Z"/>
+      <path d="M12 1c6.075 0 11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12 5.925 1 12 1ZM2.5 12a9.5 9.5 0 0 0 9.5 9.5 9.5 9.5 0 0 0 9.5-9.5A9.5 9.5 0 0 0 12 2.5 9.5 9.5 0 0 0 2.5 12Z"/>
+    </svg>
+  </div>
+  <div class="message-text-container">
+    <p class="message-text">Info message</p>
+    <p class="sub-text">You can submit the test now</p>
+  </div>
+</div>
+
+
 <!-- ✅ 測驗主體內容 -->
 <div class="container mt-5 content-wrapper">
   <h2 class="text-center mb-4 text-white">學習風格測驗</h2>
@@ -35,7 +53,7 @@
     {% endfor %}
 
     <div class="btn-wrapper">
-  <button type="submit" class="fancy-btn">
+  <button type="submit" class="fancy-btn" id="submit-btn" disabled>
     <i class="fas fa-check me-2"></i>提交測驗
   </button>
 </div>
@@ -67,7 +85,7 @@
 
 .custom-card {
   border-radius: 12px;
-  background-color: rgba(0, 0, 0, 0.707); /* ✅ 紅色背景 */
+  background-color: rgba(0, 0, 0, 0.851); /* ✅ 紅色背景 */
   border: none;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   padding: 16px 24px;
@@ -342,6 +360,114 @@
   box-shadow: inset 0px 0px 25px #1479EA;
 }
 
+/* ⏱️ 倒數計時器樣式 */
+#timer-box {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: 25px;
+  font-weight: bold;
+  z-index: 9999;
+  box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+
+#countdown {
+  font-family: 'Courier New', monospace;
+}
+
+#countdown.timeout {
+  color: #00ff00; /* ✅ 綠色 */
+  text-shadow: 0 0 8px #00ff00;
+}
+
+@keyframes fadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: auto;
+  max-width: 340px;
+  position: relative;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.icon-container {
+  width: 40px;
+  height: 40px;
+  background-color: #e0edff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  color: #124fff;
+}
+
+.message-text-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.message-text {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #124fff;
+}
+
+.sub-text {
+  margin: 0;
+  font-size: 14px;
+  color: #555555;
+}
+
+.cross-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 18px;
+  height: 18px;
+  color: #888;
+  cursor: pointer;
+}
+
+#timeout-message {
+  position: fixed;
+  top: 100px;
+  right: 1%;
+  z-index: 9999;
+  transform: translateX(0); /* 避免跑偏 */
+}
+
+.hidden {
+  display: none !important;
+}
+
+
+
 </style>
 {% endblock %}
 
@@ -349,6 +475,38 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
 <script>
+let duration = 1; // 2 分鐘
+  const countdown = document.getElementById("countdown");
+
+  function updateTimer() {
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+
+    countdown.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    if (duration <= 0) {
+  clearInterval(timer);
+  countdown.textContent = '00:00';
+  countdown.classList.add('timeout');
+
+  // 顯示訊息
+  const messageBox = document.getElementById("timeout-message");
+  messageBox.classList.remove("hidden");
+  messageBox.classList.add("fade-up-right");
+
+  // ✅ 啟用提交按鈕
+  const submitBtn = document.getElementById("submit-btn");
+  submitBtn.disabled = false;
+  submitBtn.classList.add("active");
+}
+else {
+      duration--;
+    }
+  }
+
+  updateTimer();
+  const timer = setInterval(updateTimer, 1000);
+
   VANTA.HALO({
     el: "#vanta-bg",
     mouseControls: true,

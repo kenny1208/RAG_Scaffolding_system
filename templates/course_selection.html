@@ -18,6 +18,20 @@
     </div>
   </div>
 
+  <div class="card1" id="live-clock">
+  <p class="time-text">
+    <span id="clock-time">11:11</span>
+    <span class="time-sub-text" id="clock-ampm">上午</span>
+  </p>
+  <p class="day-text" id="clock-day">星期一，7月29日</p>
+
+  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" stroke-width="0" fill="currentColor" stroke="currentColor" class="moon">
+    <path d="M6 .278a.768.768 0 0 1 .08.858...Z"></path>
+    <path d="M10.794 3.148a.217.217 0 0 1 .412 0...Z"></path>
+  </svg>
+</div>
+
+
   {% if courses %}
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for course in courses %}
@@ -108,8 +122,87 @@
     </svg>
   </button>
 </div>
+<script>
+function updateClockCard() {
+  const now = new Date();
+
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const seconds = now.getSeconds().toString().padStart(2, '0');
+
+  const isAM = hours < 12;
+  const ampm = isAM ? "上午" : "下午";
+
+  hours = hours % 12 || 12; // 0點顯示為 12
+
+  const timeStr = `${hours}:${minutes}:${seconds}`;
+
+  const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+  const dayStr = weekdays[now.getDay()];
+  const dateStr = `${dayStr}，${now.getMonth() + 1}月${now.getDate()}日`;
+
+  document.getElementById("clock-time").textContent = timeStr;
+  document.getElementById("clock-ampm").textContent = ampm;
+  document.getElementById("clock-day").textContent = dateStr;
+}
+
+setInterval(updateClockCard, 1000);
+updateClockCard(); // 頁面載入立即執行
+</script>
 
 <style>
+
+  .card1 {
+  width: 280px;
+  height: 150px;
+  background: rgb(17, 4, 134);
+  border-radius: 15px;  display: flex;
+  color: white;
+  justify-content: center;
+  position: relative;
+  flex-direction: column;
+  background: linear-gradient(to right, rgb(20, 30, 48), rgb(36, 59, 85));
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
+  bottom: 25px;
+}
+
+
+.time-text {
+  font-size: 50px;
+  margin-top: 0px;
+  margin-left: 15px;
+  font-weight: 600;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.time-sub-text {
+  font-size: 15px;
+  margin-left: 5px;
+}
+
+.day-text {
+  font-size: 18px;
+  margin-top: 0px;
+  margin-left: 15px;
+  font-weight: 500;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.moon {
+  font-size: 20px;
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  transition: all 0.3s ease-in-out;
+}
+
+.card1:hover > .moon {
+  font-size: 23px;
+}
+
+
   .bin-button {
     display: flex;
     flex-direction: column;
