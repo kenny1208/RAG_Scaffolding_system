@@ -83,6 +83,7 @@ class StudentProfile(BaseModel):
     learning_path: Optional[Dict[str, Any]] = Field(default=None, description="Personalized learning path")
     current_module_index: Optional[int] = Field(default=0, description="Current module index (0-based)")
     learning_path_confirmed: Optional[bool] = Field(default=False, description="Whether the learning path has been confirmed")
+    calendar_events: List[Dict[str, Any]] = Field(default_factory=list, description="Calendar events for this student")
 
 class CourseProfile(BaseModel):
     id: str = Field(description="Unique course ID")
@@ -813,7 +814,7 @@ def generate_module_content(session_id, module, profile):
         
         您的內容應該：
         1. 專注於章節的特定內容範圍：{content_scope}
-        2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(label 內不要用括號或分號)
+        2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(label 內禁止使用括號或分號)
         4. 包含清晰的關鍵概念解釋
         6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
            高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
@@ -828,8 +829,6 @@ def generate_module_content(session_id, module, profile):
            - 主要內容（專注於{content_scope}）
            - 關鍵概念總結
            - 自我檢查問題
-           - 延伸思考問題
-           - 與下一章節的連接提示
         
         9. 【強制要求】每個章節都必須根據context的內容標註來源(source)，格式為：
            [來源: 檔名.pdf, 頁碼: X]
@@ -837,7 +836,8 @@ def generate_module_content(session_id, module, profile):
            如果有多個來源，請列出主要的第1個來源。
            如果超過一個頁碼，只列出第1個頁碼。
         
-        使用markdown格式化您的內容，以提高可讀性。
+        使用markdown格式化您的內容，以提高可讀性，並且不需要輸出你的回覆，只需要輸出內容。規定開頭格式如下(務必遵守以下格式)： 
+        "\n\n### (章節名稱)\n\n**學習目標**\n*   
         
         【重要提醒】：請務必包含資料來源標註，並且必須符合格式，這是必須的格式要求。
         """),
@@ -2945,6 +2945,28 @@ def get_wrong_questions_stats():
         'repeated_wrong_questions': repeated_wrong_questions,
         'module_stats': module_stats_list
     })
+
+@app.route('/api/calendar', methods=['GET'])
+def get_calendar_events():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return jsonify({'error': 'Student profile not found'}), 400
+    return jsonify(profile.calendar_events)
+
+@app.route('/api/calendar', methods=['POST'])
+def save_calendar_events():
+    if 'student_id' not in session:
+        return jsonify({'error': 'No student session found'}), 400
+    events = request.json.get('events', [])
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return jsonify({'error': 'Student profile not found'}), 400
+    profile.calendar_events = events
+    save_student_profile(profile)
+    return jsonify({'success': True})
+
 
 # 你原本的其他頁面路由可放在這裡
 

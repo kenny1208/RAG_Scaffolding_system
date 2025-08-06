@@ -1,456 +1,1273 @@
-{% extends "base.html" %}
+  {% extends "base.html" %}
 
-{% block content %}
-<!-- 背景容器 -->
-<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+  {% block content %}
+  <!-- 背景容器 -->
+  <div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
 
-<!-- 主內容容器 -->
-<div class="container mt-5" style="position: relative; z-index: 1;">
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="display-5 fw-bold mb-2" style="margin-top: 2rem;">我的課程</h1>
-      <p class="lead fw-semibold text-dark mb-4">選擇一個現有課程或創建新課程</p>
-    </div>
-    <div class="col-auto create-btn-box">
+  <!-- 主內容容器 -->
+  <div class="container mt-5 position-relative" style="z-index: 1;">
+    <div class="create-btn-box" style="right: 6%;">
       <a href="{{ url_for('create_course') }}" class="btn btn-primary btn-lg">
         <i class="fas fa-plus"></i> 創建新課程
       </a>
     </div>
+
+    <div class="create-btn-box">
+      <a href="{{ url_for('select_user') }}" class="btn btn-primary btn-lg">
+        Logout
+      </a>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between">
+
+       <div class="ms-3">
+    <h1 class="display-5 fw-bold mb-2" style="margin-top: 2rem;">我的課程</h1>
+    <p class="lead fw-semibold text-dark mb-4">選擇一個現有課程或創建新課程</p>
+  </div>
+  <!-- 時鐘卡片 -->
+  <div class="card1" id="live-clock">
+    <p class="time-text">
+      <span id="clock-time">11:11</span>
+      <span class="time-sub-text" id="clock-ampm">上午</span>
+    </p>
+    <p class="day-text" id="clock-day">星期一，7月29日</p>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+         viewBox="0 0 16 16" stroke-width="0" fill="currentColor"
+         stroke="currentColor" class="moon">
+      <path d="M6 .278a.768.768 0 0 1 .08.858...Z"></path>
+      <path d="M10.794 3.148a.217.217 0 0 1 .412 0...Z"></path>
+    </svg>
   </div>
 
-  <div class="card1" id="live-clock">
-  <p class="time-text">
-    <span id="clock-time">11:11</span>
-    <span class="time-sub-text" id="clock-ampm">上午</span>
-  </p>
-  <p class="day-text" id="clock-day">星期一，7月29日</p>
-
-  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" stroke-width="0" fill="currentColor" stroke="currentColor" class="moon">
-    <path d="M6 .278a.768.768 0 0 1 .08.858...Z"></path>
-    <path d="M10.794 3.148a.217.217 0 0 1 .412 0...Z"></path>
-  </svg>
+  <!-- 標題文字 -->
+ 
 </div>
 
+  </div>
 
-  {% if courses %}
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for course in courses %}
-    <div class="col">
-      <div class= "card shadow-sm position-relative">
-        <button
-          type="button"
-          class="bin-button position-absolute top-0 end-0 m-2 delete-course-btn"
-          data-course-id="{{ course.id }}"
-          title="刪除課程"
-        >
-          <svg class="bin-top" viewBox="0 0 39 7" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line y1="5" x2="39" y2="5" stroke="white" stroke-width="4"></line>
-            <line x1="12" y1="1.5" x2="26.0357" y2="1.5" stroke="white" stroke-width="3"></line>
-          </svg>
-          <svg class="bin-bottom" viewBox="0 0 33 39" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <mask id="path-1-inside-1_8_19" fill="white">
-              <path d="M0 0H33V35C33 37.2091 31.2091 39 29 39H4C1.79086 39 0 37.2091 0 35V0Z" />
-            </mask>
-            <path d="M0 0H33H0ZM37 35C37 39.4183 33.4183 43 29 43H4C-0.418278 43 -4 39.4183 -4 35H4H29H37ZM4 43C-0.418278 43 -4 39.4183 -4 35V0H4V35V43ZM37 0V35C37 39.4183 33.4183 43 29 43V35V0H37Z" fill="white" mask="url(#path-1-inside-1_8_19)" />
-            <path d="M12 6L12 29" stroke="white" stroke-width="4" />
-            <path d="M21 6V29" stroke="white" stroke-width="4" />
-          </svg>
-        </button>
-        <div class="card-body">
-          <h5 class="card-title">{{ course.title }}</h5>
-          <p class="card-text text-muted">{{ course.description }}</p>
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">
-              創建於: {{ course.created_at.split('T')[0] }}
+    {% if courses %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      {% for course in courses %}
+      <div class="col">
+        <div class= "card shadow-sm position-relative">
+          <button
+            type="button"
+            class="bin-button position-absolute top-0 end-0 m-2 delete-course-btn"
+            data-course-id="{{ course.id }}"
+            title="刪除課程"
+          >
+            <svg class="bin-top" viewBox="0 0 39 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line y1="5" x2="39" y2="5" stroke="white" stroke-width="4"></line>
+              <line x1="12" y1="1.5" x2="26.0357" y2="1.5" stroke="white" stroke-width="3"></line>
+            </svg>
+            <svg class="bin-bottom" viewBox="0 0 33 39" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <mask id="path-1-inside-1_8_19" fill="white">
+                <path d="M0 0H33V35C33 37.2091 31.2091 39 29 39H4C1.79086 39 0 37.2091 0 35V0Z" />
+              </mask>
+              <path d="M0 0H33H0ZM37 35C37 39.4183 33.4183 43 29 43H4C-0.418278 43 -4 39.4183 -4 35H4H29H37ZM4 43C-0.418278 43 -4 39.4183 -4 35V0H4V35V43ZM37 0V35C37 39.4183 33.4183 43 29 43V35V0H37Z" fill="white" mask="url(#path-1-inside-1_8_19)" />
+              <path d="M12 6L12 29" stroke="white" stroke-width="4" />
+              <path d="M21 6V29" stroke="white" stroke-width="4" />
+            </svg>
+          </button>
+          <div class="card-body">
+            <h5 class="card-title">{{ course.title }}</h5>
+            <p class="card-text text-muted">{{ course.description }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">
+                創建於: {{ course.created_at.split('T')[0] }}
+              </small>
+              <div class="btn-conteiner">
+    <a class="btn-content" href="{{ url_for('select_course', course_id=course.id) }}">
+      <span class="btn-title">進入課程</span>
+      <span class="icon-arrow">
+        <svg width="66px" height="43px" viewBox="0 0 66 43" xmlns="http://www.w3.org/2000/svg">
+          <g id="arrow" fill="none" fill-rule="evenodd">
+            <path id="arrow-icon-one" d="M40.15,3.89 L43.97,0.13 C44.17,-0.05 44.48,-0.05 44.68,0.13 L65.69,20.78 C66.09,21.17 66.09,21.80 65.70,22.20 L44.68,42.86 C44.48,43.05 44.17,43.05 43.98,42.86 L40.15,39.10 C39.95,38.91 39.95,38.59 40.15,38.39 L56.99,21.85 C57.19,21.66 57.19,21.34 57.00,21.14 L40.15,4.60 C39.95,4.41 39.95,4.10 40.15,3.89 Z" fill="#FFFFFF"/>
+            <path id="arrow-icon-two" d="M20.15,3.89 L23.97,0.13 C24.17,-0.05 24.48,-0.05 24.68,0.13 L45.69,20.78 C46.09,21.17 46.09,21.80 45.70,22.20 L24.68,42.86 C24.48,43.05 24.17,43.05 23.98,42.86 L20.15,39.10 C19.95,38.91 19.95,38.59 20.15,38.39 L36.99,21.85 C37.19,21.66 37.19,21.34 37.00,21.14 L20.15,4.60 C19.95,4.41 19.95,4.10 20.15,3.89 Z" fill="#FFFFFF"/>
+            <path id="arrow-icon-three" d="M0.15,3.89 L3.97,0.13 C4.17,-0.05 4.48,-0.05 4.68,0.13 L25.69,20.78 C26.09,21.17 26.09,21.80 25.70,22.20 L4.68,42.86 C4.48,43.05 4.17,43.05 3.98,42.86 L0.15,39.10 C-0.04,38.91 -0.04,38.59 0.15,38.39 L16.99,21.85 C17.19,21.66 17.19,21.34 17.00,21.14 L0.15,4.60 C-0.04,4.41 -0.04,4.10 0.15,3.89 Z" fill="#FFFFFF"/>
+          </g>
+        </svg>
+      </span>
+    </a>
+  </div>
+            </div>
+          </div>
+          <div class="card-footer bg-transparent">
+            {% if course.learning_path %}
+            <div class="progress" style="height: 5px">
+              <div class="progress-bar" role="progressbar" style="width: '{{ (course.current_module_index / course.learning_path.modules|length * 100)|round }}%'"></div>
+            </div>
+            <small class="text-muted mt-2 d-block">
+              進度: {{ course.current_module_index + 1 }}/{{ course.learning_path.modules|length }} 單元
             </small>
-            <div class="btn-conteiner">
-  <a class="btn-content" href="{{ url_for('select_course', course_id=course.id) }}">
-    <span class="btn-title">進入課程</span>
-    <span class="icon-arrow">
-      <svg width="66px" height="43px" viewBox="0 0 66 43" xmlns="http://www.w3.org/2000/svg">
-        <g id="arrow" fill="none" fill-rule="evenodd">
-          <path id="arrow-icon-one" d="M40.15,3.89 L43.97,0.13 C44.17,-0.05 44.48,-0.05 44.68,0.13 L65.69,20.78 C66.09,21.17 66.09,21.80 65.70,22.20 L44.68,42.86 C44.48,43.05 44.17,43.05 43.98,42.86 L40.15,39.10 C39.95,38.91 39.95,38.59 40.15,38.39 L56.99,21.85 C57.19,21.66 57.19,21.34 57.00,21.14 L40.15,4.60 C39.95,4.41 39.95,4.10 40.15,3.89 Z" fill="#FFFFFF"/>
-          <path id="arrow-icon-two" d="M20.15,3.89 L23.97,0.13 C24.17,-0.05 24.48,-0.05 24.68,0.13 L45.69,20.78 C46.09,21.17 46.09,21.80 45.70,22.20 L24.68,42.86 C24.48,43.05 24.17,43.05 23.98,42.86 L20.15,39.10 C19.95,38.91 19.95,38.59 20.15,38.39 L36.99,21.85 C37.19,21.66 37.19,21.34 37.00,21.14 L20.15,4.60 C19.95,4.41 19.95,4.10 20.15,3.89 Z" fill="#FFFFFF"/>
-          <path id="arrow-icon-three" d="M0.15,3.89 L3.97,0.13 C4.17,-0.05 4.48,-0.05 4.68,0.13 L25.69,20.78 C26.09,21.17 26.09,21.80 25.70,22.20 L4.68,42.86 C4.48,43.05 4.17,43.05 3.98,42.86 L0.15,39.10 C-0.04,38.91 -0.04,38.59 0.15,38.39 L16.99,21.85 C17.19,21.66 17.19,21.34 17.00,21.14 L0.15,4.60 C-0.04,4.41 -0.04,4.10 0.15,3.89 Z" fill="#FFFFFF"/>
-        </g>
-      </svg>
-    </span>
-  </a>
-</div>
+            {% else %}
+            <small class="text-muted">尚未開始學習</small>
+            {% endif %}
           </div>
-        </div>
-        <div class="card-footer bg-transparent">
-          {% if course.learning_path %}
-          <div class="progress" style="height: 5px">
-            <div class="progress-bar" role="progressbar" style="width: '{{ (course.current_module_index / course.learning_path.modules|length * 100)|round }}%'"></div>
-          </div>
-          <small class="text-muted mt-2 d-block">
-            進度: {{ course.current_module_index + 1 }}/{{ course.learning_path.modules|length }} 單元
-          </small>
-          {% else %}
-          <small class="text-muted">尚未開始學習</small>
-          {% endif %}
         </div>
       </div>
+      {% endfor %}
+    </div>  
+    {% else %}
+    <div class="text-center py-5">
+      <div class="mb-4">
+        <i class="fas fa-book fa-4x text-muted"></i>
+      </div>
+      <h3>您還沒有任何課程</h3>
+      <p class="text-muted">點擊上方的「創建新課程」按鈕開始您的學習之旅</p>
     </div>
-    {% endfor %}
-  </div>  
-  {% else %}
-  <div class="text-center py-5">
-    <div class="mb-4">
-      <i class="fas fa-book fa-4x text-muted"></i>
+    {% endif %}
+  </div>
+
+  <!-- 自訂刪除確認卡片 -->
+  <div id="custom-confirm" class="card" style="display: none;">
+    <div class="card-content">
+      <p class="card-heading">確定要刪除課程？</p>
+      <p class="card-description">刪除後將無法恢復。</p>
     </div>
-    <h3>您還沒有任何課程</h3>
-    <p class="text-muted">點擊上方的「創建新課程」按鈕開始您的學習之旅</p>
+    <div class="card1-button-wrapper">
+      <button class="card-button secondary" id="cancel-delete">取消</button>
+      <button class="card-button primary" id="confirm-delete">刪除</button>
+    </div>
+    <button class="exit-button" id="close-confirm">
+      <svg height="20px" viewBox="0 0 384 512">
+        <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"></path>
+      </svg>
+    </button>
   </div>
-  {% endif %}
-</div>
 
-<!-- 自訂刪除確認卡片 -->
-<div id="custom-confirm" class="card" style="display: none;">
-  <div class="card-content">
-    <p class="card-heading">確定要刪除課程？</p>
-    <p class="card-description">刪除後將無法恢復。</p>
-  </div>
-  <div class="card-button-wrapper">
-    <button class="card-button secondary" id="cancel-delete">取消</button>
-    <button class="card-button primary" id="confirm-delete">刪除</button>
-  </div>
-  <button class="exit-button" id="close-confirm">
-    <svg height="20px" viewBox="0 0 384 512">
-      <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"></path>
-    </svg>
-  </button>
-</div>
-<script>
-function updateClockCard() {
-  const now = new Date();
+  <script>
+document.addEventListener("DOMContentLoaded", function() {
+  let courseToDelete = null;
 
-  let hours = now.getHours();
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  const seconds = now.getSeconds().toString().padStart(2, '0');
+  // 點擊刪除按鈕 → 顯示確認視窗
+  document.querySelectorAll(".delete-course-btn").forEach(btn => {
+    btn.addEventListener("click", function() {
+      courseToDelete = this.dataset.courseId;
+      document.getElementById("custom-confirm").style.display = "flex";
+    });
+  });
 
-  const isAM = hours < 12;
-  const ampm = isAM ? "上午" : "下午";
+  // 取消刪除
+  document.getElementById("cancel-delete").addEventListener("click", function() {
+    document.getElementById("custom-confirm").style.display = "none";
+    courseToDelete = null;
+  });
 
-  hours = hours % 12 || 12; // 0點顯示為 12
+  // 點 X 關閉
+  document.getElementById("close-confirm").addEventListener("click", function() {
+    document.getElementById("custom-confirm").style.display = "none";
+    courseToDelete = null;
+  });
 
-  const timeStr = `${hours}:${minutes}:${seconds}`;
+  // 確認刪除
+  document.getElementById("confirm-delete").addEventListener("click", function() {
+    if (!courseToDelete) return;
 
-  const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
-  const dayStr = weekdays[now.getDay()];
-  const dateStr = `${dayStr}，${now.getMonth() + 1}月${now.getDate()}日`;
-
-  document.getElementById("clock-time").textContent = timeStr;
-  document.getElementById("clock-ampm").textContent = ampm;
-  document.getElementById("clock-day").textContent = dateStr;
-}
-
-setInterval(updateClockCard, 1000);
-updateClockCard(); // 頁面載入立即執行
+    fetch(`/api/delete_course/${courseToDelete}`, {
+      method: "POST"
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        // 從畫面上移除課程卡片
+        document.querySelector(`.delete-course-btn[data-course-id="${courseToDelete}"]`)
+          .closest(".col").remove();
+      } else {
+        alert(data.error || "刪除失敗");
+      }
+      document.getElementById("custom-confirm").style.display = "none";
+      courseToDelete = null;
+    })
+    .catch(err => {
+      console.error(err);
+      alert("刪除時發生錯誤");
+    });
+  });
+});
 </script>
 
-<style>
+  <div id="calendar"></div>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
+  <script src="/static/calendar.js"></script>
 
-  .card1 {
-  width: 280px;
-  height: 150px;
-  background: rgb(17, 4, 134);
-  border-radius: 15px;  display: flex;
-  color: white;
-  justify-content: center;
-  position: relative;
-  flex-direction: column;
-  background: linear-gradient(to right, rgb(20, 30, 48), rgb(36, 59, 85));
-  cursor: pointer;
-  transition: all 0.3s ease-in-out;
-  overflow: hidden;
-  bottom: 25px;
-}
+  <!-- 事件管理彈窗 -->
+  <div id="event-manager" class="card2" style="display:none;">
+    <div class="card2-content">
+      <p class="card2-heading" id="event-date-title">事件管理</p>
+      <div id="event-list"></div>
+      <hr style="border: 1px solid #ffffff; width: 100%;">
+      <input type="text" id="new-event-name" placeholder="事件名稱" style="width: 60%; padding: 5px;">
+      <select id="new-event-color" style="padding: 5px;">
+        <option value="blue">藍色</option>
+        <option value="orange">橙色</option>
+        <option value="green">綠色</option>
+        <option value="yellow">黃色</option>
+      </select>
+    </div>
+    <div class="card1-button-wrapper">
+      <button class="card-button secondary" id="cancel-event">取消</button>
+      <button class="card-button primary" id="save-event">確認</button>
+    </div>
+  </div>
 
+  <script>
+  let selectedDay = null;
+  let eventsData = [];
 
-.time-text {
-  font-size: 50px;
-  margin-top: 0px;
-  margin-left: 15px;
-  font-weight: 600;
-  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-}
+  function openEventManager(day) {
+    selectedDay = day.clone();
+    document.getElementById("event-date-title").textContent = day.format("YYYY年M月D日 事件管理");
 
-.time-sub-text {
-  font-size: 15px;
-  margin-left: 5px;
-}
+    const listContainer = document.getElementById("event-list");
+    listContainer.innerHTML = "";
 
-.day-text {
-  font-size: 18px;
-  margin-top: 0px;
-  margin-left: 15px;
-  font-weight: 500;
-  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-}
+    // 當天事件
+    const todaysEvents = eventsData.filter(ev => moment(ev.date).isSame(day, "day"));
+    if (todaysEvents.length === 0) {
+      listContainer.innerHTML = "<p style='color:#eaeaea; font-weight: bold;'>目前沒有事件</p>";
+    } else {
+      todaysEvents.forEach((ev, index) => {
+        const row = document.createElement("div");
+        row.style.marginBottom = "8px";
+        row.innerHTML = `
+          <input type="text" value="${ev.eventName}" data-index="${index}" class="edit-event-name" style="width:50%; padding: 5px;">
+          <select class="edit-event-color" data-index="${index}" style="padding: 5px;">
+            <option value="blue" ${ev.color === "blue" ? "selected" : ""}>藍色</option>
+            <option value="orange" ${ev.color === "orange" ? "selected" : ""}>橙色</option>
+            <option value="green" ${ev.color === "green" ? "selected" : ""}>綠色</option>
+            <option value="yellow" ${ev.color === "yellow" ? "selected" : ""}>黃色</option>
+          </select>
+          <button class="delete-event" data-index="${index}" style="margin-left:5px; color:red;">刪除</button>
+        `;
+        listContainer.appendChild(row);
+      });
+    }
 
-.moon {
-  font-size: 20px;
-  position: absolute;
-  right: 15px;
-  top: 15px;
-  transition: all 0.3s ease-in-out;
-}
-
-.card1:hover > .moon {
-  font-size: 23px;
-}
-
-
-  .bin-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 55px;
-    height: 55px;
-    border-radius: 15px;
-    background-color: rgb(255, 95, 95);
-    cursor: pointer;
-    border: 3px solid rgb(255, 201, 201);
-    transition-duration: 0.3s;
+    document.getElementById("event-manager").style.display = "flex";
   }
-  .bin-bottom { width: 15px; }
-  .bin-top { width: 17px; transform-origin: right; transition-duration: 0.3s; }
-  .bin-button:hover .bin-top { transform: rotate(45deg); }
-  .bin-button:hover { background-color: rgb(255, 0, 0); }
-  .bin-button:active { transform: scale(0.9); }
 
-  .col-auto.create-btn-box { margin-top: -50px; margin-right: -100px; }
-  .col-auto.create-btn-box a.btn {
+  function closeEventManager() {
+    document.getElementById("event-manager").style.display = "none";
+    selectedDay = null;
+  }
+
+  // 綁定取消
+  document.getElementById("cancel-event").onclick = closeEventManager;
+
+  document.getElementById("save-event").onclick = function() {
+    // 更新已存在的事件
+    document.querySelectorAll(".edit-event-name").forEach(input => {
+      const idx = parseInt(input.getAttribute("data-index"));
+      eventsData[idx].eventName = input.value.trim();
+    });
+    document.querySelectorAll(".edit-event-color").forEach(select => {
+      const idx = parseInt(select.getAttribute("data-index"));
+      eventsData[idx].color = select.value;
+    });
+
+    // 新增新事件
+    const name = document.getElementById("new-event-name").value.trim();
+    const color = document.getElementById("new-event-color").value;
+    if (name) {
+      eventsData.push({
+        eventName: name,
+        calendar: "Custom",
+        color: color,
+        date: selectedDay.clone()
+      });
+    }
+
+    // ✅ 同步更新日曆物件內的事件資料
+    calendarInstance.events = [...eventsData];
+
+    // 儲存到後端
+    saveEventsToServer();
+
+    // 重畫日曆（顏色點會依照新資料出現）
+    calendarInstance.draw();
+
+    closeEventManager();
+  };
+
+
+  function updateDayEventDots(day) {
+    document.querySelectorAll("#calendar .day").forEach(dayEl => {
+      const dayNum = parseInt(dayEl.querySelector(".day-number")?.textContent);
+      const isSameDay = day.date() === dayNum && day.month() === calendarInstance.current.month();
+
+      if (isSameDay) {
+        const eventsContainer = dayEl.querySelector(".day-events");
+        if (eventsContainer) {
+          eventsContainer.innerHTML = "";
+          eventsData
+            .filter(ev => moment(ev.date).isSame(day, "day"))
+            .forEach(ev => {
+              const evSpan = document.createElement("span");
+              evSpan.className = ev.color;
+              eventsContainer.appendChild(evSpan);
+            });
+        }
+      }
+    });
+  }
+
+
+
+  // 刪除事件
+  document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("delete-event")) {
+      const idx = parseInt(e.target.getAttribute("data-index"));
+      eventsData.splice(idx, 1);
+      openEventManager(selectedDay); // 刷新視窗
+    }
+  });
+
+  // 儲存到後端
+  function saveEventsToServer() {
+    fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events: eventsData })
+    });
+  }
+
+  // ------------------------ 日曆初始化 ------------------------
+  function Calendar(selector, events) {
+    this.el = document.querySelector(selector);
+    this.events = events;
+    this.current = moment().date(1);
+    this.draw();
+  }
+  Calendar.prototype.draw = function() {
+    this.el.innerHTML = "";
+    this.drawHeader();
+    this.drawMonth();
+  };
+  Calendar.prototype.drawHeader = function() {
+    const self = this;
+    const header = document.createElement("div");
+    header.className = "header";
+    const title = document.createElement("h1");
+    title.textContent = this.current.format("MMMM YYYY");
+    const right = document.createElement("div");
+    right.className = "right";
+    right.onclick = () => { self.current.add(1, "months"); self.draw(); };
+    const left = document.createElement("div");
+    left.className = "left";
+    left.onclick = () => { self.current.subtract(1, "months"); self.draw(); };
+    header.appendChild(title);
+    header.appendChild(right);
+    header.appendChild(left);
+    this.el.appendChild(header);
+  };
+  Calendar.prototype.drawMonth = function() {
+    const month = document.createElement("div");
+    month.className = "month";
+    let clone = this.current.clone();
+    while (clone.month() === this.current.month()) {
+      this.drawDay(month, clone);
+      clone.add(1, "days");
+    }
+    this.el.appendChild(month);
+  };
+  Calendar.prototype.drawDay = function(monthEl, day) {
+    const dayEl = document.createElement("div");
+    dayEl.className = "day";
+    if (day.month() !== this.current.month()) dayEl.classList.add("other");
+    if (moment().isSame(day, "day")) dayEl.classList.add("today");
+
+    const eventsHTML = document.createElement("div");
+    eventsHTML.className = "day-events";
+
+    // ✅ 渲染當天事件顏色點
+    eventsData
+      .filter(ev => moment(ev.date).isSame(day, "day"))
+      .forEach(ev => {
+        const evSpan = document.createElement("span");
+        evSpan.className = ev.color; // CSS class 設定顏色
+        eventsHTML.appendChild(evSpan);
+      });
+
+    dayEl.innerHTML = `
+      <div class="day-name">${day.format("ddd")}</div>
+      <div class="day-number">${day.format("DD")}</div>
+    `;
+    dayEl.appendChild(eventsHTML);
+
+    const thisDay = day.clone();
+    dayEl.ondblclick = () => openEventManager(thisDay);
+
+    monthEl.appendChild(dayEl);
+  };
+
+
+
+  let calendarInstance;
+
+  // 從後端載入事件
+  fetch("/api/calendar")
+    .then(res => res.json())
+    .then(events => {
+      events.forEach(ev => { ev.date = moment(ev.date); });
+      eventsData = events;
+      calendarInstance = new Calendar("#calendar", eventsData);
+    });
+  </script>
+
+
+  <script>
+    
+  function updateClockCard() {
+    const now = new Date();
+
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+
+    const isAM = hours < 12;
+    const ampm = isAM ? "上午" : "下午";
+
+    hours = hours % 12 || 12; // 0點顯示為 12
+
+    const timeStr = `${hours}:${minutes}:${seconds}`;
+
+    const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+    const dayStr = weekdays[now.getDay()];
+    const dateStr = `${dayStr}，${now.getMonth() + 1}月${now.getDate()}日`;
+
+    document.getElementById("clock-time").textContent = timeStr;
+    document.getElementById("clock-ampm").textContent = ampm;
+    document.getElementById("clock-day").textContent = dateStr;
+  }
+
+  setInterval(updateClockCard, 1000);
+  updateClockCard(); // 頁面載入立即執行
+  </script>
+
+  <style>
+
+    /* 限制日曆範圍內的 box-sizing */
+  #calendar *, 
+  #calendar *:before, 
+  #calendar *:after {
+    -moz-box-sizing: border-box; 
+    -webkit-box-sizing: border-box; 
+    box-sizing: border-box;
+  }
+
+  #calendar {
+    font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    font-weight: 100;
+    color: rgba(255, 255, 255, 1);
+    width: 600px;
+    margin: 50px auto 0 auto; /* 與上方內容保持距離 */
+    height: 450px;
+    overflow: hidden;
+    background: #ffffff00;
+    border-radius: 10px;
+  }
+
+  /* Header */
+  #calendar .header {
+    height: 50px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    text-align: center;
+    position: relative;
+    z-index: 100;
+  }
+
+  #calendar .header h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    line-height: 50px;
+    font-weight: 100;
+    letter-spacing: 1px;
+  }
+
+  #calendar .left, 
+  #calendar .right {
+    position: absolute;
+    width: 0px;
+    height: 0px;
+    border-style: solid;
+    top: 50%;
+    margin-top: -7.5px;
+    cursor: pointer;
+  }
+
+  #calendar .left {
+    border-width: 7.5px 10px 7.5px 0;
+    border-color: transparent rgba(160, 159, 160, 1) transparent transparent;
+    left: 20px;
+  }
+
+  #calendar .right {
+    border-width: 7.5px 0 7.5px 10px;
+    border-color: transparent transparent transparent rgba(160, 159, 160, 1);
+    right: 20px;
+  }
+
+  /* Month */
+  #calendar .month {
+    opacity: 1 !important;
+  }
+
+  #calendar .month.new {
+    -webkit-animation: fadeIn 1s ease-out;
+    opacity: 1;
+  }
+
+  #calendar .month.in.next {
+    -webkit-animation: moveFromTopFadeMonth .4s ease-out;
+    -moz-animation: moveFromTopFadeMonth .4s ease-out;
+    animation: moveFromTopFadeMonth .4s ease-out;
+    opacity: 1;
+  }
+
+  #calendar .month.out.next {
+    -webkit-animation: moveToTopFadeMonth .4s ease-in;
+    -moz-animation: moveToTopFadeMonth .4s ease-in;
+    animation: moveToTopFadeMonth .4s ease-in;
+    opacity: 1;
+  }
+
+  #calendar .month.in.prev {
+    -webkit-animation: moveFromBottomFadeMonth .4s ease-out;
+    -moz-animation: moveFromBottomFadeMonth .4s ease-out;
+    animation: moveFromBottomFadeMonth .4s ease-out;
+    opacity: 1;
+  }
+
+  #calendar .month.out.prev {
+    -webkit-animation: moveToBottomFadeMonth .4s ease-in;
+    -moz-animation: moveToBottomFadeMonth .4s ease-in;
+    animation: moveToBottomFadeMonth .4s ease-in;
+    opacity: 1;
+  }
+
+  /* Week & Day */
+  #calendar .week {
+    background: #4a4a4a67;
+  }
+
+  #calendar .day {
+    display: inline-block;
+    width: 60px;
+    padding: 10px;
+    text-align: center;
+    vertical-align: top;
+    cursor: pointer;
+    background: #00000060;
+    position: relative;
+    z-index: 100;
+  }
+
+  #calendar .day.other {
+    color: rgba(0, 0, 0, 0.3);
+  }
+
+  #calendar .day.today {
+    color: rgba(156, 202, 235, 1);
+  }
+
+  #calendar .day-name {
+    font-size: 9px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    color: rgba(255, 255, 255, .5);
+    letter-spacing: .7px;
+  }
+
+  #calendar .day-number {
+    font-size: 24px;
+    letter-spacing: 1.5px;
+  }
+
+  #calendar .day .day-events {
+    list-style: none;
+    margin-top: 3px;
+    text-align: center;
+    height: 12px;
+    line-height: 6px;
+    overflow: hidden;
+  }
+
+  #calendar .day .day-events span {
+    vertical-align: top;
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    width: 5px;
+    height: 5px;
+    line-height: 5px;
+    margin: 0 1px;
+  }
+
+  #calendar .blue { background: rgba(156, 202, 235, 1); }
+  #calendar .orange { background: rgba(247, 167, 0, 1); }
+  #calendar .green { background: rgba(153, 198, 109, 1); }
+  #calendar .yellow { background: rgba(249, 233, 0, 1); }
+
+  /* Details */
+  #calendar .details {
+    position: relative;
+    width: 100%;
+    height: 75px;
+    background: rgba(164, 164, 164, 1);
+    margin-top: 5px;
+    border-radius: 4px;
+  }
+
+  #calendar .details.in {
+    -webkit-animation: moveFromTopFade .5s ease both;
+    -moz-animation: moveFromTopFade .5s ease both;
+    animation: moveFromTopFade .5s ease both;
+  }
+
+  #calendar .details.out {
+    -webkit-animation: moveToTopFade .5s ease both;
+    -moz-animation: moveToTopFade .5s ease both;
+    animation: moveToTopFade .5s ease both;
+  }
+
+  #calendar .arrow {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    margin-left: -2px;
+    width: 0px;
+    height: 0px;
+    border-style: solid;
+    border-width: 0 5px 5px 5px;
+    border-color: transparent transparent rgba(164, 164, 164, 1) transparent;
+    transition: all 0.7s ease;
+  }
+
+  /* Events */
+  #calendar .events {
+    height: 75px;
+    padding: 7px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  #calendar .events.in {
+    -webkit-animation: fadeIn .3s ease both;
+    -moz-animation: fadeIn .3s ease both;
+    animation: fadeIn .3s ease both;
+  }
+
+  #calendar .details.out .events {
+    -webkit-animation: fadeOutShrink .4s ease both;
+    -moz-animation: fadeOutShink .4s ease both;
+    animation: fadeOutShink .4s ease both;
+  }
+
+  #calendar .events.out {
+    -webkit-animation: fadeOut .3s ease both;
+    -moz-animation: fadeOut .3s ease both;
+    animation: fadeOut .3s ease both;
+  }
+
+  #calendar .event {
+    font-size: 16px;
+    line-height: 22px;
+    letter-spacing: .5px;
+    padding: 2px 16px;
+    vertical-align: top;
+  }
+
+  #calendar .event.empty {
+    color: #eee;
+  }
+
+  #calendar .event-category {
+    height: 10px;
+    width: 10px;
+    display: inline-block;
+    margin: 6px 0 0;
+    vertical-align: top;
+  }
+
+  #calendar .event span {
+    display: inline-block;
+    padding: 0 0 0 7px;
+  }
+
+  /* Legend */
+  #calendar .legend {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 30px;
+    background: rgba(60, 60, 60, 0);
+    line-height: 30px;
+  }
+
+  #calendar .entry {
+    position: relative;
+    padding: 0 0 0 25px;
+    font-size: 13px;
+    display: inline-block;
+    line-height: 30px;
+    background: transparent;
+  }
+
+  #calendar .entry:after {
+    position: absolute;
+    content: '';
+    height: 5px;
+    width: 5px;
+    top: 12px;
+    left: 14px;
+  }
+
+  #calendar .entry.blue:after { background: rgba(156, 202, 235, 1); }
+  #calendar .entry.orange:after { background: rgba(247, 167, 0, 1); }
+  #calendar .entry.green:after { background: rgba(153, 198, 109, 1); }
+  #calendar .entry.yellow:after { background: rgba(249, 233, 0, 1); }
+
+  /* 動畫 */
+  @-webkit-keyframes moveFromTopFade { from { opacity: .3; height:0px; margin-top:0px; -webkit-transform: translateY(-100%); } }
+  @keyframes moveFromTopFade { from { height:0px; margin-top:0px; transform: translateY(-100%); } }
+
+  @-webkit-keyframes moveToTopFade { to { opacity: .3; height:0px; margin-top:0px; -webkit-transform: translateY(-100%); } }
+  @keyframes moveToTopFade { to { height:0px; transform: translateY(-100%); } }
+
+  @-webkit-keyframes moveToTopFadeMonth { to { opacity: 0; -webkit-transform: translateY(-30%) scale(.95); } }
+  @keyframes moveToTopFadeMonth { to { opacity: 0; transform: translateY(-30%) scale(.95); } }
+
+  @-webkit-keyframes moveFromTopFadeMonth { from { opacity: 0; -webkit-transform: translateY(30%) scale(.95); } }
+  @keyframes moveFromTopFadeMonth { from { opacity: 0; transform: translateY(30%) scale(.95); } }
+
+  @-webkit-keyframes moveToBottomFadeMonth { to { opacity: 0; -webkit-transform: translateY(30%) scale(.95); } }
+  @keyframes moveToBottomFadeMonth { to { opacity: 0; transform: translateY(30%) scale(.95); } }
+
+  @-webkit-keyframes moveFromBottomFadeMonth { from { opacity: 0; -webkit-transform: translateY(-30%) scale(.95); } }
+  @keyframes moveFromBottomFadeMonth { from { opacity: 0; transform: translateY(-30%) scale(.95); } }
+
+  @-webkit-keyframes fadeIn { from { opacity: 0; } }
+  @keyframes fadeIn { from { opacity: 0; } }
+
+  @-webkit-keyframes fadeOut { to { opacity: 0; } }
+  @keyframes fadeOut { to { opacity: 0; } }
+
+  @-webkit-keyframes fadeOutShink { to { opacity: 0; padding: 0px; height: 0px; } }
+  @keyframes fadeOutShink { to { opacity: 0; padding: 0px; height: 0px; } }
+
+    .card1 {
+    width: 250px;
+    height: 125px;
+    background: rgb(17, 4, 134);
+    border-radius: 15px;  display: flex;
+    color: white;
+    justify-content: center;
+    position: relative;
+    flex-direction: column;
+    background: linear-gradient(to right, rgba(20, 30, 48, 0.578), rgba(36, 59, 85, 0.474));
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    overflow: hidden;
+    bottom: -20px;
+  }
+
+
+  .time-text {
+    font-size: 40px;
+    margin-top: 0px;
+    margin-left: 15px;
+    font-weight: 600;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  }
+
+  .time-sub-text {
+    font-size: 15px;
+    margin-left: 5px;
+  }
+
+  .day-text {
+    font-size: 15px;
+    margin-top: 0px;
+    margin-left: 15px;
+    font-weight: 500;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  }
+
+  .moon {
+    font-size: 20px;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    transition: all 0.3s ease-in-out;
+  }
+
+  .card1:hover > .moon {
+    font-size: 23px;
+  }
+
+
+    .bin-button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 55px;
+      height: 55px;
+      border-radius: 15px;
+      background-color: rgb(255, 95, 95);
+      cursor: pointer;
+      border: 3px solid rgb(255, 201, 201);
+      transition-duration: 0.3s;
+    }
+    .bin-bottom { width: 15px; }
+    .bin-top { width: 17px; transform-origin: right; transition-duration: 0.3s; }
+    .bin-button:hover .bin-top { transform: rotate(45deg); }
+    .bin-button:hover { background-color: rgb(255, 0, 0); }
+    .bin-button:active { transform: scale(0.9); }
+
+    .col-auto.create-btn-box { margin-top: -50px; margin-right: -100px; }
+    .col-auto.create-btn-box a.btn {
+      padding: 10px 30px;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+  .create-btn-box {
+    position: absolute;
+    top: -50px;    /* 與頂部距離 */
+    right: -50px;  /* 與右側距離 */
+    margin: 0;
+    z-index: 10;  /* 確保不被背景或內容遮住 */
+  }
+  .create-btn-box a.btn {
     padding: 10px 30px;
     font-weight: bold;
     font-size: 1.1rem;
   }
-  .card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s;
-  background-color: #0000002f;
-  color: #333;
-}
-.card-body {
-  flex-grow: 1;
-  padding-bottom: 0.5rem;
-}
 
-  .card-title { font-weight: 1000 !important; }
-  .card-text {
-  max-height: 4.5em;        /* 限制最多顯示約 3 行 */
-  width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;    /* 限制顯示 3 行 */
-  -webkit-box-orient: vertical;
-}
-  .card:hover { transform: translateY(-5px); }
-.card-footer {
-  margin-top: 0;
-  padding: 0.75rem 1rem;
-  background-color: #ffffff !important;
-  font-weight: 600;
-}
-  .progress { background-color: #ffffff; }
-  .progress-bar { background-color: #007bff; }
-
-  #custom-confirm {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  
-  width: 320px;
-  max-width: 90vw;
-  height: 200px;
-  padding: 20px;
-  border-radius: 20px;
-
-  background: rgba(0, 0, 0, 0.611);  /* 半透明白底 */
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-  z-index: 9999;
-}
-
-  .card-content { width: 100%; display: flex; flex-direction: column; gap: 5px; }
-  .card-heading { font-size: 20px; font-weight: 700; color: #ffffff; }
-  .card-description { font-weight: 100; color: #ffffff; }
-  .card-button-wrapper { width: 100%; display: flex; justify-content: center; gap: 10px; }
-  .card-button { width: 50%; height: 35px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; }
-  .primary { background-color: rgb(255, 114, 109); color: white; }
-  .primary:hover { background-color: rgb(255, 73, 66); }
-  .secondary { background-color: #ddd; }
-  .secondary:hover { background-color: rgb(197, 197, 197); }
-  .exit-button { border: none; background: transparent; position: absolute; top: 20px; right: 20px; cursor: pointer; }
-  .exit-button svg { fill: rgb(175, 175, 175); }
-  .exit-button:hover svg { fill: black; }
-  
-  /* ...你原本的CSS... */
-
-  .btn-conteiner {
+    .card {
     display: flex;
-    justify-content: center;
-    --color-text: #ffffff;
-    --color-background: #007bff;
-    --color-outline: #ff145b80;
-    --color-shadow: #00000080;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s;
+    background-color: #0000002f;
+    color: #333;
+    top: 10%;
+  }
+  .card-body {
+    flex-grow: 1;
+    padding-bottom: 0.5rem;
   }
 
-  .btn-content {
-    display: flex;
-    align-items: center;
-    padding: 5px 16px;
-    text-decoration: none;
-    font-family: 'Poppins', sans-serif;
+    .card-title { font-weight: 1000 !important; }
+    .card-text {
+    max-height: 4.5em;        /* 限制最多顯示約 3 行 */
+    width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;    /* 限制顯示 3 行 */
+    -webkit-box-orient: vertical;
+  }
+    .card:hover { transform: translateY(-5px); }
+  .card-footer {
+    margin-top: 0;
+    padding: 0.75rem 1rem;
+    background-color: #ffffff !important;
     font-weight: 600;
-    font-size: 15px;
-    color: var(--color-text);
-    background: var(--color-background);
-    transition: 1s;
-    border-radius: 50px;
-    box-shadow: 0 0 0.2em 0 var(--color-background);
-    gap: 5px;
+  }
+    .progress { background-color: #ffffff; }
+    .progress-bar { background-color: #007bff; }
+
+    #custom-confirm {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    width: 320px;
+    max-width: 90vw;
+    height: 200px;
+    padding: 20px;
+    border-radius: 20px;
+
+    background: rgba(0, 0, 0, 0.611);  /* 半透明白底 */
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    z-index: 9999;
   }
 
-  .btn-content:hover, .btn-content:focus {
-    transition: 0.5s;
-    animation: btn-content 1s;
-    outline: 0.1em solid transparent;
-    outline-offset: 0.2em;
-    box-shadow: 0 0 0.4em 0 var(--color-background);
-  }
+    .card-content { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+    .card-heading { font-size: 20px; font-weight: 700; color: #ffffff; }
+    .card-description { font-weight: 100; color: #ffffff; }
+    .card-button-wrapper { width: 100%; display: flex; justify-content: center; gap: 10px; }
+    .card-button { width: 50%; height: 35px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; }
+    .primary { background-color: rgb(255, 114, 109); color: white; }
+    .primary:hover { background-color: rgb(255, 73, 66); }
+    .secondary { background-color: #ddd; }
+    .secondary:hover { background-color: rgb(197, 197, 197); }
+    .exit-button { border: none; background: transparent; position: absolute; top: 20px; right: 20px; cursor: pointer; }
+    .exit-button svg { fill: rgb(175, 175, 175); }
+    .exit-button:hover svg { fill: black; }
+    
+    /* ...你原本的CSS... */
 
-  .btn-content .icon-arrow {
-    transition: 0.5s;
-    margin-right: 0px;
-    transform: scale(0.6);
-  }
-
-  .btn-content:hover .icon-arrow {
-    margin-right: 25px;
-  }
-
-  .icon-arrow {
-    transform: scale(0.45);  
-    width: 10px;
-    margin-left: 10px;
-    position: relative;
-    top: 6%;
-  }
-
-  #arrow-icon-one {
-    transition: 0.4s;
-    transform: translateX(-60%);
-  }
-
-  #arrow-icon-two {
-    transition: 0.5s;
-    transform: translateX(-30%);
-  }
-
-  .btn-content:hover #arrow-icon-three {
-    animation: color_anim 1s infinite 0.2s;
-  }
-
-  .btn-content:hover #arrow-icon-one {
-    transform: translateX(0%);
-    animation: color_anim 1s infinite 0.6s;
-  }
-
-  .btn-content:hover #arrow-icon-two {
-    transform: translateX(0%);
-    animation: color_anim 1s infinite 0.4s;
-  }
-
-  @keyframes color_anim {
-    0% { fill: white; }
-    50% { fill: var(--color-background); }
-    100% { fill: white; }
-  }
-
-  @keyframes btn-content {
-    0% {
-      outline: 0.2em solid var(--color-background);
-      outline-offset: 0;
+    .btn-conteiner {
+      display: flex;
+      justify-content: center;
+      --color-text: #ffffff;
+      --color-background: #007bff;
+      --color-outline: #ff145b80;
+      --color-shadow: #00000080;
     }
-  }
-</style>
 
-{% endblock %}
+    .btn-content {
+      display: flex;
+      align-items: center;
+      padding: 5px 16px;
+      text-decoration: none;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--color-text);
+      background: var(--color-background);
+      transition: 1s;
+      border-radius: 50px;
+      box-shadow: 0 0 0.2em 0 var(--color-background);
+      gap: 5px;
+    }
 
-{% block scripts %}
-{{ super() }}
-<script>
-let targetDeleteId = null;
+    .btn-content:hover, .btn-content:focus {
+      transition: 0.5s;
+      animation: btn-content 1s;
+      outline: 0.1em solid transparent;
+      outline-offset: 0.2em;
+      box-shadow: 0 0 0.4em 0 var(--color-background);
+    }
 
-// 綁定點擊垃圾桶按鈕
-document.querySelectorAll(".delete-course-btn").forEach((btn) => {
-  btn.addEventListener("click", function (e) {
-    e.preventDefault();
-    targetDeleteId = btn.getAttribute("data-course-id");
-    document.getElementById("custom-confirm").style.display = "flex";
-  });
-});
+    .btn-content .icon-arrow {
+      transition: 0.5s;
+      margin-right: 0px;
+      transform: scale(0.6);
+    }
 
-function closeConfirm() {
-  document.getElementById("custom-confirm").style.display = "none";
-  targetDeleteId = null;
-}
+    .btn-content:hover .icon-arrow {
+      margin-right: 25px;
+    }
 
-document.getElementById("cancel-delete").onclick = closeConfirm;
-document.getElementById("close-confirm").onclick = closeConfirm;
+    .icon-arrow {
+      transform: scale(0.45);  
+      width: 10px;
+      margin-left: 10px;
+      position: relative;
+      top: 6%;
+    }
 
-document.getElementById("confirm-delete").onclick = function () {
-  if (!targetDeleteId) return;
-  fetch(`/api/delete_course/${targetDeleteId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.success) {
-        document.querySelector(`[data-course-id="${targetDeleteId}"]`).closest(".col").remove();
-        closeConfirm();
-        if (document.querySelectorAll(".delete-course-btn").length === 0) {
-          location.reload();
-        }
-      } else {
-        alert("刪除失敗: " + (data.error || "未知錯誤"));
+    #arrow-icon-one {
+      transition: 0.4s;
+      transform: translateX(-60%);
+    }
+
+    #arrow-icon-two {
+      transition: 0.5s;
+      transform: translateX(-30%);
+    }
+
+    .btn-content:hover #arrow-icon-three {
+      animation: color_anim 1s infinite 0.2s;
+    }
+
+    .btn-content:hover #arrow-icon-one {
+      transform: translateX(0%);
+      animation: color_anim 1s infinite 0.6s;
+    }
+
+    .btn-content:hover #arrow-icon-two {
+      transform: translateX(0%);
+      animation: color_anim 1s infinite 0.4s;
+    }
+
+    @keyframes color_anim {
+      0% { fill: white; }
+      50% { fill: var(--color-background); }
+      100% { fill: white; }
+    }
+
+    @keyframes btn-content {
+      0% {
+        outline: 0.2em solid var(--color-background);
+        outline-offset: 0;
       }
-    })
-    .catch(() => alert("刪除失敗，請稍後再試。"));
-};
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
-<script>
-  VANTA.CLOUDS({
-    el: "#vanta-bg",
-    mouseControls: true,
-    touchControls: true,
-    gyroControls: false,
-    minHeight: 200.00,
-    minWidth: 200.00,
-    backgroundColor: 0xffffff,
-    skyColor: 0x0babea,
-    cloudColor: 0xadc1de,
-    cloudShadowColor: 0x486a95,
-    sunColor: 0xf189ff,
-    sunGlareColor: 0xe36262,
-    sunlightColor: 0xff7c00,
-    speed: 1.0
+    }
+  </style>
+
+  {% endblock %}
+
+  {% block scripts %}
+  {{ super() }}
+
+  <script>
+  let selectedDay = null;
+  let eventsData = [];
+  let calendarInstance = null;
+
+  // ----------- 事件管理彈窗邏輯 -----------
+  function openEventManager(day) {
+    selectedDay = day.clone();
+    document.getElementById("event-date-title").textContent = day.format("YYYY年M月D日 事件管理");
+
+    const listContainer = document.getElementById("event-list");
+    listContainer.innerHTML = "";
+
+    const todaysEvents = eventsData.filter(ev => moment(ev.date).isSame(day, "day"));
+    if (todaysEvents.length === 0) {
+      listContainer.innerHTML = "<p style='color:#ccc;'>目前沒有事件</p>";
+    } else {
+      todaysEvents.forEach((ev, index) => {
+        const row = document.createElement("div");
+        row.style.marginBottom = "8px";
+        row.innerHTML = `
+          <input type="text" value="${ev.eventName}" data-index="${index}" class="edit-event-name" style="width:50%; padding: 5px;">
+          <select class="edit-event-color" data-index="${index}" style="padding: 5px;">
+            <option value="blue" ${ev.color === "blue" ? "selected" : ""}>藍色</option>
+            <option value="orange" ${ev.color === "orange" ? "selected" : ""}>橙色</option>
+            <option value="green" ${ev.color === "green" ? "selected" : ""}>綠色</option>
+            <option value="yellow" ${ev.color === "yellow" ? "selected" : ""}>黃色</option>
+          </select>
+          <button class="delete-event" data-index="${index}" style="margin-left:5px; color:red;">刪除</button>
+        `;
+        listContainer.appendChild(row);
+      });
+    }
+
+    document.getElementById("event-manager").style.display = "flex";
+  }
+
+  function closeEventManager() {
+    document.getElementById("event-manager").style.display = "none";
+    selectedDay = null;
+  }
+
+  document.getElementById("cancel-event").onclick = closeEventManager;
+
+  document.getElementById("save-event").onclick = function() {
+    document.querySelectorAll(".edit-event-name").forEach(input => {
+      const idx = parseInt(input.getAttribute("data-index"));
+      eventsData[idx].eventName = input.value.trim();
+    });
+    document.querySelectorAll(".edit-event-color").forEach(select => {
+      const idx = parseInt(select.getAttribute("data-index"));
+      eventsData[idx].color = select.value;
+    });
+
+    const name = document.getElementById("new-event-name").value.trim();
+    const color = document.getElementById("new-event-color").value;
+    if (name) {
+      eventsData.push({
+        eventName: name,
+        calendar: "Custom",
+        color: color,
+        date: selectedDay.clone()
+      });
+    }
+
+    saveEventsToServer();
+    closeEventManager();
+    calendarInstance.draw();
+  };
+
+  document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("delete-event")) {
+      const idx = parseInt(e.target.getAttribute("data-index"));
+      eventsData.splice(idx, 1);
+      openEventManager(selectedDay);
+    }
   });
-</script>
-{% endblock %}
+
+  function saveEventsToServer() {
+    fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events: eventsData })
+    });
+  }
+
+  // ----------- 日曆邏輯 -----------
+  function Calendar(selector, events) {
+    this.el = document.querySelector(selector);
+    this.events = events;
+    this.current = moment().date(1);
+    this.draw();
+  }
+
+  Calendar.prototype.draw = function() {
+    this.el.innerHTML = "";
+    this.drawHeader();
+    this.drawMonth();
+  };
+
+  Calendar.prototype.drawHeader = function() {
+    const self = this;
+    const header = document.createElement("div");
+    header.className = "header";
+
+    const title = document.createElement("h1");
+    title.textContent = this.current.format("MMMM YYYY");
+
+    const right = document.createElement("div");
+    right.className = "right";
+    right.onclick = () => { self.current.add(1, "months"); self.draw(); };
+
+    const left = document.createElement("div");
+    left.className = "left";
+    left.onclick = () => { self.current.subtract(1, "months"); self.draw(); };
+
+    header.appendChild(title);
+    header.appendChild(right);
+    header.appendChild(left);
+    this.el.appendChild(header);
+  };
+
+  Calendar.prototype.drawMonth = function() {
+    const month = document.createElement("div");
+    month.className = "month new"; // 修正：加上 new 顯示
+
+    let start = this.current.clone().startOf("month").startOf("week");
+    let end = this.current.clone().endOf("month").endOf("week");
+
+    while (start.isSameOrBefore(end, "day")) {
+      this.drawWeek(month, start.clone());
+      start.add(1, "week");
+    }
+
+    this.el.appendChild(month);
+  };
+
+  Calendar.prototype.drawWeek = function(monthEl, weekStart) {
+    const weekEl = document.createElement("div");
+    weekEl.className = "week";
+
+    for (let i = 0; i < 7; i++) {
+      this.drawDay(weekEl, weekStart.clone().add(i, "days"));
+    }
+
+    monthEl.appendChild(weekEl);
+  };
+
+  Calendar.prototype.drawDay = function(weekEl, day) {
+    const dayEl = document.createElement("div");
+    dayEl.className = "day";
+    if (day.month() !== this.current.month()) dayEl.classList.add("other");
+    if (moment().isSame(day, "day")) dayEl.classList.add("today");
+
+    const name = document.createElement("div");
+    name.className = "day-name";
+    name.textContent = day.format("ddd");
+
+    const number = document.createElement("div");
+    number.className = "day-number";
+    number.textContent = day.format("DD");
+
+    const eventsContainer = document.createElement("div");
+    eventsContainer.className = "day-events";
+
+    this.events
+      .filter(ev => moment(ev.date).isSame(day, "day"))
+      .forEach(ev => {
+        const evSpan = document.createElement("span");
+        evSpan.className = ev.color;
+        eventsContainer.appendChild(evSpan);
+      });
+
+    dayEl.appendChild(name);
+    dayEl.appendChild(number);
+    dayEl.appendChild(eventsContainer);
+
+    dayEl.ondblclick = () => openEventManager(day);
+
+    weekEl.appendChild(dayEl);
+  };
+
+  // ----------- 初始化日曆（確保 DOM 載入完成） -----------
+  document.addEventListener("DOMContentLoaded", function() {
+    fetch("/api/calendar")
+      .then(res => res.json())
+      .then(events => {
+        events.forEach(ev => { ev.date = moment(ev.date); });
+        eventsData = events;
+        calendarInstance = new Calendar("#calendar", eventsData);
+      });
+  });
+  </script>
+
+  <style>
+  /* 修正 .month 預設透明 */
+  #calendar .month {
+    opacity: 1;
+  }
+
+  #event-manager {
+    position: fixed;              /* 固定位置 */
+    top: 50%;                     /* 垂直置中 */
+    left: 50%;                    /* 水平置中 */
+    transform: translate(-50%, -50%);
+    z-index: 9999;                /* 確保在最上層 */
+    display: none;                /* 預設隱藏 */
+    flex-direction: column;
+    background: rgba(36, 35, 35, 0.912);
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    height: 250px;
+    max-width: 90%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  }
+
+  .card2-content {
+    color: #eaeaea;
+    font-weight: bold;
+  }
+
+  .card1-button-wrapper {
+    width: 100%; 
+    display: flex; 
+    justify-content: center; 
+    gap: 10px; 
+    margin-top: 20px;
+  }
+
+
+
+  </style>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+  <script>
+    VANTA.CLOUDS({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      backgroundColor: 0xffffff,
+      skyColor: 0x0babea,
+      cloudColor: 0xadc1de,
+      cloudShadowColor: 0x486a95,
+      sunColor: 0xf189ff,
+      sunGlareColor: 0xe36262,
+      sunlightColor: 0xff7c00,
+      speed: 1.0
+    });
+  </script>
+  {% endblock %}

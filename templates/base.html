@@ -78,10 +78,11 @@
 
       {% block content %}{% endblock %}
 
-    <div class="rag-logo">
-      <i class="fas fa-brain"></i>
-      <span>RAG System</span>
-    </div>
+  <a class="rag-logo d-flex align-items-center text-decoration-none" href="{{ url_for('index') }}">
+  <i class="fas fa-brain me-2"></i>
+  <span>RAG System</span>
+</a>
+
 
     {% if not fullscreen %}
       </div>

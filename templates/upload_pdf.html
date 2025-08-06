@@ -42,7 +42,7 @@
   .card {
     max-width: 400px;
     width: 100%;
-    background-color: rgba(0, 0, 0, 0.46);
+    background-color: rgba(0, 0, 0, 0.564);
     border-radius: 15px;
     box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.438);
     overflow-y: auto;
@@ -105,6 +105,71 @@
     color: #333;
     font-size: 1.2rem;
   }
+
+  .cssbuttons-io-button {
+  background: linear-gradient(135deg, #3a8ef5, #9603ff); /* 淺藍到深藍 */
+  color: white;
+  font-family: inherit;
+  padding: 0.35em;
+  padding-left: 1.2em;
+  font-size: 17px;
+  font-weight: bold;
+  border-radius: 0.9em;
+  border: none;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 0 1.6em -0.6em #0a1d66;
+  overflow: hidden;
+  position: relative;
+  height: 2.8em;
+  padding-right: 3.3em;
+  cursor: pointer;
+  text-decoration: none;
+  justify-content: center;
+  left: 25%;
+  top: 50%;
+}
+
+
+.cssbuttons-io-button .icon {
+  background: white;
+  margin-left: 1em;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.2em;
+  width: 2.2em;
+  border-radius: 0.7em;
+  box-shadow: 0.1em 0.1em 0.6em 0.2em #7b52b9;
+  right: 0.3em;
+  transition: all 0.3s;
+}
+
+.cssbuttons-io-button:hover .icon {
+  width: calc(100% - 0.6em);
+}
+
+.cssbuttons-io-button .icon svg {
+  width: 1.1em;
+  transition: transform 0.3s;
+  color: #7b52b9;
+}
+
+.cssbuttons-io-button:hover .icon svg {
+  transform: translateX(0.1em);
+}
+
+.cssbuttons-io-button:active .icon {
+  transform: scale(0.95);
+}
+
+.cssbuttons-io-button {
+  min-width: 180px;
+  justify-content: center;
+}
+
 </style>
 
 <!-- ✅ Vanta 背景動畫區 -->
@@ -148,6 +213,22 @@
             	上傳並開始學習
           </button>
         </div>
+        
+        <div class="d-flex justify-content-between mt-4">
+              <!-- 左側：返回課程列表 -->
+              <a href="{{ url_for('course_selection') }}" class="cssbuttons-io-button">
+                返回課程列表
+                <div class="icon">
+                  <svg height="24" width="24" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                      d="M8 13H20v-2H8l5.364-5.364L11.95 4.222 4.172 12l7.778 7.778 1.414-1.414L8 13z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </div>
+              </a>
+             </div>
       </form>
     </div>
   </div>
@@ -231,22 +312,20 @@
 </script>
 
 <!-- ✅ Vanta 背景動畫 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.net.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js"></script>
 <script>
-  VANTA.NET({
-    el: "#vanta-bg",
-    mouseControls: true,
-    touchControls: true,
-    gyroControls: false,
-    scale: 1.0,
-    scaleMobile: 1.0,
-    color: 0x5bff,
-    backgroundColor: 0x52,
-    points: 10,
-    maxDistance: 20,
-    spacing: 15,
-    showDots: true
-  });
+  VANTA.TOPOLOGY({
+  el: "#vanta-bg",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00,
+  color: 0x5402ff,
+  backgroundColor: 0x4102c
+})
 </script>
 {% endblock %}

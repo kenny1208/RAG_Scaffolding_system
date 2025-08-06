@@ -82,10 +82,10 @@
 
     <div class="card">
       <div class="card-body">
-        <h2 class="card-title mb-4">{{ current_module.title }}</h2>
-        <p class="lead mb-4">{{ current_module.description }}</p>
-
-        <div class="module-content markdown-body mb-4">
+        <div
+          class="module-content markdown-body mb-4"
+          data-markdown="{{ current_module.content|e }}"
+        >
           {{ current_module.content|safe }}
         </div>
 
@@ -352,8 +352,17 @@
     function initializeModuleContent() {
       const moduleContentElement = document.querySelector(".module-content");
       if (moduleContentElement) {
-        const markdownContent = moduleContentElement.textContent;
-        moduleContentElement.innerHTML = marked.parse(markdownContent);
+        // Get the original markdown content from the data attribute
+        const originalMarkdown =
+          moduleContentElement.getAttribute("data-markdown");
+        if (originalMarkdown) {
+          // Use the original markdown content for parsing
+          moduleContentElement.innerHTML = marked.parse(originalMarkdown);
+        } else {
+          // Fallback to textContent if data-markdown is not available
+          const markdownContent = moduleContentElement.textContent;
+          moduleContentElement.innerHTML = marked.parse(markdownContent);
+        }
 
         // 1. 先把 mermaid code block 轉成 <div class="mermaid">...</div>
         moduleContentElement.innerHTML = moduleContentElement.innerHTML.replace(
