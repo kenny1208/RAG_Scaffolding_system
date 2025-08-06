@@ -354,7 +354,7 @@ def create_pretest(session_id, topic=""):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
+        model="gemini-2.5-flash-lite"
     )
     
     prompt = ChatPromptTemplate.from_messages([
@@ -535,7 +535,7 @@ def generate_learning_path(session_id, profile, test_results):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
+        model="gemini-2.5-flash-lite"
     )
     
     # Get student requirements if they exist
@@ -736,7 +736,7 @@ def generate_module_content(session_id, module, profile):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash"
+        model="gemini-2.5-flash-lite"
     )
     
     # Get module topic and content scope
@@ -811,10 +811,23 @@ def generate_module_content(session_id, module, profile):
         根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
         
         重要：您必須專注於此章節的特定內容範圍，不要重複涵蓋其他章節的內容。
+                      
+        【學習風格呈現指引】請根據學生的學習風格，明顯調整內容：
+        
+        Active（主動型）：設計互動活動、討論題、實作步驟，內容多用「你可以試試...」、「請動手操作...」等語句。
+        Reflective（反思型）：多用自我檢查、反思問題、摘要與筆記，內容多用「請思考...」、「你可以回顧...」等語句。
+        Sensing（感覺型）：強調實際案例、細節、步驟，內容多用「舉例來說...」、「實際應用...」等語句。
+        Intuitive（直覺型）：強調理論、概念、創新思考，內容多用「背後原理是...」、「你可以延伸思考...」等語句。
+        Visual（視覺型）：大量使用圖表、流程圖、結構化筆記（可用 markdown/mermaid），內容多用「請參考下圖...」等語句。
+        Verbal（語言型）：多用文字說明、討論與口語表達，避免圖例，內容多用「用文字描述...」、「請討論...」等語句。
+        Sequential（循序型）：內容有明確步驟、條列、循序漸進。
+        Global（整體型）：先給全貌與大方向，再細分章節，強調章節間的關聯。
+
+        請務必讓內容風格明顯反映學生的學習風格（{learning_style}），讓不同風格的學生拿到的內容有明顯差異。
         
         您的內容應該：
         1. 專注於章節的特定內容範圍：{content_scope}
-        2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(label 內禁止使用括號或分號)
+        2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(mermaid語法中label 內禁止使用括號或分號，並且禁止使用中文)
         4. 包含清晰的關鍵概念解釋
         6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
            高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
@@ -965,7 +978,7 @@ def simulate_peer_discussion(session_id, topic, message):
     ])
     
     output_parser = StrOutputParser()
-    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.0-flash-lite")
+    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.5-flash-lite")
     
     # HyDE prompt template
     hyde_prompt = ChatPromptTemplate.from_template(
@@ -1051,7 +1064,7 @@ def create_posttest(session_id, module, profile):
     
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
+        model="gemini-2.5-flash-lite"
     )
     
     # Get module topic and content scope
@@ -1250,7 +1263,7 @@ def analyze_learning_log(student_name, topic, log_content):
     """Analyze a student's learning log"""
     chat_model = ChatGoogleGenerativeAI(
         google_api_key=api_key,
-        model="gemini-2.0-flash-lite"
+        model="gemini-2.5-flash-lite"
     )
     
     prompt = ChatPromptTemplate.from_messages([
@@ -1376,7 +1389,7 @@ def get_detailed_explanation_for_wrong_question(session_id, wrong_question, modu
     ])
     
     output_parser = StrOutputParser()
-    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.0-flash-lite")
+    chat_model = ChatGoogleGenerativeAI(google_api_key=api_key, model="gemini-2.5-flash-lite")
     
     # HyDE prompt template
     hyde_prompt = ChatPromptTemplate.from_template(
@@ -2546,7 +2559,7 @@ def discuss_learning_path():
         try:
             chat_model = ChatGoogleGenerativeAI(
                 google_api_key=api_key,
-                model="gemini-2.0-flash-lite"
+                model="gemini-2.5-flash-lite"
             )
             break
         except Exception as e:
