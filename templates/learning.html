@@ -1,4 +1,8 @@
 {% extends "base.html" %} {% block content %}
+
+<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+
+
 <div
   class="row"
   id="learning-page"
@@ -8,7 +12,7 @@
   <div class="col-md-3">
     <div class="card">
       <div class="card-body">
-        <h3 class="h5 mb-3">學習進度</h3>
+        <h3 class="h5 mb-3" style="font-weight: bold;">學習進度</h3>
         <div class="progress mb-3">
           <div
             class="progress-bar"
@@ -21,7 +25,7 @@
           </div>
         </div>
 
-        <h4 class="h6 mb-2 mt-4">當前鷹架等級</h4>
+        <h4 class="h6 mb-2 mt-4" style="font-weight: bold;">當前鷹架等級</h4>
         <div
           class="alert alert-info d-flex align-items-center"
           data-bs-toggle="tooltip"
@@ -32,7 +36,7 @@
           <strong class="me-2">{{ scaffolding_info.label }}</strong>
         </div>
 
-        <h4 class="h6 mb-2 mt-4">學習風格</h4>
+        <h4 class="h6 mb-2 mt-4" style="font-weight: bold;">學習風格</h4>
         <div
           class="alert alert-success d-flex align-items-center"
           data-bs-toggle="tooltip"
@@ -176,8 +180,8 @@
     <!-- Test Section (Hidden by default) -->
     <div class="card mt-4" id="test-section" style="display: none">
       <div class="card-body">
-        <h3 class="h5 mb-3">Module Test</h3>
-        <div id="test-questions"></div>
+        <h3 class="h5 mb-3" style="font-weight: bold;">Module Test</h3>
+        <div id="test-questions" class=""></div>
 
         <div class="d-grid gap-2">
           <button class="btn btn-primary" id="submit-test">
@@ -647,7 +651,7 @@
                 <div class="mb-3">
                   <p><strong>問題 ${idx + 1}:</strong> ${result.question}</p>
                   <p>你的答案: ${result.student_answer} ${
-                    result.is_correct ? "✓" : "✗"
+                    result.is_correct ? "✅" : "❌"
                   }</p>
                   <p>正確答案: ${result.correct_answer}</p>
                   <p>解釋: ${result.explanation}</p>
@@ -1082,6 +1086,108 @@
 </script>
 
 <style>
+
+  /*------------------------------------left----------------------------------*/
+  .col-md-3 .card {
+    background-color: #00000096;
+    color: #ffff;
+    border-radius: 25px;
+    top: 50px;
+    font-weight: bold;
+  }
+
+  .col-md-3 .progress {
+    background-color: #00000082 !important; /* 深灰背景（進度條底色） */
+  }
+  
+  .col-md-3 .progress-bar {
+    background-color: #00aaff !important; /* 灰色進度條本體 */
+  }
+
+  .alert-info {
+    background-color: #2aa6db !important; /* 黑色背景 */
+    color: #fff !important;            /* 白色文字 */
+    border-color: #666 !important;  
+  }
+
+  .alert-success {
+    background-color: #5ae37a !important; /* 黑色背景 */
+    color: #fff !important;            /* 白色文字 */
+    border-color: #666 !important;  
+  }
+
+  .alert-warning {
+    background-color: #e35a5a !important; /* 黑色背景 */
+    color: #fff !important;            /* 白色文字 */
+    border-color: #666 !important;  
+  }
+  
+  /* 改章節列表項目顏色 */
+  .list-group-item {
+    background-color: #5b9fbe !important; /* 黑色背景 */
+    color: #ffffff  !important;            /* 白色文字 */
+    border: 1px solid #444 !important; /* 深灰邊框 */
+  }
+
+  /* 當前章節（active）顏色 */
+  .list-group-item.active {
+    background-color: #ffab2c !important; /* 深灰背景 */
+    color: #fff !important;            /* 白色文字 */
+    border-color: #666 !important;     /* 淺灰邊框 */
+  }
+
+/*----------------------------------right------------------------------------*/
+ .col-md-9 .card {
+    background-color: #00000096;
+    color: #ffff;
+    border-radius: 25px;
+    top: 50px;
+    font-weight: bold;
+ }
+
+ .mermaid {
+    background-color: #fffdfd96;
+    border-radius: 10px;
+ }
+
+ /* 輸入框黑底白字 */
+.form-control {
+  background-color: #0000006a !important; /* 黑色背景 */
+  color: #fff !important;            /* 白色文字 */
+  border: 1px solid #444;             /* 深灰邊框 */
+}
+
+/* 改變輸入框 placeholder 顏色 */
+.form-control::placeholder {
+  color: #aaa; /* 淺灰色 placeholder */
+}
+
+/* 輸入框在 focus 狀態下的效果 */
+.form-control:focus {
+  background-color: #0000007a !important; /* 保持黑底 */
+  color: #fff !important;
+  border-color: #666;                /* 聚焦時邊框顏色 */
+  box-shadow: none;                  /* 移除 Bootstrap 藍色外框 */
+}
+
+.questions {
+  font-size: 3rem;
+}
+
+.alert .alert-info .mb-3{
+  background-color: #172547 !important; /* 黑色背景 */
+  color: #fff !important;            /* 白色文字 */
+  border: 1px solid #444 !important; /* 深灰邊框 */
+}
+
+/* 提示框內所有文字白色 */
+.alert-info * {
+  color: #fff !important;
+  font-weight: bold;
+}
+
+/*----------------------------------------------------------------------*/
+
   .message {
     padding: 10px 15px;
     margin-bottom: 10px;
@@ -1090,13 +1196,13 @@
   }
 
   .bot-message {
-    background-color: #f0f0f0;
-    margin-right: auto;
+    background-color: #0099ff !important; /* 比純黑稍微亮一點，區分內容 */
+    color: #fff !important;
   }
 
   .user-message {
-    background-color: #007bff;
-    color: white;
+    background-color: #6a00ff !important;
+    color: #fff !important;
     margin-left: auto;
   }
 
@@ -1203,9 +1309,9 @@
 
   /* Detailed explanation styles */
   .detailed-explanation-content {
-    background-color: #f8f9fa;
+    background-color: #00000085;
     padding: 1rem;
-    border-radius: 0.25rem;
+    border-radius: 10px;
     border-left: 4px solid #28a745;
     margin: 0.5rem 0;
   }
@@ -1219,7 +1325,7 @@
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
-    color: #495057;
+    color: #ffffff;
   }
 
   .detailed-explanation-content h1 {
@@ -1277,7 +1383,7 @@
 
   .detailed-explanation-content strong {
     font-weight: 600;
-    color: #495057;
+    color: #ffffff;
   }
 
   .detailed-explanation-content em {
@@ -1295,4 +1401,25 @@
     margin-left: 0.5rem;
   }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0x0babea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
+  });
+</script>
 {% endblock %}

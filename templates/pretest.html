@@ -1,4 +1,8 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} 
+
+{% block content %}
+<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+
 <div class="row justify-content-center">
   <div class="col-md-8">
     <div class="card">
@@ -6,25 +10,32 @@
         <h2 class="card-title text-center mb-4">{{ pretest.title }}</h2>
         <p class="lead text-center mb-4">{{ pretest.description }}</p>
 
+        <!-- ✅ 倒數計時器 -->
+        <div id="timer-box-pretest">
+          <span id="countdown-pretest">02:00</span>
+        </div>
+
         <form id="pretest-form">
           {% for question in pretest.questions %} {% set question_index =
           loop.index0 %}
           <div class="mb-4">
             <h3 class="h5 mb-3">{{ loop.index }}. {{ question.question }}</h3>
-            <div class="list-group">
+
+            <div class="radio-input">
               {% for choice in question.choices %}
-              <label class="list-group-item">
+              <label class="label">
                 <input
-                  class="form-check-input me-2"
                   type="radio"
                   name="question_{{ question_index }}"
                   value="{{ choice[0] }}"
                   required
                 />
-                {{ choice }}
+                <p class="text">{{ choice }}</p>
               </label>
               {% endfor %}
             </div>
+
+
           </div>
           {% endfor %}
 
@@ -47,7 +58,7 @@
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="resultsModalLabel">測驗結果</h5>
+                <h5 class="modal-title" id="resultsModalLabel" style="font-weight: bold;">測驗結果</h5>
                 <button
                   type="button"
                   class="btn-close"
@@ -74,7 +85,198 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block scripts %}
+
+<style>
+  .card {
+    background-color: transparent !important; /* 移除白底 */
+    border: none !important;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .card-body {  
+    background-color: #00000079 !important; /* 黑色卡片內容 */
+    color: #fff !important;           /* 白色文字 */
+    background: none; /* 移除內層背景 */
+  }
+
+  .modal-content {
+  background-color: #000000b6 !important; /* 深藍色 */
+  color: #fff !important; /* 文字白色 */
+  }
+
+  /* 如果要保證裡面所有字都變白 */
+  .modal-content * {
+    color: #fff !important;
+  }
+
+  .alert-info {
+  background-color: #000040c0 !important; /* 深藍色 */
+  color: #fff !important; /* 白色文字 */
+  border: none; /* 移除邊框 */
+  border-radius: 10px; /* 圓角 */
+  }
+
+  .alert-info .alert-heading {
+    color: #fff !important;
+  }
+
+  .result-card {
+  background-color: #01013cb0 !important; 
+  color: #fff !important; /* 白色文字 */
+}
+
+/* 如果想讓卡片內的文字也全部變白 */
+.result-card .card-body * {
+  color: #fff !important;
+}
+
+  .card-body h2,
+  .card-body h3,
+  .card-body label,
+  .card-body .list-group-item,
+  .card-body .btn {
+    color: #fff !important;
+  }
+
+  .list-group-item {
+    background-color: transparent;
+    border: 1px solid #fff;
+  }
+
+  .form-check-input {
+    accent-color: #0d6efd; /* 藍色 radio 勾選 */
+  }
+
+  #timer-box-pretest {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: 25px;
+  font-weight: bold;
+  z-index: 9999;
+  box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+
+#countdown-pretest {
+  font-family: 'Courier New', monospace;
+}
+
+#countdown-pretest.timeout {
+  color: #00ff00;
+  text-shadow: 0 0 8px #00ff00;
+}
+
+.radio-input {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 選項間距 */
+}
+
+.radio-input * {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+.radio-input label {
+  display: flex;
+  align-items: center; /* ✅ 垂直置中 */
+  gap: 15px;
+  padding: 12px 20px;
+  width: 100%;
+  max-width: 100%;
+  cursor: pointer;
+  min-height: 60px;
+  position: relative;
+  border-radius: 10px;
+  word-break: break-word;
+  line-height: 1.5;
+  z-index: 1;
+}
+
+.radio-input label::before {
+  position: absolute;
+  content: "";
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 10px);
+  height: calc(100% - 8px);
+  z-index: -1;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  border-radius: 10px;
+  border: 2px solid transparent;
+}
+
+.radio-input label:hover::before {
+  transition: all 0.2s ease;
+  background-color: #00a2ff68;
+}
+
+.radio-input .label:has(input:checked)::before {
+  background-color: #00a2ff68;
+  border-color:  #0089d86f;
+}
+
+.radio-input .label .text {
+  color: #fff;
+  font-size: 1.1rem;
+  flex: 1; /* ✅ 讓文字佔滿剩餘空間，便於對齊 */
+}
+
+.radio-input .label input[type="radio"] {
+  background-color: #202030;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0; /* ✅ 不讓圓圈縮小 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.radio-input .label input[type="radio"]:checked {
+  background-color: #435dd8;
+  animation: pulse 0.7s forwards;
+}
+
+.radio-input .label input[type="radio"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.1s cubic-bezier(0.165, 0.84, 0.44, 1);
+  background-color: #fff;
+  transform: scale(0);
+}
+
+.radio-input .label input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+</style>
+
+{% endblock %} 
+
+{% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("pretest-form");
@@ -131,7 +333,7 @@
               : "bg-danger-subtle";
 
             resultsHtml += `
-              <div class="card mb-3 ${bgClass}">
+              <div class="card mb-3 result-card ${bgClass}">
                 <div class="card-body">
                   <h5 class="card-title">第 ${index + 1} 題 ${icon}</h5>
                   <p class="card-text">${result.question}</p>
@@ -177,5 +379,59 @@
     });
   });
 </script>
+
+<script>
+  // ✅ 設定計時秒數（例：120 秒 = 2 分鐘）
+let durationPretest = 1;
+const countdownPretest = document.getElementById("countdown-pretest");
+const submitBtnPretest = document.querySelector(".d-grid button");
+
+// 預設按鈕禁用
+submitBtnPretest.disabled = true;
+
+function updateTimerPretest() {
+  const minutes = Math.floor(durationPretest / 60);
+  const seconds = durationPretest % 60;
+
+  countdownPretest.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+  if (durationPretest <= 0) {
+    clearInterval(timerPretest);
+    countdownPretest.textContent = '00:00';
+    countdownPretest.classList.add('timeout');
+
+    // ✅ 啟用提交按鈕
+    submitBtnPretest.disabled = false;
+  } else {
+    durationPretest--;
+  }
+}
+
+updateTimerPretest();
+const timerPretest = setInterval(updateTimerPretest, 1000);
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+  <script>
+    VANTA.CLOUDS({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      backgroundColor: 0xffffff,
+      skyColor: 0x0babea,
+      cloudColor: 0xadc1de,
+      cloudShadowColor: 0x486a95,
+      sunColor: 0xf189ff,
+      sunGlareColor: 0xe36262,
+      sunlightColor: 0xff7c00,
+      speed: 1.0
+    });
+  </script>
+
 {% endblock %}
 <!-- 註解-->

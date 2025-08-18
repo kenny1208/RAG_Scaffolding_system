@@ -1,4 +1,7 @@
 {% extends "base.html" %} {% block content %}
+
+<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+
 <div class="container mt-5">
   <h2>學習總結</h2>
   <p>學員：{{ student_profile.name }}</p>
@@ -6,7 +9,7 @@
 
   <div class="card mb-4">
     <div class="card-header">
-      <h4>學習歷程</h4>
+      <h4 style="text-align: center;">學習歷程</h4>
     </div>
     <div class="card-body">
       {% if logs %}
@@ -29,7 +32,7 @@
 
   <div class="card mb-4">
     <div class="card-header">
-      <h4>學習成績</h4>
+      <h4 style="text-align: center;">學習成績</h4>
     </div>
     <div class="card-body">
       {% if learning_history %}
@@ -59,4 +62,46 @@
     <a href="{{ url_for('index') }}" class="btn btn-secondary">結束學習</a>
   </div>
 </div>
+
+<style>
+  p {
+    font-weight: bold;
+  }
+
+  .card {
+    background-color: rgba(0, 0, 0, 0.567);
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .list-group-item {
+    background-color: rgba(0, 0, 0, 0.329);
+    border-color: black;
+    color: #fff;
+    font-weight: bold;
+  }
+
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0x0babea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
+  });
+</script>
+
 {% endblock %}

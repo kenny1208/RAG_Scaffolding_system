@@ -1,4 +1,7 @@
 {% extends "base.html" %} {% block content %}
+
+<div id="vanta-bg" style="position: fixed; width: 100%; height: 100%; z-index: -1; top: 0; left: 0;"></div>
+
 <div class="row justify-content-center">
   <div class="col-md-8">
     <div class="card mb-4">
@@ -76,7 +79,66 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block scripts %}
+
+<style>
+.card{
+  background-color: #0000007d !important; /* 黑色背景 */
+  color: #fff !important; /* 白色文字 */
+  border-radius: 20px;
+}
+
+/* 確保內部所有文字都是白色 */
+.card * {
+  color: #fff !important;
+}
+
+/* 調整聊天訊息的背景也變黑 */
+.bot-message {
+  background-color: #0099ff !important; /* 比純黑稍微亮一點，區分內容 */
+  color: #fff !important;
+}
+
+.user-message {
+  background-color: #6a00ff !important;
+  color: #fff !important;
+}
+
+/* 列表與模組項目也改為黑底白字 */
+.list-group-item {
+  background-color: #006eff00 !important;
+  color: #fff !important;
+  border: 1px solid #444; /* 稍微加個灰色邊界 */
+}
+
+.input-group {
+  color: #00000082;
+}
+
+/* 輸入框黑底白字 */
+.form-control {
+  background-color: #0000006a !important; /* 黑色背景 */
+  color: #fff !important;            /* 白色文字 */
+  border: 1px solid #444;             /* 深灰邊框 */
+}
+
+/* 改變輸入框 placeholder 顏色 */
+.form-control::placeholder {
+  color: #aaa; /* 淺灰色 placeholder */
+}
+
+/* 輸入框在 focus 狀態下的效果 */
+.form-control:focus {
+  background-color: #0000007a !important; /* 保持黑底 */
+  color: #fff !important;
+  border-color: #666;                /* 聚焦時邊框顏色 */
+  box-shadow: none;                  /* 移除 Bootstrap 藍色外框 */
+}
+
+</style>
+
+{% endblock %} 
+
+{% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const messageInput = document.getElementById("message-input");
@@ -238,4 +300,28 @@
     padding: 15px;
   }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tengbao/vanta@latest/dist/vanta.clouds.min.js"></script>
+<script>
+  VANTA.CLOUDS({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    backgroundColor: 0xffffff,
+    skyColor: 0x0babea,
+    cloudColor: 0xadc1de,
+    cloudShadowColor: 0x486a95,
+    sunColor: 0xf189ff,
+    sunGlareColor: 0xe36262,
+    sunlightColor: 0xff7c00,
+    speed: 1.0
+  });
+</script>
+
 {% endblock %}
+
+
