@@ -818,7 +818,7 @@ def generate_module_content(session_id, module, profile):
             learning_style_instructions.append("Intuitive（直覺型）: 請設計一段富含抽象思考與理論推理的教材，包含：背後理論或概念架構說明，引導延伸思考與推論（如「如果 X 改變會發生什麼？」），使用探究語句（如：「原理是…」、「請延伸思考…」）")
         
         if visual_vs_verbal == "Visual":
-            learning_style_instructions.append("Visual（視覺型）: 請設計圖像導向的教材段落，包含：流程圖，表格，或其他圖例，都使用markdown或者mermaid語法顯示(mermaid語法中label 內禁止使用括號或分號，並且禁止使用中文)，搭配文字使用語句提示（如：「請參考下圖…」），圖像需為該主題的核心解釋工具，而非裝飾")
+            learning_style_instructions.append("Visual（視覺型）: 請設計圖像導向的教材段落，包含：流程圖，表格，或其他圖例，都使用markdown或者mermaid語法顯示(Mermaid 圖表強制規則：嚴禁使用中文、特殊字符、括號、分號、HTML 標籤，必須使用下劃線連接的簡潔英文標籤)，搭配文字使用語句提示（如：「請參考下圖…」），圖像需為該主題的核心解釋工具，而非裝飾")
         else:
             learning_style_instructions.append("Verbal（語言型）: 請設計文字導向的段落，包含：使用完整文字描述概念與步驟，引導學生使用語言（內心口語或書面）來說明所學，使用語句如：「請用文字描述…」、「請撰寫…」")
         
@@ -877,7 +877,8 @@ def generate_module_content(session_id, module, profile):
         使用markdown格式化您的內容，以提高可讀性，並且不需要輸出你的回覆，只需要輸出內容。規定開頭格式如下(務必遵守以下格式)： 
         "\n\n### (章節名稱)\n\n**學習目標**\n*   
         
-        【重要提醒】：請務必包含資料來源標註，並且必須符合格式，這是必須的格式要求。
+        【重要提醒】：請務必包含資料來源標註，並且必須符合格式，[來源: 檔名.pdf, 頁碼: X]，X只能有一個數字
+        【強制要求】Mermaid 圖表強制規則：嚴禁使用中文、特殊字符、括號、分號、HTML 標籤，必須使用下劃線連接的簡潔英文標籤，違反任一規則將導致圖表無法顯示。
         """),
         HumanMessagePromptTemplate.from_template("""為以下內容創建教育內容：
         
