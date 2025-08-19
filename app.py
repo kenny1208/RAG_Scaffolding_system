@@ -2910,6 +2910,52 @@ def learning_style_survey():
     questions = load_questions()
     return render_template("learning_style_survey.html", questions=questions)
 
+@app.route('/api/regenerate-module-content/<int:module_index>', methods=['POST'])
+def regenerate_module_content(module_index):
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
+    
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+    
+    # Check if course has learning path
+    if not course.learning_path:
+        return jsonify({'error': 'No learning path found'}), 400
+    
+    if module_index >= len(course.learning_path['modules']):
+        return jsonify({'error': 'Invalid module index'}), 400
+    
+    module = course.learning_path['modules'][module_index]
+    
+    try:
+        # Get student profile for regeneration
+        profile = get_student_profile(session['student_id'])
+        if not profile:
+            return jsonify({'error': 'Student profile not found'}), 400
+        
+        # Regenerate module content
+        new_content = generate_module_content(course.session_id, module, profile)
+        
+        # Update the module content
+        module['content'] = new_content
+        
+        # Save updated course profile
+        save_course_profile(course)
+        
+        return jsonify({
+            'success': True,
+            'content': new_content,
+            'message': 'Module content regenerated successfully'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error regenerating module content: {str(e)}")
+        return jsonify({
+            'error': f'重新生成章節內容時發生錯誤: {str(e)}'
+        }), 500
+
 @app.route('/api/wrong-questions-stats', methods=['GET'])
 def get_wrong_questions_stats():
     """Get statistics about wrong questions"""
