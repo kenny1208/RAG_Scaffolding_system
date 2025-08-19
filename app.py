@@ -73,7 +73,7 @@ class LearningPath(BaseModel):
 class StudentProfile(BaseModel):
     id: str = Field(description="Unique student ID")
     name: str = Field(description="Student name")
-    felder_silverman_profile: Optional[List[str]] = Field(default=None, description="Detailed Felder-Silverman learning style profile")
+    felder_silverman_profile: Optional[Dict[str, Any]] = Field(default=None, description="Detailed Felder-Silverman learning style profile")
     courses: List[str] = Field(default_factory=list, description="List of course IDs the student is enrolled in")
     created_at: str = Field(default_factory=lambda: datetime.datetime.now().isoformat(), description="Profile creation timestamp")
     current_knowledge_level: str = Field(description="Beginner, intermediate, or advanced")
@@ -609,7 +609,7 @@ def generate_learning_path(session_id, profile, test_results):
     # Format profile and test results
     profile_json = json.dumps({
         "name": student_profile.name if student_profile else "Student",
-        "learning_style": ", ".join(student_profile.felder_silverman_profile) if student_profile and student_profile.felder_silverman_profile else "未完成學習風格問卷",
+        "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile and student_profile.felder_silverman_profile else "未完成學習風格問卷",
         "current_knowledge_level": profile.current_knowledge_level
     })
     
@@ -797,10 +797,7 @@ def generate_module_content(session_id, module, profile):
         )
 
     # 這裡定義 learning_style 變數
-    if profile.felder_silverman_profile:
-        learning_style = ", ".join(profile.felder_silverman_profile)
-    else:
-        learning_style = "未完成學習風格問卷"
+    learning_style = json.dumps(profile.felder_silverman_profile) if profile.felder_silverman_profile else "未完成學習風格問卷"
     print("DEBUG learning_style:", learning_style)
     print("content_scope:", content_scope)
     print("learning_outcomes:", learning_outcomes)
@@ -814,64 +811,25 @@ def generate_module_content(session_id, module, profile):
         根據章節的特定內容範圍和學生的學習風格、知識水平，創造引人入勝的教育內容。
         
         重要：您必須專注於此章節的特定內容範圍，不要重複涵蓋其他章節的內容。
+                      
+        【學習風格呈現指引】請根據學生的學習風格，明顯調整內容：
+        
+        Active（主動型）：設計互動活動、討論題、實作步驟，內容多用「你可以試試...」、「請動手操作...」等語句。
+        Reflective（反思型）：多用自我檢查、反思問題、摘要與筆記，內容多用「請思考...」、「你可以回顧...」等語句。
+        Sensing（感覺型）：強調實際案例、細節、步驟，內容多用「舉例來說...」、「實際應用...」等語句。
+        Intuitive（直覺型）：強調理論、概念、創新思考，內容多用「背後原理是...」、「你可以延伸思考...」等語句。
+        Visual（視覺型）：大量使用圖表、流程圖、結構化筆記（可用 markdown/mermaid），內容多用「請參考下圖...」等語句。
+        Verbal（語言型）：多用文字說明、討論與口語表達，避免圖例，內容多用「用文字描述...」、「請討論...」等語句。
+        Sequential（循序型）：內容有明確步驟、條列、循序漸進。
+        Global（整體型）：先給全貌與大方向，再細分章節，強調章節間的關聯。
 
+        請務必讓內容風格明顯反映學生的學習風格（{learning_style}），讓不同風格的學生拿到的內容有明顯差異。
         
         您的內容應該：
         1. 專注於章節的特定內容範圍：{content_scope}
-        2. 針對學生的Felder-Silverman 學習風格模型{learning_style}生成風格導向的教材段落。每個指標滿足以下三個評估指標。請嚴格依據對應語氣與設計特徵來撰寫內容：
-
-        Active（主動型）
-        請設計符合以下三項特徵的段落（以個人實作為導向）：
-        包含可單人操作的實作任務
-        使用明確行動語句（例如：「請試著操作以下步驟…」、「你可以親自實作看看…」）
-        包含可立即執行的練習任務（如填空、排序、簡單模擬）(必須附上答案)
-
-        Reflective（反思型）
-        請設計包含以下特徵的段落，引導學生內省與整理思考：
-        提出反思問題或自我檢查問題
-        引導學生撰寫摘要、筆記或自我理解
-        使用內省語句（如：「請思考一下…」、「你可以回顧剛剛的內容…」）
-
-        Sensing（感覺型）
-        請設計一段重視實際與具體細節的教材，包含：
-        真實或具體案例說明
-        明確條列的操作步驟與數據（如流程、表格）
-        強調實用性或應用場景（如「在真實生活中會如何應用」）
-
-        Intuitive（直覺型）
-        請設計一段富含抽象思考與理論推理的教材，包含：
-        背後理論或概念架構說明
-        引導延伸思考與推論（如「如果 X 改變會發生什麼？」）
-        使用探究語句（如：「原理是…」、「請延伸思考…」）
-
-        Visual（視覺型）
-        請設計圖像導向的教材段落，包含：
-        流程圖，表格，或其他圖例，都使用markdown或者mermaid語法顯示(mermaid語法中label 內禁止使用括號或分號，並且禁止使用中文)
-        搭配文字使用語句提示（如：「請參考下圖…」）
-        圖像需為該主題的核心解釋工具，而非裝飾
-
-        Verbal（語言型）
-        請設計文字導向的段落，包含：
-        使用完整文字描述概念與步驟
-        引導學生使用語言（內心口語或書面）來說明所學
-        使用語句如：「請用文字描述…」、「請撰寫…」
-
-        Sequential（循序型）
-        請設計一段「由簡入深、步驟分明」的教材，包含：
-        條列清楚步驟（如 步驟一、步驟二）
-        教材內容必須由淺入深，逐步推進概念
-        使用提示語（如：「接著你將學到…」、「完成此步驟後…」）
-
-        Global（整體型）
-        請設計一段具「大局觀」導向的教材，包含：
-        開頭即說明主題全貌或學習地圖
-        說明此主題與其他章節或概念的關聯性
-        鼓勵非線性學習路徑或串連式理解（如：「你也可以從任一章節開始探索」）。
-        
-        在有用到學習風格的時候，請務必在內容中明確標註出來。
-
-        3. 包含清晰的關鍵概念解釋
-        4. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
+        2. 針對學生的學習風格進行量身定制{learning_style}(如果需要圖例，請使用markdown或者mermaid語法顯示)(mermaid語法中label 內禁止使用括號或分號，並且禁止使用中文)
+        4. 包含清晰的關鍵概念解釋
+        6. 根據鷹架支持程度 ({scaffolding_level}) 調整內容：
            高鷹架支持：提供詳細的步驟說明、更多例子、提示和引導性問題
            中鷹架支持：提供適中的解釋和例子，加入一些思考問題
            低鷹架支持：提供基本概念，鼓勵自主探索和思考
@@ -1894,7 +1852,7 @@ def learning():
             "Global": "整體"
         }
         
-        for value in style_profile:
+        for key, value in style_profile.items():
             if value in style_mapping:
                 style_parts.append(style_mapping[value])
         
@@ -2656,7 +2614,7 @@ def discuss_learning_path():
         | (lambda _: {
             "profile": json.dumps({
                 "name": student_profile.name,
-                "learning_style": ", ".join(student_profile.felder_silverman_profile) if student_profile.felder_silverman_profile else "未完成學習風格問卷",
+                "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile.felder_silverman_profile else "未完成學習風格問卷",
                 "current_knowledge_level": course.current_knowledge_level
             }, ensure_ascii=False),
             "learning_path": json.dumps(learning_path, ensure_ascii=False),
@@ -2932,12 +2890,12 @@ def learning_style_survey():
             elif selected == "b" and type_ in opposite_map:
                 score[opposite_map[type_]] += 1
 
-        result = [
-            "Active" if score["active"] >= score["reflective"] else "Reflective",
-            "Sensing" if score["sensing"] >= score["intuitive"] else "Intuitive",
-            "Visual" if score["visual"] >= score["verbal"] else "Verbal",
-            "Sequential" if score["sequential"] >= score["global"] else "Global"
-        ]
+        result = {
+            "active_vs_reflective": "Active" if score["active"] >= score["reflective"] else "Reflective",
+            "sensing_vs_intuitive": "Sensing" if score["sensing"] >= score["intuitive"] else "Intuitive",
+            "visual_vs_verbal": "Visual" if score["visual"] >= score["verbal"] else "Verbal",
+            "sequential_vs_global": "Sequential" if score["sequential"] >= score["global"] else "Global"
+        }
 
         # ✅ 儲存結果到學生 JSON 檔案
         if 'student_id' in session:
