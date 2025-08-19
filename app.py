@@ -73,7 +73,7 @@ class LearningPath(BaseModel):
 class StudentProfile(BaseModel):
     id: str = Field(description="Unique student ID")
     name: str = Field(description="Student name")
-    felder_silverman_profile: Optional[Dict[str, Any]] = Field(default=None, description="Detailed Felder-Silverman learning style profile")
+    felder_silverman_profile: Optional[List[str]] = Field(default=None, description="Detailed Felder-Silverman learning style profile")
     courses: List[str] = Field(default_factory=list, description="List of course IDs the student is enrolled in")
     created_at: str = Field(default_factory=lambda: datetime.datetime.now().isoformat(), description="Profile creation timestamp")
     current_knowledge_level: str = Field(description="Beginner, intermediate, or advanced")
@@ -609,7 +609,7 @@ def generate_learning_path(session_id, profile, test_results):
     # Format profile and test results
     profile_json = json.dumps({
         "name": student_profile.name if student_profile else "Student",
-        "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile and student_profile.felder_silverman_profile else "未完成學習風格問卷",
+        "learning_style": ", ".join(student_profile.felder_silverman_profile) if student_profile and student_profile.felder_silverman_profile else "未完成學習風格問卷",
         "current_knowledge_level": profile.current_knowledge_level
     })
     
@@ -797,7 +797,10 @@ def generate_module_content(session_id, module, profile):
         )
 
     # 這裡定義 learning_style 變數
-    learning_style = json.dumps(profile.felder_silverman_profile) if profile.felder_silverman_profile else "未完成學習風格問卷"
+    if profile.felder_silverman_profile:
+        learning_style = ", ".join(profile.felder_silverman_profile)
+    else:
+        learning_style = "未完成學習風格問卷"
     print("DEBUG learning_style:", learning_style)
     print("content_scope:", content_scope)
     print("learning_outcomes:", learning_outcomes)
@@ -1891,7 +1894,7 @@ def learning():
             "Global": "整體"
         }
         
-        for key, value in style_profile.items():
+        for value in style_profile:
             if value in style_mapping:
                 style_parts.append(style_mapping[value])
         
@@ -2653,7 +2656,7 @@ def discuss_learning_path():
         | (lambda _: {
             "profile": json.dumps({
                 "name": student_profile.name,
-                "learning_style": json.dumps(student_profile.felder_silverman_profile) if student_profile.felder_silverman_profile else "未完成學習風格問卷",
+                "learning_style": ", ".join(student_profile.felder_silverman_profile) if student_profile.felder_silverman_profile else "未完成學習風格問卷",
                 "current_knowledge_level": course.current_knowledge_level
             }, ensure_ascii=False),
             "learning_path": json.dumps(learning_path, ensure_ascii=False),
@@ -2929,12 +2932,12 @@ def learning_style_survey():
             elif selected == "b" and type_ in opposite_map:
                 score[opposite_map[type_]] += 1
 
-        result = {
-            "active_vs_reflective": "Active" if score["active"] >= score["reflective"] else "Reflective",
-            "sensing_vs_intuitive": "Sensing" if score["sensing"] >= score["intuitive"] else "Intuitive",
-            "visual_vs_verbal": "Visual" if score["visual"] >= score["verbal"] else "Verbal",
-            "sequential_vs_global": "Sequential" if score["sequential"] >= score["global"] else "Global"
-        }
+        result = [
+            "Active" if score["active"] >= score["reflective"] else "Reflective",
+            "Sensing" if score["sensing"] >= score["intuitive"] else "Intuitive",
+            "Visual" if score["visual"] >= score["verbal"] else "Verbal",
+            "Sequential" if score["sequential"] >= score["global"] else "Global"
+        ]
 
         # ✅ 儲存結果到學生 JSON 檔案
         if 'student_id' in session:
