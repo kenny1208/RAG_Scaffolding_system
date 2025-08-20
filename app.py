@@ -786,14 +786,16 @@ def generate_module_content(session_id, module, profile):
     elif scaffolding_level == "medium":
         scaffolding_instructions = (
             "針對較難的部分給出提示。"
-            "每個章節只需一個例子。"
-            "思考問題以開放式為主。"
+            "每章節有1個範例搭配講解。"
+            "出現開放式思考問題。"
+            "結構有明確段落劃分與重點標示。"
         )
     else:  # low
         scaffolding_instructions = (
-            "只列出重點與核心概念，不給提示。"
-            "例子減少到最少，鼓勵學生自己探索。"
-            "結尾加一句鼓勵自主思考的話。"
+            "僅列出核心概念，無細節說明。"
+            "幾乎無實例或只有 1個簡例。"
+            "無提示語或問題引導。"
+            "結尾有鼓勵自我探索語句。"
         )
 
     # 這裡定義 learning_style 變數和學習風格指引
