@@ -1632,9 +1632,6 @@ def upload_pdf():
                 app.logger.info("Starting PDF processing")
                 chunks = process_pdfs(file_paths, session_id)
                 
-                # Store file paths in session
-                session['pdf_files'] = [os.path.basename(path) for path in file_paths]
-                
                 # Update course profile with session ID
                 course = get_course_profile(session['course_id'])
                 if course:
@@ -1736,10 +1733,18 @@ def pretest():
     if request.method == 'POST':
         data = request.json
         answers = data.get('answers', [])
-        pretest_data = session.get('pretest')
         
-        if not pretest_data:
+        # Load pretest from file instead of session
+        course = get_course_profile(session['course_id'])
+        if not course:
+            return jsonify({'error': 'Course profile not found'}), 400
+        
+        pretest_path = os.path.join(app.config['UPLOAD_FOLDER'], course.session_id, 'pretest.json')
+        if not os.path.exists(pretest_path):
             return jsonify({'error': 'No pretest available'}), 400
+        
+        with open(pretest_path, 'r', encoding='utf-8') as f:
+            pretest_data = json.load(f)
         
         if len(answers) != len(pretest_data['questions']):
             return jsonify({'error': 'Number of answers does not match number of questions'}), 400
@@ -1768,11 +1773,6 @@ def pretest():
         score_percentage = (correct_count / len(answers)) * 100
         knowledge_level = evaluate_knowledge_level(score_percentage)
         
-        # Get course profile
-        course = get_course_profile(session['course_id'])
-        if not course:
-            return jsonify({'error': 'Course profile not found'}), 400
-        
         # Update course profile with learning path
         course.current_knowledge_level = knowledge_level
         course.learning_path = generate_learning_path(session['session_id'], course, {
@@ -1796,7 +1796,16 @@ def pretest():
     
     # Generate pretest
     pretest_data = create_pretest(session['session_id'])
-    session['pretest'] = pretest_data
+    
+    # Save pretest to file instead of session
+    course = get_course_profile(session['course_id'])
+    if course:
+        pretest_dir = os.path.join(app.config['UPLOAD_FOLDER'], course.session_id)
+        os.makedirs(pretest_dir, exist_ok=True)
+        pretest_path = os.path.join(pretest_dir, 'pretest.json')
+        with open(pretest_path, 'w', encoding='utf-8') as f:
+            json.dump(pretest_data, f, ensure_ascii=False, indent=4)
+    
     return render_template('pretest.html', pretest=pretest_data)
 
 @app.route('/learning', methods=['GET', 'POST'])
@@ -1934,41 +1943,32 @@ def profile():
 
 @app.route('/api/learning-path', methods=['GET'])
 def get_learning_path():
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
-    
-    pretest_results = session.get('pretest_results')
-    if not pretest_results:
-        return jsonify({'error': 'Complete the pretest first'}), 400
-    
-    profile = create_or_get_student_profile()
-    
-    try:
-        learning_path = generate_learning_path(session_id, profile, pretest_results)
-        session['learning_path'] = learning_path  # Store for later use
-        return jsonify(learning_path)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    """This endpoint is deprecated - learning paths are now stored in course profiles"""
+    return jsonify({'error': 'This endpoint is deprecated. Learning paths are stored in course profiles.'}), 400
 
 @app.route('/api/module-content/<int:module_index>', methods=['GET'])
 def get_module_content(module_index):
-    session_id = session.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'No documents have been uploaded yet'}), 400
+    if 'student_id' not in session or 'course_id' not in session:
+        return jsonify({'error': 'No student or course session found'}), 400
     
-    learning_path = session.get('learning_path')
-    if not learning_path:
+    # Get course profile
+    course = get_course_profile(session['course_id'])
+    if not course:
+        return jsonify({'error': 'Course profile not found'}), 400
+    
+    if not course.learning_path:
         return jsonify({'error': 'No learning path available'}), 400
     
-    if module_index >= len(learning_path['modules']):
+    if module_index >= len(course.learning_path['modules']):
         return jsonify({'error': 'Invalid module index'}), 400
     
-    module = learning_path['modules'][module_index]
-    profile = create_or_get_student_profile()
+    module = course.learning_path['modules'][module_index]
+    profile = get_student_profile(session['student_id'])
+    if not profile:
+        return jsonify({'error': 'Student profile not found'}), 400
     
     try:
-        content = generate_module_content(session_id, module, profile)
+        content = generate_module_content(course.session_id, module, profile)
         return jsonify({
             'module': module,
             'content': content
