@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 
   <div id="calendar"></div>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
   <script src="/static/calendar.js"></script>
 
   <!-- 事件管理彈窗 -->
@@ -212,209 +212,299 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
   </div>
 
-  <script>
-  let selectedDay = null;
-  let eventsData = [];
+<script>
+// ===================== 可調參數 =====================
+const POLL_INTERVAL_MS = 10000; // 循環向後端抓更新（毫秒）；若不想輪詢，設為 0
 
-  function openEventManager(day) {
-    selectedDay = day.clone();
-    document.getElementById("event-date-title").textContent = day.format("YYYY年M月D日 事件管理");
-
-    const listContainer = document.getElementById("event-list");
-    listContainer.innerHTML = "";
-
-    // 當天事件
-    const todaysEvents = eventsData.filter(ev => moment(ev.date).isSame(day, "day"));
-    if (todaysEvents.length === 0) {
-      listContainer.innerHTML = "<p style='color:#eaeaea; font-weight: bold;'>目前沒有事件</p>";
-    } else {
-      todaysEvents.forEach((ev, index) => {
-        const row = document.createElement("div");
-        row.style.marginBottom = "8px";
-        row.innerHTML = `
-          <input type="text" value="${ev.eventName}" data-index="${index}" class="edit-event-name" style="width:50%; padding: 5px;">
-          <select class="edit-event-color" data-index="${index}" style="padding: 5px;">
-            <option value="blue" ${ev.color === "blue" ? "selected" : ""}>藍色</option>
-            <option value="orange" ${ev.color === "orange" ? "selected" : ""}>橙色</option>
-            <option value="green" ${ev.color === "green" ? "selected" : ""}>綠色</option>
-            <option value="yellow" ${ev.color === "yellow" ? "selected" : ""}>黃色</option>
-          </select>
-          <button class="delete-event" data-index="${index}" style="margin-left:5px; color:red;">刪除</button>
-        `;
-        listContainer.appendChild(row);
-      });
-    }
-
-    document.getElementById("event-manager").style.display = "flex";
-  }
-
-  function closeEventManager() {
-    document.getElementById("event-manager").style.display = "none";
-    selectedDay = null;
-  }
-
-  // 綁定取消
-  document.getElementById("cancel-event").onclick = closeEventManager;
-
-  document.getElementById("save-event").onclick = function() {
-    // 更新已存在的事件
-    document.querySelectorAll(".edit-event-name").forEach(input => {
-      const idx = parseInt(input.getAttribute("data-index"));
-      eventsData[idx].eventName = input.value.trim();
-    });
-    document.querySelectorAll(".edit-event-color").forEach(select => {
-      const idx = parseInt(select.getAttribute("data-index"));
-      eventsData[idx].color = select.value;
-    });
-
-    // 新增新事件
-    const name = document.getElementById("new-event-name").value.trim();
-    const color = document.getElementById("new-event-color").value;
-    if (name) {
-      eventsData.push({
-        eventName: name,
-        calendar: "Custom",
-        color: color,
-        date: selectedDay.clone()
-      });
-    }
-
-    // ✅ 同步更新日曆物件內的事件資料
-    calendarInstance.events = [...eventsData];
-
-    // 儲存到後端
-    saveEventsToServer();
-
-    // 重畫日曆（顏色點會依照新資料出現）
-    calendarInstance.draw();
-
-    closeEventManager();
-  };
-
-
-  function updateDayEventDots(day) {
-    document.querySelectorAll("#calendar .day").forEach(dayEl => {
-      const dayNum = parseInt(dayEl.querySelector(".day-number")?.textContent);
-      const isSameDay = day.date() === dayNum && day.month() === calendarInstance.current.month();
-
-      if (isSameDay) {
-        const eventsContainer = dayEl.querySelector(".day-events");
-        if (eventsContainer) {
-          eventsContainer.innerHTML = "";
-          eventsData
-            .filter(ev => moment(ev.date).isSame(day, "day"))
-            .forEach(ev => {
-              const evSpan = document.createElement("span");
-              evSpan.className = ev.color;
-              eventsContainer.appendChild(evSpan);
-            });
-        }
-      }
-    });
-  }
-
-
-
-  // 刪除事件
-  document.addEventListener("click", function(e) {
-    if (e.target.classList.contains("delete-event")) {
-      const idx = parseInt(e.target.getAttribute("data-index"));
-      eventsData.splice(idx, 1);
-      openEventManager(selectedDay); // 刷新視窗
-    }
+// ===================== 工具函式 =====================
+function uuid() {
+  // 極簡 UUID（若後端沒 id）
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+function toISODateOnly(m) {
+  // 保留時間也沒關係；這裡用 ISO 字串，後端通常比較好處理
+  return moment.isMoment(m) ? m.toISOString() : m;
+}
+function normalizeEvents(arr) {
+  return (arr || []).map(ev => {
+    const id = ev.id || uuid();
+    const date = moment(ev.date);
+    return {
+      id,
+      eventName: ev.eventName || "",
+      calendar: ev.calendar || "Custom",
+      color: ev.color || "blue",
+      date,            // moment 物件，繪圖用
+      date_raw: toISODateOnly(date) // 傳後端/同步用
+    };
   });
+}
+function sameDay(a, b) { return moment(a).isSame(b, "day"); }
+function eqi(a, b) { return String(a||"").trim().toLowerCase() === String(b||"").trim().toLowerCase(); }
 
-  // 儲存到後端
-  function saveEventsToServer() {
-    fetch("/api/calendar", {
+// ===================== 全域狀態 =====================
+window.calendarInstance = null;
+const state = {
+  events: [],     // 正規化後的事件（含 moment 日期）
+  version: 0,     // 本地遞增版本
+  serverHash: ""  // 後端雜湊/ETag（若你後端有提供，可用來避免重抓；這裡做預留）
+};
+
+// 只用這個函式更新事件（單一入口）
+function setEvents(next, { broadcast = true, redraw = true } = {}) {
+  state.events = normalizeEvents(next);
+  state.version++;
+  if (redraw) refreshCalendar();
+  if (broadcast) broadcastLocalChange();
+}
+function refreshCalendar() {
+  if (!window.calendarInstance) return;
+  window.calendarInstance.events = state.events;
+  window.calendarInstance.draw();
+}
+
+// ===================== 後端 I/O =====================
+async function reloadFromServer() {
+  try {
+    const res = await fetch("/api/calendar?ts=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("fetch /api/calendar 失敗");
+    const events = await res.json();
+    // 注意：這裡直接覆蓋本地事件（假設後端是權威資料）
+    setEvents(events, { broadcast: false, redraw: true });
+  } catch (err) {
+    console.error("reloadFromServer error:", err);
+  }
+}
+async function saveEventsToServer() {
+  try {
+    const body = {
+      events: state.events.map(ev => ({
+        id: ev.id,
+        eventName: ev.eventName,
+        calendar: ev.calendar,
+        color: ev.color,
+        date: ev.date_raw
+      }))
+    };
+    const res = await fetch("/api/calendar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: eventsData })
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error("儲存失敗");
+    // 若後端回傳最新完整資料，可在這裡 setEvents(responseEvents, { ... })
+  } catch (err) {
+    console.error(err);
+    alert("儲存失敗，但畫面已更新。稍後可再試一次。");
+  }
+}
+
+// ===================== 多分頁同步 =====================
+const bc = ("BroadcastChannel" in window) ? new BroadcastChannel("calendar-sync") : null;
+function broadcastLocalChange() {
+  if (bc) {
+    bc.postMessage({ type: "events-updated", version: state.version });
+  } else {
+    localStorage.setItem("calendar-sync", String(Date.now()));
+  }
+}
+if (bc) {
+  bc.onmessage = (e) => { if (e?.data?.type === "events-updated") reloadFromServer(); };
+}
+window.addEventListener("storage", (e) => {
+  if (e.key === "calendar-sync") reloadFromServer();
+});
+
+// ===================== 事件管理彈窗 =====================
+let selectedDay = null;
+
+function openEventManager(day) {
+  selectedDay = day.clone();
+  document.getElementById("event-date-title").textContent = day.format("YYYY年M月D日 事件管理");
+
+  // 先清空「新增欄位」，避免上一輪殘留導致誤新增
+  document.getElementById("new-event-name").value = "";
+  document.getElementById("new-event-color").value = "blue";
+
+  const listContainer = document.getElementById("event-list");
+  listContainer.innerHTML = "";
+
+  const todays = state.events.filter(ev => sameDay(ev.date, day));
+  if (todays.length === 0) {
+    listContainer.innerHTML = "<p style='color:#eaeaea; font-weight: bold;'>目前沒有事件</p>";
+  } else {
+    todays.forEach((ev, idx) => {
+      const row = document.createElement("div");
+      row.style.marginBottom = "8px";
+      row.innerHTML = `
+        <input type="text" value="${ev.eventName}" data-id="${ev.id}" class="edit-event-name" style="width:50%; padding: 5px;">
+        <select class="edit-event-color" data-id="${ev.id}" style="padding: 5px;">
+          <option value="blue"   ${ev.color === "blue"   ? "selected" : ""}>藍色</option>
+          <option value="orange" ${ev.color === "orange" ? "selected" : ""}>橙色</option>
+          <option value="green"  ${ev.color === "green"  ? "selected" : ""}>綠色</option>
+          <option value="yellow" ${ev.color === "yellow" ? "selected" : ""}>黃色</option>
+        </select>
+        <button class="delete-event" data-id="${ev.id}" style="margin-left:5px; color:red;">刪除</button>
+      `;
+      listContainer.appendChild(row);
     });
   }
+  document.getElementById("event-manager").style.display = "flex";
+}
+function closeEventManager() {
+  document.getElementById("event-manager").style.display = "none";
+  selectedDay = null;
+}
 
-  // ------------------------ 日曆初始化 ------------------------
-  function Calendar(selector, events) {
-    this.el = document.querySelector(selector);
-    this.events = events;
-    this.current = moment().date(1);
-    this.draw();
+document.getElementById("cancel-event").onclick = closeEventManager;
+
+// 刪除事件（依 id）
+document.addEventListener("click", function(e) {
+  if (!selectedDay) return;
+  if (e.target.classList.contains("delete-event")) {
+    const id = e.target.getAttribute("data-id");
+    const next = state.events.filter(ev => ev.id !== id);
+    setEvents(next, { broadcast: true, redraw: true }); // 立即重畫
+    openEventManager(selectedDay); // 刷新彈窗列表
+    saveEventsToServer();          // 後存
   }
-  Calendar.prototype.draw = function() {
-    this.el.innerHTML = "";
-    this.drawHeader();
-    this.drawMonth();
-  };
-  Calendar.prototype.drawHeader = function() {
-    const self = this;
-    const header = document.createElement("div");
-    header.className = "header";
-    const title = document.createElement("h1");
-    title.textContent = this.current.format("MMMM YYYY");
-    const right = document.createElement("div");
-    right.className = "right";
-    right.onclick = () => { self.current.add(1, "months"); self.draw(); };
-    const left = document.createElement("div");
-    left.className = "left";
-    left.onclick = () => { self.current.subtract(1, "months"); self.draw(); };
-    header.appendChild(title);
-    header.appendChild(right);
-    header.appendChild(left);
-    this.el.appendChild(header);
-  };
-  Calendar.prototype.drawMonth = function() {
-    const month = document.createElement("div");
-    month.className = "month";
-    let clone = this.current.clone();
-    while (clone.month() === this.current.month()) {
-      this.drawDay(month, clone);
-      clone.add(1, "days");
+});
+
+// 儲存（更新當日既有事件 + 視情況新增一筆）
+document.getElementById("save-event").onclick = async function() {
+  if (!selectedDay) return;
+
+  // 1) 更新當日既有事件（名稱 / 顏色）
+  const nameInputs = document.querySelectorAll(".edit-event-name");
+  const colorSelects = document.querySelectorAll(".edit-event-color");
+  const edits = {};
+  nameInputs.forEach(inp => { edits[inp.dataset.id] = { name: inp.value.trim() }; });
+  colorSelects.forEach(sel => {
+    edits[sel.dataset.id] = { ...(edits[sel.dataset.id] || {}), color: sel.value };
+  });
+
+  const next = state.events.map(ev => {
+    if (edits[ev.id]) {
+      return {
+        ...ev,
+        eventName: edits[ev.id].name,
+        color: edits[ev.id].color
+      };
     }
-    this.el.appendChild(month);
-  };
-  Calendar.prototype.drawDay = function(monthEl, day) {
-    const dayEl = document.createElement("div");
-    dayEl.className = "day";
-    if (day.month() !== this.current.month()) dayEl.classList.add("other");
-    if (moment().isSame(day, "day")) dayEl.classList.add("today");
+    return ev;
+  });
 
-    const eventsHTML = document.createElement("div");
-    eventsHTML.className = "day-events";
+  // 2) 視情況「新增一筆」（只有在新增欄位有填名稱時才做）
+  const newName = document.getElementById("new-event-name").value.trim();
+  const newColor = document.getElementById("new-event-color").value;
 
-    // ✅ 渲染當天事件顏色點
-    eventsData
-      .filter(ev => moment(ev.date).isSame(day, "day"))
-      .forEach(ev => {
-        const evSpan = document.createElement("span");
-        evSpan.className = ev.color; // CSS class 設定顏色
-        eventsHTML.appendChild(evSpan);
+  if (newName) {
+    // 同日同名檢查：若已存在，改為「更新顏色」，不新增
+    const existIdx = next.findIndex(ev => sameDay(ev.date, selectedDay) && eqi(ev.eventName, newName));
+    if (existIdx >= 0) {
+      next[existIdx] = { ...next[existIdx], color: newColor };
+    } else {
+      next.push({
+        id: uuid(),
+        eventName: newName,
+        calendar: "Custom",
+        color: newColor,
+        date: selectedDay.clone(),
+        date_raw: toISODateOnly(selectedDay.clone())
       });
+    }
+  }
 
-    dayEl.innerHTML = `
-      <div class="day-name">${day.format("ddd")}</div>
-      <div class="day-number">${day.format("DD")}</div>
-    `;
-    dayEl.appendChild(eventsHTML);
+  // 3) 立即更新畫面（同步刷新），再非同步儲存
+  setEvents(next, { broadcast: true, redraw: true });
+  document.getElementById("new-event-name").value = "";  // 清空輸入框
+  try { await saveEventsToServer(); } catch (e) { /* 畫面已更新，略過 */ }
+  closeEventManager();
+};
 
-    const thisDay = day.clone();
-    dayEl.ondblclick = () => openEventManager(thisDay);
+// ===================== 日曆元件（沿用你的結構） =====================
+function Calendar(selector, events) {
+  this.el = document.querySelector(selector);
+  this.events = events;
+  this.current = moment().date(1);
+  this.draw();
+}
+Calendar.prototype.draw = function() {
+  this.el.innerHTML = "";
+  this.drawHeader();
+  this.drawMonth();
+};
+Calendar.prototype.drawHeader = function() {
+  const self = this;
+  const header = document.createElement("div"); header.className = "header";
+  const title  = document.createElement("h1");  title.textContent = this.current.format("MMMM YYYY");
+  const right  = document.createElement("div"); right.className = "right";
+  const left   = document.createElement("div"); left .className = "left";
+  right.onclick = () => { self.current.add(1, "months"); self.draw(); };
+  left .onclick = () => { self.current.subtract(1, "months"); self.draw(); };
+  header.appendChild(title); header.appendChild(right); header.appendChild(left);
+  this.el.appendChild(header);
+};
+Calendar.prototype.drawMonth = function() {
+  const month = document.createElement("div"); month.className = "month new";
+  let start = this.current.clone().startOf("month").startOf("week");
+  let end   = this.current.clone().endOf("month").endOf("week");
+  while (start.isSameOrBefore(end, "day")) {
+    this.drawWeek(month, start.clone());
+    start.add(1, "week");
+  }
+  this.el.appendChild(month);
+};
+Calendar.prototype.drawWeek = function(monthEl, weekStart) {
+  const weekEl = document.createElement("div"); weekEl.className = "week";
+  for (let i = 0; i < 7; i++) this.drawDay(weekEl, weekStart.clone().add(i, "days"));
+  monthEl.appendChild(weekEl);
+};
+Calendar.prototype.drawDay = function(weekEl, day) {
+  const dayEl = document.createElement("div"); dayEl.className = "day";
+  if (day.month() !== this.current.month()) dayEl.classList.add("other");
+  if (moment().isSame(day, "day"))          dayEl.classList.add("today");
 
-    monthEl.appendChild(dayEl);
-  };
+  const name = document.createElement("div"); name.className = "day-name";   name.textContent = day.format("ddd");
+  const number = document.createElement("div"); number.className = "day-number"; number.textContent = day.format("DD");
+  const eventsContainer = document.createElement("div"); eventsContainer.className = "day-events";
 
-
-
-  let calendarInstance;
-
-  // 從後端載入事件
-  fetch("/api/calendar")
-    .then(res => res.json())
-    .then(events => {
-      events.forEach(ev => { ev.date = moment(ev.date); });
-      eventsData = events;
-      calendarInstance = new Calendar("#calendar", eventsData);
+  this.events
+    .filter(ev => sameDay(ev.date, day))
+    .forEach(ev => {
+      const dot = document.createElement("span");
+      dot.className = ev.color; // blue / orange / green / yellow
+      eventsContainer.appendChild(dot);
     });
-  </script>
+
+  dayEl.appendChild(name);
+  dayEl.appendChild(number);
+  dayEl.appendChild(eventsContainer);
+  dayEl.ondblclick = () => openEventManager(day);
+  weekEl.appendChild(dayEl);
+};
+
+// ===================== 初始化 & 自動輪詢 =====================
+document.addEventListener("DOMContentLoaded", async function() {
+  // 首次載入
+  await reloadFromServer();
+
+  // 建立日曆並繪製
+  window.calendarInstance = new Calendar("#calendar", state.events);
+  refreshCalendar();
+
+  // 窗口縮放時重畫一次（資料不變）
+  window.addEventListener("resize", () => refreshCalendar());
+
+  // 循環輪詢：抓後端資料（避免被動等通知）
+  if (POLL_INTERVAL_MS > 0) {
+    setInterval(() => { reloadFromServer(); }, POLL_INTERVAL_MS);
+  }
+});
+</script>
+
 
 
   <script>
@@ -471,7 +561,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   /* Header */
   #calendar .header {
-    height: 50px;
+    height: 45px;
     width: 100%;
     background: rgba(0, 0, 0, 0.6);
     text-align: center;
@@ -758,6 +848,36 @@ document.addEventListener("DOMContentLoaded", function() {
 
   @-webkit-keyframes fadeOutShink { to { opacity: 0; padding: 0px; height: 0px; } }
   @keyframes fadeOutShink { to { opacity: 0; padding: 0px; height: 0px; } }
+
+  /* ① 讓每週 7 欄剛好鋪滿：改用 flex 等比分欄，不再留右側空白 */
+#calendar .week{
+  display: flex;            /* 取代原本 inline-block 的排列 */
+}
+#calendar .day{
+  width: auto;              /* 交給 flex 分配 */
+  flex: 1 1 0;              /* 7 等分 */
+  box-sizing: border-box;   /* 保留你的 padding，不會撐破 */
+}
+
+/* ② 固定 Header 高度，月份內容超出時在內層捲動（高度仍保留你設的 450px） */
+#calendar{
+  display: flex;
+  flex-direction: column;
+  height: 450px;            /* 你原本的值，保留 */
+  overflow: hidden;         /* 外層不出血 */
+}
+#calendar .header{
+  flex: 0 0 45px;           /* 與你的 header 高度一致 */
+}
+#calendar .header h1{
+  line-height: 45px;        /* 原本 50px 會把內容往下擠，改為 45px 剛好置中 */
+}
+#calendar .month{
+  flex: 1 1 auto;           /* 佔滿剩餘高度 */
+  overflow-y: auto;         /* 6 週太高時，這裡出現內部捲動 */
+  scrollbar-gutter: auto;   /* 沒捲軸時不預留空間 → 不會有灰色直條 */
+}
+
 
     .card1 {
     width: 250px;

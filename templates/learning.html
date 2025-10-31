@@ -56,13 +56,13 @@
           <strong class="me-2">{{ learning_style_info.label }}</strong>
         </div>
 
-        <h4 class="h6 mb-2 mt-4">錯題統計</h4>
+        <h4 class="h6 mb-2 mt-4" style="font-weight: bold">錯題統計</h4>
         <div id="wrong-questions-stats" class="alert alert-warning">
           <i class="fas fa-exclamation-triangle me-2"></i>
           <span>載入中...</span>
         </div>
 
-        <h4 class="h6 mb-2">章節列表</h4>
+        <h4 class="h6 mb-2" style="font-weight: bold">章節列表</h4>
         <div class="list-group">
           {% for module in course.learning_path.modules %}
           <div
@@ -242,11 +242,98 @@
     </div>
   </div>
 </div>
+
+<!-- ✅ Loading Overlay -->
+<div id="loading-overlay" style="display:none;">
+  <ul>
+    <li>
+      <div class="loader">
+        <div class="child"></div>
+      </div>
+    </li>
+    <li>
+      <div class="text1"></div>
+    </li>
+  </ul>
+</div>
+
+<style>
+/* Loading Overlay */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Loader bar */
+.loader {
+  width: 250px;   /* 增加寬度 */
+  height: 12px;  
+  background-color: rgb(15, 15, 15);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.child {
+  width: 120px;
+  height: 12px;
+  background-color: rgb(107, 27, 255);
+  border-radius: 20px;
+  margin-left: -120px;
+  animation: go 3s 0s infinite;
+}
+
+@keyframes go {
+  from { margin-left: -100px; width: 80px; }
+  to { width: 30px; margin-left: 110px; }
+}
+
+/* Text animation */
+.text1 {
+  width: 250px;
+  height: 40px;
+  margin-top: 25px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.text1::before {
+  content: "生成中";
+  color: white;
+  animation: text 1s 0s infinite;
+}
+
+@keyframes text {
+  0% { content: "生成中"; }
+  30% { content: "生成中."; }
+  60% { content: "生成中.."; }
+  100% { content: "生成中..."; }
+}
+</style>
+
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    const loadingOverlay = document.getElementById("loading-overlay");
+
+// 封裝 show/hide function
+    function showLoading() {
+      loadingOverlay.style.display = "flex";
+    }
+    function hideLoading() {
+      loadingOverlay.style.display = "none";
+    }
     // Global variables to store test data and answers
     let testData = null;
     let testAnswers = {};
@@ -524,10 +611,9 @@
     const regenerateContentBtn = document.getElementById("regenerate-content");
     regenerateContentBtn.addEventListener("click", function () {
       if (confirm("確定要重新生成當前章節的內容嗎？這將會覆蓋現有的內容。")) {
+     
         // Show loading state
-        regenerateContentBtn.disabled = true;
-        regenerateContentBtn.innerHTML =
-          '<i class="fas fa-spinner fa-spin me-2"></i>生成中...';
+        showLoading(); 
 
         // Call API to regenerate content
         fetch(`/api/regenerate-module-content/${moduleIndex}`, {
@@ -567,6 +653,7 @@
             regenerateContentBtn.disabled = false;
             regenerateContentBtn.innerHTML =
               '<i class="fas fa-sync-alt me-2"></i>重新生成章節內容';
+            hideLoading();
           });
       }
     });
@@ -640,6 +727,7 @@
 
     // Handle test submission
     submitTestBtn.addEventListener("click", function () {
+      showLoading();
       const answers = [];
       const questions = document.querySelectorAll("#test-questions > div");
 
@@ -683,7 +771,10 @@
         .catch((error) => {
           alert("提交答案時發生錯誤");
           console.error(error);
-        });
+        })
+        .finally(() => {
+          hideLoading(); // ✅ 請求完成後才隱藏
+        })
     });
 
     // Function to show test results
@@ -779,6 +870,8 @@
                 return;
               }
 
+              showLoading();  
+
               // Submit learning log with retry flag
               fetch(`/api/learning-log/${moduleIndex}`, {
                 method: "POST",
@@ -802,6 +895,9 @@
                 .catch((error) => {
                   console.error("Error:", error);
                   alert("提交學習日誌時發生錯誤");
+                })
+                .finally(() => {
+                  hideLoading(); // ✅ 無論成功或失敗都關掉
                 });
             });
           }
@@ -818,6 +914,8 @@
                 alert("請填寫學習日誌內容");
                 return;
               }
+
+               showLoading();
 
               // Submit learning log
               fetch(`/api/learning-log/${moduleIndex}`, {
@@ -872,6 +970,9 @@
                 .catch((error) => {
                   console.error("Error:", error);
                   alert("提交學習日誌時發生錯誤");
+                }) 
+                .finally(() => {
+                  hideLoading(); // ✅ 無論成功或失敗都關掉
                 });
             });
         })
@@ -965,6 +1066,7 @@
 
     // Handle sending messages
     function sendMessage() {
+      showLoading();
       const message = messageInput.value.trim();
       if (message) {
         // Add user message to chat
@@ -1008,6 +1110,9 @@
           })
           .catch((error) => {
             alert("AI 回應失敗");
+          })
+          .finally(() => {
+            hideLoading(); // ✅ 最後才隱藏
           });
       }
     }
@@ -1163,7 +1268,6 @@
     color: #ffff;
     border-radius: 25px;
     top: 50px;
-    font-weight: bold;
   }
 
   .col-md-3 .progress {
@@ -1211,7 +1315,6 @@
     background-color: #ffab2c !important;
     color: #000 !important;
     border-color: #ffab2c !important;
-    font-weight: bold;
     transition: all 0.3s ease;
   }
 
@@ -1242,7 +1345,6 @@
     color: #ffff;
     border-radius: 25px;
     top: 50px;
-    font-weight: bold;
   }
 
   .mermaid {
@@ -1283,7 +1385,6 @@
   /* 提示框內所有文字白色 */
   .alert-info * {
     color: #fff !important;
-    font-weight: bold;
   }
 
   /*----------------------------------------------------------------------*/

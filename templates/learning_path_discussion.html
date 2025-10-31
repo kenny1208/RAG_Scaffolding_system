@@ -80,7 +80,91 @@
   </div>
 </div>
 
+<!-- ✅ Loading Overlay -->
+<div id="loading-overlay" style="display:none;">
+  <ul>
+    <li>
+      <div class="loader">
+        <div class="child"></div>
+      </div>
+    </li>
+    <li>
+      <div class="text1"></div>
+    </li>
+  </ul>
+</div>
+
+
 <style>
+
+/* Loading Overlay */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Loader bar */
+.loader {
+  width: 250px;        /* was 100px */
+  height: 12px;        /* was 3px */
+  background-color: rgb(15, 15, 15);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.child {
+  width: 120px;        /* was 60px */
+  height: 12px;        /* was 3px */
+  background-color: rgb(107, 27, 255);
+  border-radius: 20px;
+  margin-left: -120px;
+  animation: go 3s 0s infinite;
+}
+
+@keyframes go {
+  from {
+    margin-left: -100px;
+    width: 80px;
+  }
+  to {
+    width: 30px;
+    margin-left: 110px;
+  }
+}
+
+/* Text animation */
+.text1 {
+  width: 250px;        /* match loader width */
+  height: 40px;
+  margin-top: 25px;
+  text-align: center;
+  font-size: 1.5rem;   /* bigger font */
+  font-weight: bold;
+}
+
+.text1::before {
+  content: "Loading";
+  color: white;
+  animation: text 1s 0s infinite;
+}
+
+@keyframes text {
+  0% { content: "生成學習教材中"; }
+  30% { content: "生成學習教材中."; }
+  60% { content: "生成學習教材中.."; }
+  100% { content: "生成學習教材中..."; }
+}
+
+
 .card{
   background-color: #0000007d !important; /* 黑色背景 */
   color: #fff !important; /* 白色文字 */
@@ -196,53 +280,47 @@
 
     // Handle sending messages
     function sendMessage() {
-      const message = messageInput.value.trim();
-      if (message) {
-        // Add user message to chat
-        const userMessage = document.createElement("div");
-        userMessage.className = "message user-message";
-        userMessage.textContent = message;
-        chatMessages.appendChild(userMessage);
+  const message = messageInput.value.trim();
+  if (message) {
+    const userMessage = document.createElement("div");
+    userMessage.className = "message user-message";
+    userMessage.textContent = message;
+    chatMessages.appendChild(userMessage);
+    messageInput.value = "";
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        // Clear input
-        messageInput.value = "";
+    // 顯示 loading
+    loadingOverlay.style.display = "flex";
 
-        // Scroll to bottom
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+    fetch("/api/discuss-learning-path", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: message }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        loadingOverlay.style.display = "none"; // 拿到回覆 → 隱藏
+        if (data.response) {
+          const botMessage = document.createElement("div");
+          botMessage.className = "message bot-message";
+          botMessage.textContent = data.response;
+          chatMessages.appendChild(botMessage);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          if (data.path_adjusted) {
+            updateLearningPath();
+          }
+        } else {
+          alert(data.error || "AI 沒有回應");
+        }
+      })
+      .catch((error) => {
+        loadingOverlay.style.display = "none";
+        alert("AI 回應失敗");
+        console.error("錯誤：", error); 
+      });
+  }
+}
 
-        // Send to backend
-        fetch("/api/discuss-learning-path", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: message,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.response) {
-              const botMessage = document.createElement("div");
-              botMessage.className = "message bot-message";
-              botMessage.textContent = data.response;
-              chatMessages.appendChild(botMessage);
-              chatMessages.scrollTop = chatMessages.scrollHeight;
-
-              // If the learning path was adjusted, update the learning path section
-              if (data.path_adjusted) {
-                updateLearningPath();
-              }
-            } else {
-              alert(data.error || "AI 沒有回應");
-            }
-          })
-          .catch((error) => {
-            alert("AI 回應失敗");
-            console.error("錯誤：", error);
-          });
-      }
-    }
 
     sendMessageBtn.addEventListener("click", sendMessage);
     messageInput.addEventListener("keypress", function (e) {
@@ -253,6 +331,7 @@
 
     // Handle path confirmation
     confirmPathBtn.addEventListener("click", function () {
+      loadingOverlay.style.display = "flex";
       fetch("/api/confirm-learning-path", {
         method: "POST",
         headers: {
@@ -261,6 +340,7 @@
       })
         .then((response) => response.json())
         .then((data) => {
+          loadingOverlay.style.display = "none"
           if (data.success) {
             window.location.href = data.redirect || "/learning";
           } else {
@@ -268,12 +348,44 @@
           }
         })
         .catch((error) => {
+          loadingOverlay.style.display = "none"
           alert("請求失敗");
           console.error("錯誤：", error);
         });
     });
   });
 </script>
+
+<script>
+ const confirmPathBtn = document.getElementById("confirm-path");
+const loadingOverlay = document.getElementById("loading-overlay");
+
+confirmPathBtn.addEventListener("click", function () {
+  // 顯示 loading
+  loadingOverlay.style.display = "flex";
+
+  fetch("/api/confirm-learning-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      loadingOverlay.style.display = "none"; // 請求完成，隱藏 loading
+      if (data.success) {
+        window.location.href = data.redirect || "/learning";
+      } else {
+        alert(data.error || "確認學習路徑失敗");
+      }
+    })
+    .catch((error) => {
+      loadingOverlay.style.display = "none"; // 請求失敗，也隱藏
+      alert("請求失敗");
+      console.error("錯誤：", error);
+    });
+});
+
+</script>
+
 
 <style>
   .message {

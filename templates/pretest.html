@@ -11,8 +11,22 @@
         <p class="lead text-center mb-4">{{ pretest.description }}</p>
 
         <!-- ✅ 倒數計時器 -->
-        <div id="timer-box-pretest">
+        <div id="timer-box">
           <span id="countdown-pretest">02:00</span>
+        </div>
+        <!-- ✅ 倒數計時器 -->
+        <!-- 提示訊息卡片 -->
+        <div class="card1 hidden" id="timeout-message">
+          <div class="icon-container">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 7.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-3 3.75a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v4.25h.75a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5h.75V12h-.75a.75.75 0 0 1-.75-.75Z"/>
+              <path d="M12 1c6.075 0 11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12 5.925 1 12 1ZM2.5 12a9.5 9.5 0 0 0 9.5 9.5 9.5 9.5 0 0 0 9.5-9.5A9.5 9.5 0 0 0 12 2.5 9.5 9.5 0 0 0 2.5 12Z"/>
+            </svg>
+          </div>
+          <div class="message-text-container">
+            <p class="message-text">測驗時間結束</p>
+            <p class="sub-text">你現在可以提交測驗</p>
+          </div>
         </div>
 
         <form id="pretest-form">
@@ -86,7 +100,76 @@
   </div>
 </div>
 
+<!-- ✅ Loading Overlay -->
+<div id="loading-overlay" style="display:none;">
+  <ul>
+    <li>
+      <div class="loader">
+        <div class="child"></div>
+      </div>
+    </li>
+    <li>
+      <div class="text1"></div>
+    </li>
+  </ul>
+</div>
+
+
 <style>
+/* 倒數計時器 */
+#timer-box {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: 25px;
+  font-weight: bold;
+  z-index: 9999;
+  box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+#countdown-pretest.timeout {
+  color: #00ff00;
+  text-shadow: 0 0 8px #00ff00;
+}
+
+/* 提示訊息卡片 */
+#timeout-message {
+  position: fixed;
+  top: 100px;
+  right: 1%;
+  z-index: 9999;
+  transform: translateX(0);
+}
+.hidden { display: none !important; }
+.fade-up-right { animation: fadeUpRight 0.8s ease forwards; }
+@keyframes fadeUpRight {
+  from { opacity: 0; transform: translateY(30px) translateX(30px); }
+  to { opacity: 1; transform: translateY(0) translateX(0); }
+}
+.card1 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: auto;
+  max-width: 340px;
+  font-family: 'Segoe UI', sans-serif;
+}
+.icon-container {
+  width: 40px; height: 40px; background-color: #e0edff; border-radius: 50%;
+  display: flex; justify-content: center; align-items: center;
+}
+.icon { width: 20px; height: 20px; color: #124fff; }
+.message-text { margin: 0; font-size: 16px; font-weight: bold; color: #124fff; }
+.sub-text { margin: 0; font-size: 14px; color: #555555; }
+
+
   .card {
     background-color: transparent !important; /* 移除白底 */
     border: none !important;
@@ -272,6 +355,74 @@
   }
 }
 
+/* Loading Overlay */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Loader bar */
+.loader {
+  width: 250px;        /* was 100px */
+  height: 12px;        /* was 3px */
+  background-color: rgb(15, 15, 15);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.child {
+  width: 120px;        /* was 60px */
+  height: 12px;        /* was 3px */
+  background-color: rgb(107, 27, 255);
+  border-radius: 20px;
+  margin-left: -120px;
+  animation: go 1s 0s infinite;
+}
+
+@keyframes go {
+  from {
+    margin-left: -100px;
+    width: 80px;
+  }
+  to {
+    width: 30px;
+    margin-left: 110px;
+  }
+}
+
+/* Text animation */
+.text1 {
+    width: 250px;        /* match loader width */
+  height: 40px;
+  margin-top: 25px;
+  text-align: center;
+  font-size: 1.5rem;   /* bigger font */
+  font-weight: bold;
+}
+
+.text1::before {
+  content: "Loading";
+  color: white;
+  animation: text 1s 0s infinite;
+}
+
+@keyframes text {
+  0% { content: "批改中"; }
+  30% { content: "批改中."; }
+  60% { content: "批改中.."; }
+  100% { content: "批改中..."; }
+}
+
+
 </style>
 
 {% endblock %} 
@@ -319,6 +470,8 @@
             answers: answers,
           }),
         });
+
+        loadingOverlay.style.display = "none";
 
         if (response.ok) {
           const data = await response.json();
@@ -381,34 +534,34 @@
 </script>
 
 <script>
-  // ✅ 設定計時秒數（例：120 秒 = 2 分鐘）
-let durationPretest = 1;
+let durationPretest = 1; // 測試用：10 秒
 const countdownPretest = document.getElementById("countdown-pretest");
-const submitBtnPretest = document.querySelector(".d-grid button");
-
-// 預設按鈕禁用
-submitBtnPretest.disabled = true;
+const messageBox = document.getElementById("timeout-message");
+const submitBtn = document.getElementById("submit-btn-pretest");
 
 function updateTimerPretest() {
-  const minutes = Math.floor(durationPretest / 60);
-  const seconds = durationPretest % 60;
-
-  countdownPretest.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
+  const min = Math.floor(durationPretest / 60);
+  const sec = durationPretest % 60;
+  countdownPretest.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+  
   if (durationPretest <= 0) {
     clearInterval(timerPretest);
-    countdownPretest.textContent = '00:00';
-    countdownPretest.classList.add('timeout');
+    countdownPretest.textContent = "00:00";
+    countdownPretest.classList.add("timeout");
 
-    // ✅ 啟用提交按鈕
-    submitBtnPretest.disabled = false;
+    // 顯示訊息卡片
+    messageBox.classList.remove("hidden");
+    messageBox.classList.add("fade-up-right");
+
+    // 啟用提交按鈕
+    submitBtn.disabled = false;
   } else {
     durationPretest--;
   }
 }
-
 updateTimerPretest();
 const timerPretest = setInterval(updateTimerPretest, 1000);
+
 
 </script>
 
@@ -432,6 +585,18 @@ const timerPretest = setInterval(updateTimerPretest, 1000);
       speed: 1.0
     });
   </script>
+
+<script>
+  const pretestForm = document.getElementById("pretest-form");
+  const loadingOverlay = document.getElementById("loading-overlay");
+
+  pretestForm.addEventListener("submit", function () {
+    // 顯示 loading
+    loadingOverlay.style.display = "flex";
+  });
+</script>
+
+
 
 {% endblock %}
 <!-- 註解-->

@@ -21,20 +21,35 @@
         {% if profiles %}
         <div class="mb-4">
           <h3 class="h6 mb-3" style="color: white;">已有帳號</h3>
-          <div class="list-group">
-            {% for profile in profiles %}
-            <a href="{{ url_for('select_profile', profile_id=profile.id) }}"
-               class="profile-link">
-              <i class="fas fa-user me-2"></i> {{ profile.name }}
-            </a>
-            {% endfor %}
+          <div class="list-group" id="profileList">
+           {% for profile in profiles %}
+<div class="profile-row">
+  <a href="{{ url_for('select_profile', profile_id=profile['id']) }}" class="profile-link">
+    <i class="fas fa-user me-2"></i> {{ profile['name'] }}
+  </a>
+  <input type="checkbox" class="ui-checkbox delete-checkbox" name="delete_ids" value="{{ profile['id'] }}" style="display:none;">
+</div>
+
+{% endfor %}
+
           </div>
         </div>
         {% endif %}
 
+      <div class="button-row" style="margin-right: 10px;">
         <a href="{{ url_for('create_user') }}">
-          <button class="btn-glow">建立新使用者</button>
-        </a>
+    <button class="btn-glow">建立新使用者</button>
+  </a>
+  {% if profiles %}
+  <button id="toggleDelete" class="btn-delete-mode">刪除帳號</button>
+  {% endif %}
+      </div>
+
+
+     {% if profiles %}
+<button id="confirmDelete" class="btn-delete" style="display:none;">確認刪除</button>
+{% endif %}
+
       </div>
     </div>
     
@@ -42,6 +57,87 @@
 </div>
 
 <style>
+
+.profile-row {
+  display: flex;
+  justify-content: space-between; /* account button left, checkbox right */
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.profile-link {
+  flex: 1; /* make it take the available space */
+  background-color: #252525;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.3s;
+  margin-right: 10px; /* small spacing before checkbox */
+  display: flex;                   /* ✅ keep icon + text vertically aligned */
+  align-items: center;
+}
+
+
+.ui-checkbox {
+  margin-left: auto;               /* push it fully to the right */
+  margin-bottom: 10px;
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;   /* 保證水平排列 */
+  justify-content: center;  /* 置中對齊 */
+  align-items: center;   /* 垂直置中 */
+  gap: 15px;             /* 兩個按鈕之間的距離 */
+  margin-top: 20px;
+}
+
+.btn-link {
+  display: inline-block; /* 避免 a 變成 block */
+}
+
+.delete-checkbox {
+  margin-right: 10px;
+}
+
+.btn-delete-mode {
+  background-color: #ffb732; /* yellow */
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s;
+  text-shadow: 0 0 5px #fff;
+}
+
+.btn-delete-mode:hover {
+  background-color: #ff9900;
+  text-shadow: 0 0 5px #fff;  
+}
+
+.btn-delete {
+  background-color: #ff1b2e; /* red */
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  color: white;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background 0.3s;
+  text-shadow: 0 0 5px #fff; 
+  width: 200px;  
+  text-align: center;
+  
+}
+
+.btn-delete:hover {
+  background-color: #ff0000;
+  text-shadow: 0 0 5px #fff; 
+}
+
+
   html, body {
     margin: 0;
     padding: 0;
@@ -133,6 +229,111 @@
   .btn-glow:hover {
     background-color: #4350ff;
   }
+
+  /* From Uiverse.io by Galahhad */ 
+/* checkbox settings 👇 */
+
+.ui-checkbox {
+  --primary-color: #ff1616;
+  --secondary-color: #fff;
+  --primary-hover-color: #ff4040;
+  /* checkbox */
+  --checkbox-diameter: 20px;
+  --checkbox-border-radius: 5px;
+  --checkbox-border-color: #d9d9d9;
+  --checkbox-border-width: 1px;
+  --checkbox-border-style: solid;
+  /* checkmark */
+  --checkmark-size: 1.2;
+}
+
+.ui-checkbox, 
+.ui-checkbox *, 
+.ui-checkbox *::before, 
+.ui-checkbox *::after {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.ui-checkbox {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: var(--checkbox-diameter);
+  height: var(--checkbox-diameter);
+  border-radius: var(--checkbox-border-radius);
+  background: var(--secondary-color);
+  border: var(--checkbox-border-width) var(--checkbox-border-style) var(--checkbox-border-color);
+  -webkit-transition: all 0.3s;
+  -o-transition: all 0.3s;
+  transition: all 0.3s;
+  cursor: pointer;
+  position: relative;
+}
+
+.ui-checkbox::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  -webkit-box-shadow: 0 0 0 calc(var(--checkbox-diameter) / 2.5) var(--primary-color);
+  box-shadow: 0 0 0 calc(var(--checkbox-diameter) / 2.5) var(--primary-color);
+  border-radius: inherit;
+  opacity: 0;
+  -webkit-transition: all 0.5s cubic-bezier(0.12, 0.4, 0.29, 1.46);
+  -o-transition: all 0.5s cubic-bezier(0.12, 0.4, 0.29, 1.46);
+  transition: all 0.5s cubic-bezier(0.12, 0.4, 0.29, 1.46);
+}
+
+.ui-checkbox::before {
+  top: 40%;
+  left: 50%;
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 7px;
+  border-right: 2px solid var(--secondary-color);
+  border-bottom: 2px solid var(--secondary-color);
+  -webkit-transform: translate(-50%, -50%) rotate(45deg) scale(0);
+  -ms-transform: translate(-50%, -50%) rotate(45deg) scale(0);
+  transform: translate(-50%, -50%) rotate(45deg) scale(0);
+  opacity: 0;
+  -webkit-transition: all 0.1s cubic-bezier(0.71, -0.46, 0.88, 0.6),opacity 0.1s;
+  -o-transition: all 0.1s cubic-bezier(0.71, -0.46, 0.88, 0.6),opacity 0.1s;
+  transition: all 0.1s cubic-bezier(0.71, -0.46, 0.88, 0.6),opacity 0.1s;
+}
+
+/* actions */
+
+.ui-checkbox:hover {
+  border-color: var(--primary-color);
+}
+
+.ui-checkbox:checked {
+  background: var(--primary-color);
+  border-color: transparent;
+}
+
+.ui-checkbox:checked::before {
+  opacity: 1;
+  -webkit-transform: translate(-50%, -50%) rotate(45deg) scale(var(--checkmark-size));
+  -ms-transform: translate(-50%, -50%) rotate(45deg) scale(var(--checkmark-size));
+  transform: translate(-50%, -50%) rotate(45deg) scale(var(--checkmark-size));
+  -webkit-transition: all 0.2s cubic-bezier(0.12, 0.4, 0.29, 1.46) 0.1s;
+  -o-transition: all 0.2s cubic-bezier(0.12, 0.4, 0.29, 1.46) 0.1s;
+  transition: all 0.2s cubic-bezier(0.12, 0.4, 0.29, 1.46) 0.1s;
+}
+
+.ui-checkbox:active:not(:checked)::after {
+  -webkit-transition: none;
+  -o-transition: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  transition: none;
+  opacity: 1;
+}
 </style>
 
 {% endblock %}
@@ -158,4 +359,49 @@
     speed: 1.0
   });
 </script>
+
+<script>
+document.getElementById("toggleDelete").addEventListener("click", function() {
+  let checkboxes = document.querySelectorAll(".ui-checkbox");
+  let confirmBtn = document.getElementById("confirmDelete");
+
+  // 檢查目前是否顯示
+  let isVisible = Array.from(checkboxes).some(cb => cb.style.display !== "none");
+
+  if (isVisible) {
+    // 如果目前顯示，就隱藏
+    checkboxes.forEach(cb => cb.style.display = "none");
+    confirmBtn.style.display = "none";
+  } else {
+    // 如果目前隱藏，就顯示
+    checkboxes.forEach(cb => cb.style.display = "inline-block");
+    confirmBtn.style.display = "inline-block";
+  }
+});
+
+
+document.getElementById("confirmDelete").addEventListener("click", function() {
+  let selected = [];
+  document.querySelectorAll(".ui-checkbox:checked").forEach(cb => selected.push(cb.value));
+
+  if (selected.length === 0) {
+    alert("請先勾選要刪除的帳號！");
+    return;
+  }
+
+  if (confirm("確定要刪除選中的帳號嗎？")) {
+    selected.forEach(id => {
+      fetch(`/api/delete_user/${id}`, { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          }
+        });
+    });
+  }
+});
+
+</script>
+
 {% endblock %}
