@@ -3054,6 +3054,12 @@ def save_calendar_events():
     save_student_profile(profile)
     return jsonify({'success': True})
 
+@app.route('/delete_user/<student_id>', methods=['POST'])
+def delete_user_redirect(student_id):
+    delete_user(student_id)  # 重用你的刪除函式邏輯
+    flash('使用者已刪除')
+    return redirect(url_for('select_user'))
+
 
 # 你原本的其他頁面路由可放在這裡
 

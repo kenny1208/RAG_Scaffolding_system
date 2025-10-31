@@ -14,17 +14,49 @@
       <div class="card-body">
         <ul class="list-group list-group-flush">
           <li class="list-group-item bg-transparent text-white">
-            主動 / 反思：<strong>{{ result.active_vs_reflective }}</strong>
+            主動 / 反思：
+            <strong>
+              {% if result.active_vs_reflective == 'Active' %}
+                主動型學習者
+              {% else %}
+                反思型學習者
+              {% endif %}
+            </strong>
           </li>
+
           <li class="list-group-item bg-transparent text-white">
-            感知 / 直覺：<strong>{{ result.sensing_vs_intuitive }}</strong>
+            感知 / 直覺：
+            <strong>
+              {% if result.sensing_vs_intuitive == 'Sensing' %}
+                感覺型學習者
+              {% else %}
+                直覺型學習者
+              {% endif %}
+            </strong>
           </li>
+
           <li class="list-group-item bg-transparent text-white">
-            視覺 / 語文：<strong>{{ result.visual_vs_verbal }}</strong>
+            視覺 / 語文：
+            <strong>
+              {% if result.visual_vs_verbal == 'Visual' %}
+                視覺型學習者
+              {% else %}
+                語文型學習者
+              {% endif %}
+            </strong>
           </li>
+
           <li class="list-group-item bg-transparent text-white">
-            序列 / 整體：<strong>{{ result.sequential_vs_global }}</strong>
+            序列 / 整體：
+            <strong>
+              {% if result.sequential_vs_global == 'Sequential' %}
+                循序型學習者
+              {% else %}
+                整體型學習者
+              {% endif %}
+            </strong>
           </li>
+
         </ul>
 
         <div class="button-group">
