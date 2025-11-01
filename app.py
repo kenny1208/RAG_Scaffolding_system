@@ -2797,6 +2797,66 @@ def view_pdf(filename):
     
     return send_file(pdf_path, mimetype='application/pdf')
 
+@app.route('/api/delete_user/<user_id>', methods=['POST'])
+def delete_user(user_id):
+    """Delete a student profile and all associated data"""
+    try:
+        # 1. 獲取學生檔案以取得所有相關的課程ID
+        student_profile = get_student_profile(user_id)
+        if not student_profile:
+            return jsonify({'error': 'Student profile not found'}), 404
+        
+        # 2. 刪除學生所有相關的課程和資料
+        for course_id in student_profile.courses:
+            course_profile_path = os.path.join(app.config['COURSE_PROFILES_DIR'], f"{course_id}.json")
+            if os.path.exists(course_profile_path):
+                # 取得 session_id 以便刪除相關資料夾
+                try:
+                    with open(course_profile_path, 'r', encoding='utf-8') as f:
+                        course_data = json.load(f)
+                        session_id = course_data.get('session_id')
+                        if session_id:
+                            # 刪除 data 和 vectordbs 下該課程的 session_id 資料夾
+                            for base_dir in [app.config['UPLOAD_FOLDER'], app.config['VECTOR_DB_DIR']]:
+                                target_dir = os.path.join(base_dir, session_id)
+                                if os.path.exists(target_dir):
+                                    shutil.rmtree(target_dir, ignore_errors=True)
+                except Exception as e:
+                    app.logger.error(f"Error processing course {course_id}: {str(e)}")
+                
+                # 刪除課程檔案
+                os.remove(course_profile_path)
+        
+        # 3. 刪除所有相關的學習日誌
+        for log_file in os.listdir(app.config['LEARNING_LOGS_DIR']):
+            if log_file.endswith('.json'):
+                try:
+                    log_path = os.path.join(app.config['LEARNING_LOGS_DIR'], log_file)
+                    with open(log_path, 'r', encoding='utf-8') as f:
+                        log_data = json.load(f)
+                        if log_data.get('student_id') == user_id:
+                            os.remove(log_path)
+                except Exception as e:
+                    app.logger.error(f"Error deleting log file {log_file}: {str(e)}")
+        
+        # 4. 刪除學生檔案
+        profile_path = os.path.join(app.config['STUDENT_PROFILES_DIR'], f"{user_id}.json")
+        if os.path.exists(profile_path):
+            os.remove(profile_path)
+        
+        # 5. 如果當前 session 的 student_id 是被刪除的使用者，清除 session
+        if session.get('student_id') == user_id:
+            session.pop('student_id', None)
+            session.pop('course_id', None)
+            session.pop('session_id', None)
+        
+        app.logger.info(f"Successfully deleted user {user_id}")
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Error deleting user {user_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/delete_course/<course_id>', methods=['POST'])
 def delete_course(course_id):
     if 'student_id' not in session:
